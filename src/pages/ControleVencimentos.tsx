@@ -16,41 +16,41 @@ import {
 
 export default function ControleVencimentos() {
   const { toast } = useToast();
-  const [vencimentos, setVencimentos] = useState([
-    {
-      id: 1,
-      item: "Certificado de Aeronavegabilidade",
-      aeronave: "PT-ABC",
-      dataVencimento: "2025-11-15",
-      diasRestantes: 37,
-      diasAlerta: 30,
-      status: "pendente",
-      periodoTipo: "dias",
-      periodoValor: 365
-    },
-    {
-      id: 2,
-      item: "Inspeção 100h",
-      aeronave: "PT-XYZ",
-      dataVencimento: "2025-11-30",
-      diasRestantes: 52,
-      diasAlerta: 15,
-      status: "programado",
-      periodoTipo: "horas",
-      periodoValor: 100
-    },
-    {
-      id: 3,
-      item: "Seguro de Responsabilidade Civil",
-      aeronave: "PT-ABC",
-      dataVencimento: "2026-03-20",
-      diasRestantes: 162,
-      diasAlerta: 30,
-      status: "concluido",
-      periodoTipo: "meses",
-      periodoValor: 12
-    },
-  ]);
+  const [vencimentos, setVencimentos] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const { fetchManutencoesWithAircraft } = await import("@/services/manutencoes");
+        const rows = await fetchManutencoesWithAircraft();
+        const today = new Date().getTime();
+        const mapped = rows.map((m) => {
+          const dt = new Date(m.data_programada).getTime();
+          const diasRestantes = Math.ceil((dt - today) / (1000 * 60 * 60 * 24));
+          return {
+            id: m.id,
+            item: m.tipo,
+            aeronave: m.aeronave_registration || "-",
+            dataVencimento: m.data_programada,
+            diasRestantes,
+            diasAlerta: 30,
+            status: m.etapa === "concluida" ? "concluido" : m.etapa === "em_andamento" ? "programado" : "pendente",
+            periodoTipo: "dias",
+            periodoValor: null,
+          };
+        });
+        setVencimentos(mapped);
+      } catch (e) {
+        console.error(e);
+        toast({ title: "Erro ao carregar", description: "Falha ao buscar vencimentos.", variant: "destructive" });
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [toast]);
 
   const getStatusInfo = (diasRestantes: number, diasAlerta: number, status: string) => {
     if (status === "concluido") {
