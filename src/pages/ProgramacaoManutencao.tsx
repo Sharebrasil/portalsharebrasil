@@ -7,27 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState, useEffect } from "react";
 import { ManutencaoDialog } from "@/components/manutencao/ManutencaoDialog";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-
-interface Manutencao {
-  id: string;
-  tipo: string;
-  aeronave_id: string | null;
-  data_programada: string;
-  mecanico: string;
-  etapa: string;
-  oficina?: string | null;
-  observacoes?: string | null;
-  custo_estimado?: number | null;
-  created_at?: string | null;
-  updated_at?: string | null;
-  aeronave_registration?: string;
-}
+import { fetchManutencoesWithAircraft, type ManutencaoWithAircraft } from "@/services/manutencoes";
 
 export default function ProgramacaoManutencao() {
-  const [manutencoes, setManutencoes] = useState<Manutencao[]>([]);
-  const [filteredManutencoes, setFilteredManutencoes] = useState<Manutencao[]>([]);
+  const [manutencoes, setManutencoes] = useState<ManutencaoWithAircraft[]>([]);
+  const [filteredManutencoes, setFilteredManutencoes] = useState<ManutencaoWithAircraft[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -44,36 +29,8 @@ export default function ProgramacaoManutencao() {
   const loadManutencoes = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("manutencoes")
-        .select("*")
-        .order("data_programada", { ascending: false });
-
-      if (error) throw error;
-
-      const manutencoesData = data || [];
-
-      if (manutencoesData.length > 0 && manutencoesData[0].aeronave_id) {
-        const { data: aircraftData } = await supabase
-          .from("aircraft")
-          .select("id, registration");
-
-        const aircraftMap = (aircraftData || []).reduce(
-          (acc, aircraft) => {
-            acc[aircraft.id] = aircraft.registration;
-            return acc;
-          },
-          {} as Record<string, string>
-        );
-
-        manutencoesData.forEach((m) => {
-          if (m.aeronave_id && aircraftMap[m.aeronave_id]) {
-            m.aeronave_registration = aircraftMap[m.aeronave_id];
-          }
-        });
-      }
-
-      setManutencoes(manutencoesData as Manutencao[]);
+      const manutencoesData = await fetchManutencoesWithAircraft();
+      setManutencoes(manutencoesData);
     } catch (error) {
       console.error("Erro ao carregar manutenções:", error);
       toast({
@@ -106,7 +63,7 @@ export default function ProgramacaoManutencao() {
 
   const handleEtapaChange = async (id: string, novaEtapa: string) => {
     try {
-      const { error } = await supabase
+      const { error } = await (await import("@/integrations/supabase/client")).supabase
         .from("manutencoes")
         .update({ etapa: novaEtapa })
         .eq("id", id);
@@ -134,7 +91,10 @@ export default function ProgramacaoManutencao() {
   const handleDeleteManutencao = async (id: string) => {
     setDeleteId(id);
     try {
-      const { error } = await supabase.from("manutencoes").delete().eq("id", id);
+      const { error } = await (await import("@/integrations/supabase/client")).supabase
+        .from("manutencoes")
+        .delete()
+        .eq("id", id);
 
       if (error) throw error;
 
