@@ -60,7 +60,17 @@ export default function EmissaoRecibo() {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const debounceRef = useRef<number | null>(null);
 
+  const [favoriteDescriptions, setFavoriteDescriptions] = useState<{ id: string; description: string }[]>([]);
+  const [newFavoriteDescription, setNewFavoriteDescription] = useState("");
+  const [recentReceipts, setRecentReceipts] = useState<{ id: string; receipt_number: string; issue_date: string; amount: number }[]>([]);
+  const [favoritePayers, setFavoritePayers] = useState<FavoritePayer[]>([]);
+
   const canSaveFavorite = useMemo(() => !!(pagadorNome && pagadorDocumento && user?.id), [pagadorNome, pagadorDocumento, user?.id]);
+
+  useEffect(() => {
+    const n = parseFloat(valor.replace(",", "."));
+    if (!isNaN(n)) setValorExtenso(numberToCurrencyWordsPtBr(n));
+  }, [valor]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
