@@ -165,7 +165,7 @@ export default function ControleVencimentos() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {vencimentos.map((vencimento) => {
+              {vencimentos.map((vencimento: any) => {
                 const statusInfo = getStatusInfo(vencimento.diasRestantes, vencimento.diasAlerta, vencimento.status);
                 
                 return (
