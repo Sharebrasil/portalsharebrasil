@@ -35,6 +35,16 @@ export default function RelatoriosTecnicos() {
     load();
   }, []);
 
+  if (loading) {
+    return (
+      <Layout>
+        <div className="p-6 flex items-center justify-center min-h-[400px]">
+          <span className="text-muted-foreground">Carregando relatórios...</span>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
       <div className="p-6 space-y-6">
