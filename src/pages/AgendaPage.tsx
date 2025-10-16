@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Label } from "@/components/ui/label";
 import { Search, Users, Building, Truck, Hotel, Plus, Edit, Trash2 } from "lucide-react";
 import { ContactModal } from "@/components/ContactModal";
 import {
@@ -18,6 +18,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger, // Added import
 } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import type { Contact, ContactFormData } from "@/types/agenda";
@@ -139,9 +140,18 @@ export default function AgendaPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<string>("todos");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | undefined>();
+  const [isHotelModalOpen, setIsHotelModalOpen] = useState(false);
+  const [editingHotel, setEditingHotel] = useState<Contact | undefined>();
+  const [hotelForm, setHotelForm] = useState({
+    nome: "",
+    telefone: "",
+    cidade: "",
+    endereco: "",
+    preco_single: "",
+    preco_duplo: "",
+  });
   const { toast } = useToast();
 
   const loadContacts = useCallback(
@@ -208,12 +218,24 @@ export default function AgendaPage() {
     setIsModalOpen(true);
   };
 
+  const handleAddHotel = () => {
+    setEditingHotel(undefined);
+    setHotelForm({ nome: "", telefone: "", cidade: "", endereco: "", preco_single: "", preco_duplo: "" });
+    setIsHotelModalOpen(true);
+  };
+
   const handleEditContact = (contact: Contact) => {
     if (contact.origin === "hoteis") {
-      toast({
-        title: "Ação não disponível",
-        description: "Atualize os dados de hotéis diretamente na base de hotéis.",
+      setEditingHotel(contact);
+      setHotelForm({
+        nome: contact.nome || "",
+        telefone: contact.telefone || "",
+        cidade: contact.cidade || "",
+        endereco: contact.endereco || "",
+        preco_single: contact.precoSingle !== undefined ? String(contact.precoSingle) : "",
+        preco_duplo: contact.precoDuplo !== undefined ? String(contact.precoDuplo) : "",
       });
+      setIsHotelModalOpen(true);
       return;
     }
 
@@ -222,32 +244,22 @@ export default function AgendaPage() {
   };
 
   const handleDeleteContact = async (contact: Contact) => {
-    if (contact.origin === "hoteis") {
-      toast({
-        title: "Ação não disponível",
-        description: "Exclua hotéis pelo cadastro específico de hotéis.",
-      });
-      return;
-    }
-
     try {
+      if (contact.origin === "hoteis") {
+        const { error } = await supabase.from("hoteis").delete().eq("id", contact.id);
+        if (error) throw error;
+        toast({ title: "Sucesso", description: "Hotel excluído com sucesso" });
+        await loadContacts(searchTerm.trim() ? searchTerm : undefined);
+        return;
+      }
+
       const { error } = await supabase.from("contacts").delete().eq("id", contact.id);
-
       if (error) throw error;
-
-      toast({
-        title: "Sucesso",
-        description: "Contato excluído com sucesso",
-      });
-
+      toast({ title: "Sucesso", description: "Contato excluído com sucesso" });
       await loadContacts(searchTerm.trim() ? searchTerm : undefined);
     } catch (error) {
-      console.error("Erro ao excluir contato:", error);
-      toast({
-        title: "Erro",
-        description: "Erro ao excluir contato",
-        variant: "destructive",
-      });
+      console.error("Erro ao excluir:", error);
+      toast({ title: "Erro", description: "Erro ao excluir registro", variant: "destructive" });
     }
   };
 
@@ -299,10 +311,7 @@ export default function AgendaPage() {
     }
   };
 
-  const filteredContacts = contacts.filter((contact) => {
-    if (activeTab === "todos") return true;
-    return contact.categoria === activeTab;
-  });
+  const filteredContacts = contacts;
 
   const groupedContacts = filteredContacts.reduce((acc, contact) => {
     if (!acc[contact.categoria]) {
@@ -312,12 +321,6 @@ export default function AgendaPage() {
     return acc;
   }, {} as Record<Contact["categoria"], Contact[]>);
 
-  const categories = [
-    { id: "todos", label: "Todos", icon: <Search className="h-4 w-4" /> },
-    { id: "colaboradores", label: "Colaboradores", icon: <Building className="h-4 w-4" /> },
-    { id: "fornecedores", label: "Fornecedores", icon: <Truck className="h-4 w-4" /> },
-    { id: "hoteis", label: "Hotéis", icon: <Hotel className="h-4 w-4" /> },
-  ];
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
@@ -388,17 +391,7 @@ export default function AgendaPage() {
           />
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            {categories.map((category) => (
-              <TabsTrigger key={category.id} value={category.id} className="flex items-center gap-2">
-                {category.icon}
-                <span className="hidden sm:inline">{category.label}</span>
-              </TabsTrigger>
-            ))}
-          </TabsList>
-
-          <TabsContent value={activeTab} className="mt-6">
+        <div className="w-full mt-6">
             {loading ? (
               <div className="flex items-center justify-center py-12">
                 <div className="text-muted-foreground">Carregando...</div>
@@ -466,46 +459,44 @@ export default function AgendaPage() {
                                     {contact.cargo}
                                   </Badge>
                                 )}
-                                {contact.origin !== "hoteis" && (
-                                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => handleEditContact(contact)}
-                                      className="h-6 w-6 p-0"
-                                    >
-                                      <Edit className="h-3 w-3" />
-                                    </Button>
-                                    <AlertDialog>
-                                      <AlertDialogTrigger asChild>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                                <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleEditContact(contact)}
+                                    className="h-6 w-6 p-0"
+                                  >
+                                    <Edit className="h-3 w-3" />
+                                  </Button>
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                                      >
+                                        <Trash2 className="h-3 w-3" />
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>Excluir contato</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          Tem certeza que deseja excluir o contato "{contact.nome}"? Esta ação não pode ser desfeita.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                        <AlertDialogAction
+                                          onClick={() => handleDeleteContact(contact)}
+                                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                         >
-                                          <Trash2 className="h-3 w-3" />
-                                        </Button>
-                                      </AlertDialogTrigger>
-                                      <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                          <AlertDialogTitle>Excluir contato</AlertDialogTitle>
-                                          <AlertDialogDescription>
-                                            Tem certeza que deseja excluir o contato "{contact.nome}"? Esta ação não pode ser desfeita.
-                                          </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                          <AlertDialogAction
-                                            onClick={() => handleDeleteContact(contact)}
-                                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                          >
-                                            Excluir
-                                          </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                      </AlertDialogContent>
-                                    </AlertDialog>
-                                  </div>
-                                )}
+                                          Excluir
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                </div>
                               </div>
                             </div>
 
@@ -533,8 +524,7 @@ export default function AgendaPage() {
                 ))}
               </div>
             )}
-          </TabsContent>
-        </Tabs>
+        </div>
 
         <ContactModal
           isOpen={isModalOpen}
@@ -543,6 +533,83 @@ export default function AgendaPage() {
           onSave={handleSaveContact}
           onUpdate={handleUpdateContact}
         />
+
+        <Dialog open={isHotelModalOpen} onOpenChange={setIsHotelModalOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{editingHotel ? "Editar Hotel" : "Adicionar Hotel"}</DialogTitle>
+              <DialogDescription>Preencha os dados do hotel</DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="hotel_nome">Nome *</Label>
+                <Input id="hotel_nome" value={hotelForm.nome} onChange={(e) => setHotelForm({ ...hotelForm, nome: e.target.value })} />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="hotel_telefone">Telefone</Label>
+                  <Input id="hotel_telefone" value={hotelForm.telefone} onChange={(e) => setHotelForm({ ...hotelForm, telefone: e.target.value })} />
+                </div>
+                <div>
+                  <Label htmlFor="hotel_cidade">Cidade</Label>
+                  <Input id="hotel_cidade" value={hotelForm.cidade} onChange={(e) => setHotelForm({ ...hotelForm, cidade: e.target.value })} />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="hotel_endereco">Endereço</Label>
+                <Input id="hotel_endereco" value={hotelForm.endereco} onChange={(e) => setHotelForm({ ...hotelForm, endereco: e.target.value })} />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="hotel_preco_single">Preço Single</Label>
+                  <Input id="hotel_preco_single" type="number" step="0.01" value={hotelForm.preco_single} onChange={(e) => setHotelForm({ ...hotelForm, preco_single: e.target.value })} />
+                </div>
+                <div>
+                  <Label htmlFor="hotel_preco_duplo">Preço Duplo</Label>
+                  <Input id="hotel_preco_duplo" type="number" step="0.01" value={hotelForm.preco_duplo} onChange={(e) => setHotelForm({ ...hotelForm, preco_duplo: e.target.value })} />
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsHotelModalOpen(false)}>Cancelar</Button>
+              <Button onClick={async () => {
+                try {
+                  if (!hotelForm.nome) {
+                    toast({ title: "Campos obrigatórios", description: "Nome é obrigatório", variant: "destructive" });
+                    return;
+                  }
+                  const payload = {
+                    nome: hotelForm.nome,
+                    telefone: hotelForm.telefone || null,
+                    cidade: hotelForm.cidade || null,
+                    endereco: hotelForm.endereco || null,
+                    preco_single: hotelForm.preco_single !== "" ? Number(hotelForm.preco_single) : null,
+                    preco_duplo: hotelForm.preco_duplo !== "" ? Number(hotelForm.preco_duplo) : null,
+                  } as const;
+
+                  if (editingHotel) {
+                    const { error } = await supabase.from("hoteis").update(payload).eq("id", editingHotel.id);
+                    if (error) throw error;
+                    toast({ title: "Sucesso", description: "Hotel atualizado com sucesso" });
+                  } else {
+                    const { error } = await supabase.from("hoteis").insert(payload);
+                    if (error) throw error;
+                    toast({ title: "Sucesso", description: "Hotel cadastrado com sucesso" });
+                  }
+
+                  setIsHotelModalOpen(false);
+                  setEditingHotel(undefined);
+                  await loadContacts(searchTerm.trim() ? searchTerm : undefined);
+                } catch (error) {
+                  console.error("Erro ao salvar hotel:", error);
+                  toast({ title: "Erro", description: "Erro ao salvar hotel", variant: "destructive" });
+                }
+              }}>{editingHotel ? "Atualizar" : "Cadastrar"}</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   );
