@@ -36,10 +36,10 @@ type SuggestionItem =
   | { type: "favorite"; id: string; label: string; sublabel?: string; value: FavoritePayer }
   | { type: "client"; id: string; label: string; sublabel?: string; value: ClientSuggestion };
 
-const EDGE_PDF_URL = "https://yelanwtucirrxbskwjxc.supabase.co/functions/v1/recibo-pdf";
+const LOGO_FALLBACK = "https://cdn.builder.io/api/v1/image/assets%2F7985eb4f070c4737bdb55def52f94842%2Fca8ebec9b8374e83bee3347e23f6dbfb?format=webp&width=400";
 
 export default function EmissaoRecibo() {
-  const { user, session } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
 
   const [numero, setNumero] = useState("");
