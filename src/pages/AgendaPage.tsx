@@ -487,46 +487,44 @@ export default function AgendaPage() {
                                     {contact.cargo}
                                   </Badge>
                                 )}
-                                {contact.origin !== "hoteis" && (
-                                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => handleEditContact(contact)}
-                                      className="h-6 w-6 p-0"
-                                    >
-                                      <Edit className="h-3 w-3" />
-                                    </Button>
-                                    <AlertDialog>
-                                      <AlertDialogTrigger asChild>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                                <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleEditContact(contact)}
+                                    className="h-6 w-6 p-0"
+                                  >
+                                    <Edit className="h-3 w-3" />
+                                  </Button>
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                                      >
+                                        <Trash2 className="h-3 w-3" />
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>Excluir contato</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          Tem certeza que deseja excluir o contato "{contact.nome}"? Esta ação não pode ser desfeita.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                        <AlertDialogAction
+                                          onClick={() => handleDeleteContact(contact)}
+                                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                         >
-                                          <Trash2 className="h-3 w-3" />
-                                        </Button>
-                                      </AlertDialogTrigger>
-                                      <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                          <AlertDialogTitle>Excluir contato</AlertDialogTitle>
-                                          <AlertDialogDescription>
-                                            Tem certeza que deseja excluir o contato "{contact.nome}"? Esta ação não pode ser desfeita.
-                                          </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                          <AlertDialogAction
-                                            onClick={() => handleDeleteContact(contact)}
-                                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                          >
-                                            Excluir
-                                          </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                      </AlertDialogContent>
-                                    </AlertDialog>
-                                  </div>
-                                )}
+                                          Excluir
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                </div>
                               </div>
                             </div>
 
