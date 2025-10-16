@@ -34,7 +34,7 @@ export default function ConfigEmpresa() {
     const loadSettings = async () => {
       const { data, error } = await supabase
         .from("company_settings")
-        .select("id, name, cnpj, address, city, state, phone, email, logo_url")
+        .select("id, name, name_fantasy, cnpj, address, city, state, phone, email, zip_code, logo_url")
         .order("created_at", { ascending: false })
         .limit(1);
 
@@ -54,11 +54,12 @@ export default function ConfigEmpresa() {
         setCompanyData((prev) => ({
           ...prev,
           razaoSocial: row.name || prev.razaoSocial,
-          nomeFantasia: prev.nomeFantasia,
+          nomeFantasia: row.name_fantasy || prev.nomeFantasia,
           cnpj: row.cnpj || prev.cnpj,
           endereco: row.address || prev.endereco,
           cidade: row.city || prev.cidade,
           estado: row.state || prev.estado,
+          cep: row.zip_code || prev.cep,
           telefone: row.phone || prev.telefone,
           email: row.email || prev.email,
         }));
@@ -91,24 +92,33 @@ export default function ConfigEmpresa() {
     setSaving(true);
     try {
       const payload = {
-        id: recordId || "default",
         name: companyData.razaoSocial,
-        cnpj: companyData.cnpj,
-        address: `${companyData.endereco}${companyData.cep ? ` - CEP ${companyData.cep}` : ""}`,
-        city: companyData.cidade,
-        state: companyData.estado,
-        phone: companyData.telefone,
-        email: companyData.email,
+        name_fantasy: companyData.nomeFantasia || null,
+        cnpj: companyData.cnpj || null,
+        address: companyData.endereco || null,
+        city: companyData.cidade || null,
+        state: companyData.estado || null,
+        zip_code: companyData.cep || null,
+        phone: companyData.telefone || null,
+        email: companyData.email || null,
         logo_url: logoPreview || null,
-      } as const;
+      };
 
-      const { error } = await supabase
-        .from("company_settings")
-        .upsert(payload, { onConflict: "id" });
-
-      if (error) throw error;
-
-      setRecordId(payload.id);
+      if (recordId) {
+        const { error } = await supabase
+          .from("company_settings")
+          .update(payload)
+          .eq("id", recordId);
+        if (error) throw error;
+      } else {
+        const { data, error } = await supabase
+          .from("company_settings")
+          .insert(payload)
+          .select("id")
+          .single();
+        if (error) throw error;
+        setRecordId(data.id);
+      }
       toast({
         title: "Configurações salvas",
         description: "As informações da empresa foram atualizadas com sucesso.",
