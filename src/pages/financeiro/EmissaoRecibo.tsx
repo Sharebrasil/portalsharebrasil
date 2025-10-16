@@ -69,6 +69,8 @@ export default function EmissaoRecibo() {
   const [newFavoriteDescription, setNewFavoriteDescription] = useState("");
   const [recentReceipts, setRecentReceipts] = useState<{ id: string; receipt_number: string; issue_date: string; amount: number }[]>([]);
   const [favoritePayers, setFavoritePayers] = useState<FavoritePayer[]>([]);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const canSaveFavorite = useMemo(() => !!(pagadorNome && pagadorDocumento && user?.id), [pagadorNome, pagadorDocumento, user?.id]);
 
