@@ -228,10 +228,16 @@ export default function AgendaPage() {
 
   const handleEditContact = (contact: Contact) => {
     if (contact.origin === "hoteis") {
-      toast({
-        title: "Ação não disponível",
-        description: "Atualize os dados de hotéis diretamente na base de hotéis.",
+      setEditingHotel(contact);
+      setHotelForm({
+        nome: contact.nome || "",
+        telefone: contact.telefone || "",
+        cidade: contact.cidade || "",
+        endereco: contact.endereco || "",
+        preco_single: contact.precoSingle !== undefined ? String(contact.precoSingle) : "",
+        preco_duplo: contact.precoDuplo !== undefined ? String(contact.precoDuplo) : "",
       });
+      setIsHotelModalOpen(true);
       return;
     }
 
