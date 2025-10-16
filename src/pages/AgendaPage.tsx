@@ -375,17 +375,10 @@ export default function AgendaPage() {
               Gerencie todos os seus contatos organizados por categorias
             </p>
           </div>
-          {activeTab === "hoteis" ? (
-            <Button onClick={handleAddHotel} className="flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              Adicionar Hotel
-            </Button>
-          ) : (
-            <Button onClick={handleAddContact} className="flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              Adicionar Contato
-            </Button>
-          )}
+          <Button onClick={handleAddContact} className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            Adicionar Contato
+          </Button>
         </div>
 
         <div className="relative max-w-md">
