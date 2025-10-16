@@ -140,7 +140,6 @@ export default function AgendaPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<string>("todos");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | undefined>();
   const [isHotelModalOpen, setIsHotelModalOpen] = useState(false);
