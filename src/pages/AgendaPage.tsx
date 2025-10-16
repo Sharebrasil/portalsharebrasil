@@ -321,12 +321,6 @@ export default function AgendaPage() {
     return acc;
   }, {} as Record<Contact["categoria"], Contact[]>);
 
-  const categories = [
-    { id: "todos", label: "Todos", icon: <Search className="h-4 w-4" /> },
-    { id: "colaboradores", label: "Colaboradores", icon: <Building className="h-4 w-4" /> },
-    { id: "fornecedores", label: "Fornecedores", icon: <Truck className="h-4 w-4" /> },
-    { id: "hoteis", label: "Hotéis", icon: <Hotel className="h-4 w-4" /> },
-  ];
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
