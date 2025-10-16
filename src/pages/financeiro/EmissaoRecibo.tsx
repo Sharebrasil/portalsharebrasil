@@ -708,6 +708,17 @@ export default function EmissaoRecibo() {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContent className="max-w-4xl h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>Pré-visualização do Recibo</DialogTitle>
+          </DialogHeader>
+          <div className="w-full h-full">
+            {previewUrl && <iframe src={previewUrl} className="w-full h-full rounded" />}
+          </div>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }
