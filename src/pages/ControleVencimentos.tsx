@@ -69,21 +69,21 @@ export default function ControleVencimentos() {
     return { label: "Normal", color: "bg-success text-white", severity: "normal" };
   };
 
-  const handleAddVencimento = (novoVencimento: any) => {
-    setVencimentos([...vencimentos, novoVencimento]);
+  const handleAddVencimento = (_novoVencimento: any) => {
+    // Integração de criação via Supabase pode ser adicionada depois.
   };
 
-  const handleStatusChange = (id: number, newStatus: string) => {
-    setVencimentos(vencimentos.map(v => 
+  const handleStatusChange = (id: string, newStatus: string) => {
+    setVencimentos(vencimentos.map((v: any) =>
       v.id === id ? { ...v, status: newStatus } : v
     ));
-    
+
     const statusLabels: Record<string, string> = {
       pendente: "Pendente",
       programado: "Programado",
       concluido: "Concluído"
     };
-    
+
     toast({
       title: "Status atualizado",
       description: `Manutenção marcada como ${statusLabels[newStatus]}`
