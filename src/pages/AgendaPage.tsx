@@ -145,7 +145,7 @@ export default function AgendaPage() {
   const [editingContact, setEditingContact] = useState<Contact | undefined>();
   const [isHotelModalOpen, setIsHotelModalOpen] = useState(false);
   const [editingHotel, setEditingHotel] = useState<Contact | undefined>();
-  const [activeTab, setActiveTab] = useState<"colaboradores" | "fornecedores" | "hoteis">("hoteis");
+  const [activeTab, setActiveTab] = useState<"colaboradores" | "fornecedores" | "hoteis">("colaboradores");
   const [hotelForm, setHotelForm] = useState({
     nome: "",
     telefone: "",
