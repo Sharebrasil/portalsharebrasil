@@ -132,7 +132,7 @@ export default function EmissaoRecibo() {
       try {
         const clientsRes = await supabase
           .from("clients")
-          .select("id, company_name, cnpj, address")
+          .select("id, company_name, cnpj, address, city, state")
           .ilike("company_name", `%${term}%`)
           .limit(5);
         const clients: ClientSuggestion[] = clientsRes.data ?? [];
