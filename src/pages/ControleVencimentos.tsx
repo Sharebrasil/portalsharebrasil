@@ -7,6 +7,7 @@ import { Clock, AlertTriangle, Search, CheckCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { VencimentoDialog } from "@/components/vencimentos/VencimentoDialog";
 import { useToast } from "@/hooks/use-toast";
+import { useEffect } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
