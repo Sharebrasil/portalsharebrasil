@@ -348,11 +348,37 @@ export default function EmissaoRecibo() {
     page.drawText("TOTAL", { x: width - 80, y: tableY, size: 10, font: bold });
     tableY -= 12; page.drawLine({ start: { x: 30, y: tableY+6 }, end: { x: width - 30, y: tableY+6 }, thickness: 0.5 });
 
+    const wrapText = (text: string, maxWidth: number, fontRef: any, size: number): string[] => {
+      const words = text.split(/\s+/);
+      const lines: string[] = [];
+      let line = "";
+      for (const w of words) {
+        const test = line ? `${line} ${w}` : w;
+        const wpx = fontRef.widthOfTextAtSize(test, size);
+        if (wpx > maxWidth && line) {
+          lines.push(line);
+          line = w;
+        } else {
+          line = test;
+        }
+      }
+      if (line) lines.push(line);
+      return lines;
+    };
+
     const descLinha = numeroDoc ? `${servico} - NºDOC ${numeroDoc}` : servico;
-    page.drawText(descLinha, { x: 35, y: tableY, size: 10, font });
-    page.drawText("1", { x: width - 200, y: tableY, size: 10, font });
-    page.drawText(formatBRL(amountNum), { x: width - 140, y: tableY, size: 10, font });
-    page.drawText(formatBRL(amountNum), { x: width - 80, y: tableY, size: 10, font });
+    const descMaxWidth = (width - 210) - 35; // from 35 to before QUANT column
+    const descLines = wrapText(descLinha, descMaxWidth, font, 10);
+    descLines.forEach((ln, idx) => {
+      const yLine = tableY - idx * 12;
+      page.drawText(ln, { x: 35, y: yLine, size: 10, font });
+      if (idx === 0) {
+        page.drawText("1", { x: width - 200, y: yLine, size: 10, font });
+        page.drawText(formatBRL(amountNum), { x: width - 140, y: yLine, size: 10, font });
+        page.drawText(formatBRL(amountNum), { x: width - 80, y: yLine, size: 10, font });
+      }
+    });
+    tableY -= (descLines.length - 1) * 12;
 
     page.drawText("Total:", { x: width - 140, y: tableY - 20, size: 10, font: bold });
     page.drawText(formatBRL(amountNum), { x: width - 80, y: tableY - 20, size: 10, font });
@@ -637,7 +663,7 @@ export default function EmissaoRecibo() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="pagador-endereco">Endereço</Label>
-                <Input id="pagador-endereco" placeholder="Endereço completo" value={pagadorEndereco} onChange={(e) => setPagadorEndereco(e.target.value)} />
+                <Input id="pagador-endereco" placeholder="Endere��o completo" value={pagadorEndereco} onChange={(e) => setPagadorEndereco(e.target.value)} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
