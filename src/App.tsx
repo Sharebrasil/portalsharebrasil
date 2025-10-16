@@ -37,6 +37,7 @@ import ValeAlimentacao from "./pages/ValeAlimentacao";
 import ValeCombustivel from "./pages/ValeCombustivel";
 import ValeRefeicao from "./pages/ValeRefeicao";
 import GestaoUsuarios from "./pages/GestaoUsuarios";
+import ControleAbastecimento from "./pages/ControleAbastecimento";
 
 const queryClient = new QueryClient();
 
