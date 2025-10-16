@@ -144,6 +144,16 @@ export default function AgendaPage() {
   const [activeTab, setActiveTab] = useState<string>("todos");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | undefined>();
+  const [isHotelModalOpen, setIsHotelModalOpen] = useState(false);
+  const [editingHotel, setEditingHotel] = useState<Contact | undefined>();
+  const [hotelForm, setHotelForm] = useState({
+    nome: "",
+    telefone: "",
+    cidade: "",
+    endereco: "",
+    preco_single: "",
+    preco_duplo: "",
+  });
   const { toast } = useToast();
 
   const loadContacts = useCallback(
