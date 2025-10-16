@@ -48,7 +48,6 @@ export default function RelatoriosTecnicos() {
               Gerencie as Ordens de Serviço e relatórios técnicos de manutenção
             </p>
           </div>
-          <OSDialog onSave={handleSaveOS} />
         </div>
 
         <div className="grid gap-4 md:grid-cols-4">
