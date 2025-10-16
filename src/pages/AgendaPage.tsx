@@ -313,16 +313,7 @@ export default function AgendaPage() {
     }
   };
 
-  const filteredContacts = contacts;
-
-  const groupedContacts = filteredContacts.reduce((acc, contact) => {
-    if (!acc[contact.categoria]) {
-      acc[contact.categoria] = [];
-    }
-    acc[contact.categoria].push(contact);
-    return acc;
-  }, {} as Record<Contact["categoria"], Contact[]>);
-
+  const filteredContacts = contacts.filter((c) => c.categoria === activeTab);
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
