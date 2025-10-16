@@ -562,6 +562,83 @@ export default function AgendaPage() {
           onSave={handleSaveContact}
           onUpdate={handleUpdateContact}
         />
+
+        <Dialog open={isHotelModalOpen} onOpenChange={setIsHotelModalOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{editingHotel ? "Editar Hotel" : "Adicionar Hotel"}</DialogTitle>
+              <DialogDescription>Preencha os dados do hotel</DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="hotel_nome">Nome *</Label>
+                <Input id="hotel_nome" value={hotelForm.nome} onChange={(e) => setHotelForm({ ...hotelForm, nome: e.target.value })} />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="hotel_telefone">Telefone</Label>
+                  <Input id="hotel_telefone" value={hotelForm.telefone} onChange={(e) => setHotelForm({ ...hotelForm, telefone: e.target.value })} />
+                </div>
+                <div>
+                  <Label htmlFor="hotel_cidade">Cidade</Label>
+                  <Input id="hotel_cidade" value={hotelForm.cidade} onChange={(e) => setHotelForm({ ...hotelForm, cidade: e.target.value })} />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="hotel_endereco">Endereço</Label>
+                <Input id="hotel_endereco" value={hotelForm.endereco} onChange={(e) => setHotelForm({ ...hotelForm, endereco: e.target.value })} />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="hotel_preco_single">Preço Single</Label>
+                  <Input id="hotel_preco_single" type="number" step="0.01" value={hotelForm.preco_single} onChange={(e) => setHotelForm({ ...hotelForm, preco_single: e.target.value })} />
+                </div>
+                <div>
+                  <Label htmlFor="hotel_preco_duplo">Preço Duplo</Label>
+                  <Input id="hotel_preco_duplo" type="number" step="0.01" value={hotelForm.preco_duplo} onChange={(e) => setHotelForm({ ...hotelForm, preco_duplo: e.target.value })} />
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsHotelModalOpen(false)}>Cancelar</Button>
+              <Button onClick={async () => {
+                try {
+                  if (!hotelForm.nome) {
+                    toast({ title: "Campos obrigatórios", description: "Nome é obrigatório", variant: "destructive" });
+                    return;
+                  }
+                  const payload = {
+                    nome: hotelForm.nome,
+                    telefone: hotelForm.telefone || null,
+                    cidade: hotelForm.cidade || null,
+                    endereco: hotelForm.endereco || null,
+                    preco_single: hotelForm.preco_single !== "" ? Number(hotelForm.preco_single) : null,
+                    preco_duplo: hotelForm.preco_duplo !== "" ? Number(hotelForm.preco_duplo) : null,
+                  } as const;
+
+                  if (editingHotel) {
+                    const { error } = await supabase.from("hoteis").update(payload).eq("id", editingHotel.id);
+                    if (error) throw error;
+                    toast({ title: "Sucesso", description: "Hotel atualizado com sucesso" });
+                  } else {
+                    const { error } = await supabase.from("hoteis").insert(payload);
+                    if (error) throw error;
+                    toast({ title: "Sucesso", description: "Hotel cadastrado com sucesso" });
+                  }
+
+                  setIsHotelModalOpen(false);
+                  setEditingHotel(undefined);
+                  await loadContacts(searchTerm.trim() ? searchTerm : undefined);
+                } catch (error) {
+                  console.error("Erro ao salvar hotel:", error);
+                  toast({ title: "Erro", description: "Erro ao salvar hotel", variant: "destructive" });
+                }
+              }}>{editingHotel ? "Atualizar" : "Cadastrar"}</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   );
