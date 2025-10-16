@@ -1,11 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FileText, Download, Search, Eye } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { OSDialog } from "@/components/relatorios/OSDialog";
 
 export default function RelatoriosTecnicos() {
   const [relatorios, setRelatorios] = useState<any[]>([]);
