@@ -9,7 +9,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Receipt, Download, Eye, Plus, Star, Users } from "lucide-react";
+import { Receipt, Download, Eye, Plus, Star, Users, Trash2, FolderPlus, FileText } from "lucide-react";
+import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { numberToCurrencyWordsPtBr } from "@/lib/utils";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 interface FavoritePayer {
   id: string;
