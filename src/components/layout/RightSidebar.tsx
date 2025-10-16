@@ -76,6 +76,7 @@ export function RightSidebar() {
       label: "Controle de Abastecimento",
       icon: Fuel,
       color: "primary",
+      path: "/abastecimento",
     },
     {
       label: "Gestão de Tripulação",
