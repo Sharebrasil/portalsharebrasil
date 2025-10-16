@@ -8,49 +8,33 @@ import { Input } from "@/components/ui/input";
 import { OSDialog } from "@/components/relatorios/OSDialog";
 
 export default function RelatoriosTecnicos() {
-  const [relatorios, setRelatorios] = useState([
-    {
-      id: 1,
-      numero: "OS-2025-001",
-      tipo: "Manutenção Preventiva",
-      aeronave: "PT-ABC",
-      data: "2025-10-15",
-      mecanico: "João Silva",
-      status: "finalizado",
-      descricao: "Inspeção 50h realizada conforme manual"
-    },
-    {
-      id: 2,
-      numero: "OS-2025-002",
-      tipo: "Manutenção Corretiva",
-      aeronave: "PT-XYZ",
-      data: "2025-10-18",
-      mecanico: "Maria Santos",
-      status: "em_andamento",
-      descricao: "Reparo no sistema elétrico"
-    },
-    {
-      id: 3,
-      numero: "OS-2025-003",
-      tipo: "Inspeção",
-      aeronave: "PT-DEF",
-      data: "2025-10-20",
-      mecanico: "Pedro Costa",
-      status: "pendente",
-      descricao: "Inspeção pré-voo detalhada"
-    },
-  ]);
+  const [relatorios, setRelatorios] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleSaveOS = (os: any) => {
-    const existingIndex = relatorios.findIndex(r => r.id === os.id);
-    if (existingIndex >= 0) {
-      const updated = [...relatorios];
-      updated[existingIndex] = os;
-      setRelatorios(updated);
-    } else {
-      setRelatorios([...relatorios, os]);
-    }
-  };
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const { fetchManutencoesWithAircraft } = await import("@/services/manutencoes");
+        const rows = await fetchManutencoesWithAircraft();
+        const mapped = rows.map((m) => ({
+          id: m.id,
+          tipo: m.tipo,
+          aeronave: m.aeronave_registration || "-",
+          data: m.data_programada,
+          mecanico: m.mecanico,
+          status: m.etapa,
+          descricao: m.observacoes || "",
+        }));
+        setRelatorios(mapped);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
 
   return (
     <Layout>
