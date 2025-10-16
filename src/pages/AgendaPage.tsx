@@ -384,6 +384,14 @@ export default function AgendaPage() {
           />
         </div>
 
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="w-full">
+          <TabsList className="mt-2">
+            <TabsTrigger value="colaboradores">Colaboradores</TabsTrigger>
+            <TabsTrigger value="fornecedores">Fornecedores</TabsTrigger>
+            <TabsTrigger value="hoteis">Hotéis</TabsTrigger>
+          </TabsList>
+        </Tabs>
+
         <div className="w-full mt-6">
             {loading ? (
               <div className="flex items-center justify-center py-12">
@@ -399,122 +407,120 @@ export default function AgendaPage() {
               </div>
             ) : (
               <div className="space-y-8">
-                {Object.entries(groupedContacts).map(([category, contactsList]) => (
-                  <div key={category} className="space-y-4">
-                    <div className="flex items-center gap-2">
-                      {getCategoryIcon(category)}
-                      <h2 className="text-xl font-semibold text-foreground">
-                        {getCategoryLabel(category)}
-                      </h2>
-                      <Badge variant="secondary">{contactsList.length}</Badge>
-                    </div>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    {getCategoryIcon(activeTab)}
+                    <h2 className="text-xl font-semibold text-foreground">
+                      {getCategoryLabel(activeTab)}
+                    </h2>
+                    <Badge variant="secondary">{filteredContacts.length}</Badge>
+                  </div>
 
-                    <div className="space-y-3">
-                      {contactsList.map((contact) => (
-                        <Card key={contact.id} className="hover:shadow-lg transition-shadow group">
-                          <CardContent className="p-4">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-3 flex-1">
-                                <div className="flex items-center gap-2">
-                                  {getCategoryIcon(contact.categoria)}
-                                  <div>
-                                    <h3 className="font-semibold text-foreground">
-                                      {contact.nome}
-                                    </h3>
-                                    <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-                                      {contact.telefone && <span>{contact.telefone}</span>}
-                                      {contact.email && (
-                                        <>
-                                          <span>•</span>
-                                          <span>{contact.email}</span>
-                                        </>
-                                      )}
-                                      {contact.empresa && (
-                                        <>
-                                          <span>•</span>
-                                          <span>{contact.empresa}</span>
-                                        </>
-                                      )}
-                                      {contact.cidade && (
-                                        <>
-                                          <span>•</span>
-                                          <span>{contact.cidade}</span>
-                                        </>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-
+                  <div className="space-y-3">
+                    {filteredContacts.map((contact) => (
+                      <Card key={contact.id} className="hover:shadow-lg transition-shadow group">
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3 flex-1">
                               <div className="flex items-center gap-2">
-                                {contact.cargo && (
-                                  <Badge variant="outline" className="text-xs">
-                                    {contact.cargo}
-                                  </Badge>
-                                )}
-                                <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleEditContact(contact)}
-                                    className="h-6 w-6 p-0"
-                                  >
-                                    <Edit className="h-3 w-3" />
-                                  </Button>
-                                  <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-6 w-6 p-0 text-destructive hover:text-destructive"
-                                      >
-                                        <Trash2 className="h-3 w-3" />
-                                      </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                      <AlertDialogHeader>
-                                        <AlertDialogTitle>Excluir contato</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                          Tem certeza que deseja excluir o contato "{contact.nome}"? Esta ação não pode ser desfeita.
-                                        </AlertDialogDescription>
-                                      </AlertDialogHeader>
-                                      <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                        <AlertDialogAction
-                                          onClick={() => handleDeleteContact(contact)}
-                                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                        >
-                                          Excluir
-                                        </AlertDialogAction>
-                                      </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                  </AlertDialog>
+                                {getCategoryIcon(contact.categoria)}
+                                <div>
+                                  <h3 className="font-semibold text-foreground">
+                                    {contact.nome}
+                                  </h3>
+                                  <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                                    {contact.telefone && <span>{contact.telefone}</span>}
+                                    {contact.email && (
+                                      <>
+                                        <span>•</span>
+                                        <span>{contact.email}</span>
+                                      </>
+                                    )}
+                                    {contact.empresa && (
+                                      <>
+                                        <span>•</span>
+                                        <span>{contact.empresa}</span>
+                                      </>
+                                    )}
+                                    {contact.cidade && (
+                                      <>
+                                        <span>•</span>
+                                        <span>{contact.cidade}</span>
+                                      </>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             </div>
 
-                            {(contact.precoSingle !== undefined || contact.precoDuplo !== undefined) && (
-                              <div className="text-xs text-muted-foreground mt-2 flex flex-wrap gap-3">
-                                {contact.precoSingle !== undefined && (
-                                  <span>Single: {currencyFormatter.format(contact.precoSingle)}</span>
-                                )}
-                                {contact.precoDuplo !== undefined && (
-                                  <span>Duplo: {currencyFormatter.format(contact.precoDuplo)}</span>
-                                )}
+                            <div className="flex items-center gap-2">
+                              {contact.cargo && (
+                                <Badge variant="outline" className="text-xs">
+                                  {contact.cargo}
+                                </Badge>
+                              )}
+                              <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleEditContact(contact)}
+                                  className="h-6 w-6 p-0"
+                                >
+                                  <Edit className="h-3 w-3" />
+                                </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Excluir contato</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Tem certeza que deseja excluir o contato "{contact.nome}"? Esta ação não pode ser desfeita.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                      <AlertDialogAction
+                                        onClick={() => handleDeleteContact(contact)}
+                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                      >
+                                        Excluir
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
                               </div>
-                            )}
+                            </div>
+                          </div>
 
-                            {contact.observacoes && (
-                              <div className="text-xs text-muted-foreground mt-2 pt-2 border-t border-border">
-                                <span className="font-medium">Observações:</span> {contact.observacoes}
-                              </div>
-                            )}
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
+                          {(contact.precoSingle !== undefined || contact.precoDuplo !== undefined) && (
+                            <div className="text-xs text-muted-foreground mt-2 flex flex-wrap gap-3">
+                              {contact.precoSingle !== undefined && (
+                                <span>Single: {currencyFormatter.format(contact.precoSingle)}</span>
+                              )}
+                              {contact.precoDuplo !== undefined && (
+                                <span>Duplo: {currencyFormatter.format(contact.precoDuplo)}</span>
+                              )}
+                            </div>
+                          )}
+
+                          {contact.observacoes && (
+                            <div className="text-xs text-muted-foreground mt-2 pt-2 border-t border-border">
+                              <span className="font-medium">Observações:</span> {contact.observacoes}
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
                   </div>
-                ))}
+                </div>
               </div>
             )}
         </div>
