@@ -147,16 +147,16 @@ export default function RelatoriosTecnicos() {
                   <div className="flex items-center gap-2">
                     <Badge
                       className={
-                        relatorio.status === "finalizado"
+                        relatorio.status === "concluida"
                           ? "bg-success text-white"
                           : relatorio.status === "em_andamento"
                           ? "bg-warning text-black"
                           : "bg-primary text-primary-foreground"
                       }
                     >
-                      {relatorio.status === "finalizado" && "Finalizado"}
+                      {relatorio.status === "concluida" && "Finalizado"}
                       {relatorio.status === "em_andamento" && "Em Andamento"}
-                      {relatorio.status === "pendente" && "Pendente"}
+                      {relatorio.status === "aguardando" && "Pendente"}
                     </Badge>
                     <Button variant="outline" size="sm">
                       <Eye className="h-4 w-4 mr-1" />
