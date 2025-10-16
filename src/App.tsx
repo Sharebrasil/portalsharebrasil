@@ -36,6 +36,7 @@ import TripulanteDetalhes from "./pages/TripulanteDetalhes";
 import ValeAlimentacao from "./pages/ValeAlimentacao";
 import ValeCombustivel from "./pages/ValeCombustivel";
 import ValeRefeicao from "./pages/ValeRefeicao";
+import GestaoUsuarios from "./pages/GestaoUsuarios";
 
 const queryClient = new QueryClient();
 
@@ -77,6 +78,7 @@ const App = () => {
               <Route path="/perfil" element={renderProtected(<Perfil />)} />
               <Route path="/tripulacao" element={renderProtected(<GestaoTripulacao />)} />
               <Route path="/tripulacao/:id" element={renderProtected(<TripulanteDetalhes />)} />
+              <Route path="/admin/usuarios" element={renderProtected(<GestaoUsuarios />)} />
               <Route path="/diario-bordo" element={renderProtected(<DiarioBordo />)} />
               <Route path="/diario-bordo/:aircraftId" element={renderProtected(<DiarioBordoDetalhes />)} />
               <Route path="/manutencao/vencimentos" element={renderProtected(<ControleVencimentos />)} />

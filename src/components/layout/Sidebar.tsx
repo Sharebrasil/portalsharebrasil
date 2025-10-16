@@ -90,6 +90,16 @@ const menuGroups = [
       },
     ],
   },
+  {
+    title: "Administração",
+    items: [
+      {
+        title: "Usuários",
+        icon: Users,
+        href: "/admin/usuarios",
+      },
+    ],
+  },
 ];
 
 export function Sidebar() {
