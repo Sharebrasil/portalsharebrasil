@@ -19,6 +19,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger, // Added import
 } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import type { Contact, ContactFormData } from "@/types/agenda";
