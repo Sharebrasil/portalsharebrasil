@@ -274,42 +274,48 @@ export type Database = {
       }
       company_settings: {
         Row: {
+          id: string
+          name: string
+          name_fantasy: string | null
+          cnpj: string | null
           address: string | null
           city: string | null
-          cnpj: string | null
-          created_at: string | null
-          email: string | null
-          id: string
-          logo_url: string | null
-          name: string
-          phone: string | null
           state: string | null
+          zip_code: string | null
+          phone: string | null
+          email: string | null
+          logo_url: string | null
+          created_at: string | null
           updated_at: string | null
         }
         Insert: {
+          id?: string
+          name: string
+          name_fantasy?: string | null
+          cnpj?: string | null
           address?: string | null
           city?: string | null
-          cnpj?: string | null
-          created_at?: string | null
-          email?: string | null
-          id?: string
-          logo_url?: string | null
-          name: string
-          phone?: string | null
           state?: string | null
+          zip_code?: string | null
+          phone?: string | null
+          email?: string | null
+          logo_url?: string | null
+          created_at?: string | null
           updated_at?: string | null
         }
         Update: {
+          id?: string
+          name?: string
+          name_fantasy?: string | null
+          cnpj?: string | null
           address?: string | null
           city?: string | null
-          cnpj?: string | null
-          created_at?: string | null
-          email?: string | null
-          id?: string
-          logo_url?: string | null
-          name?: string
-          phone?: string | null
           state?: string | null
+          zip_code?: string | null
+          phone?: string | null
+          email?: string | null
+          logo_url?: string | null
+          created_at?: string | null
           updated_at?: string | null
         }
         Relationships: []
