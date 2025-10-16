@@ -33,8 +33,10 @@ type SuggestionItem =
   | { type: "favorite"; id: string; label: string; sublabel?: string; value: FavoritePayer }
   | { type: "client"; id: string; label: string; sublabel?: string; value: ClientSuggestion };
 
+const EDGE_PDF_URL = "https://yelanwtucirrxbskwjxc.supabase.co/functions/v1/recibo-pdf";
+
 export default function EmissaoRecibo() {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const { toast } = useToast();
 
   const [numero, setNumero] = useState("");
@@ -203,10 +205,12 @@ export default function EmissaoRecibo() {
     return numero;
   };
 
-  const saveReceipt = async () => {
+  const formatBRL = (num: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(num);
+
+  const saveReceipt = async (): Promise<string | null> => {
     if (!user?.id) {
       toast({ title: "Sessão necessária", description: "Faça login para salvar o recibo." });
-      return;
+      return null;
     }
     const recNumber = await ensureNumero();
     const issueDate = (dataEmissao && dataEmissao.length >= 10) ? dataEmissao : new Date().toISOString().slice(0, 10);
@@ -214,7 +218,7 @@ export default function EmissaoRecibo() {
 
     if (!recNumber || !issueDate || !amountNum || !valorExtenso.trim() || !servico.trim() || !pagadorNome.trim() || !pagadorDocumento.trim()) {
       toast({ title: "Preencha os campos obrigatórios", description: "Número, data, valor, valor por extenso, serviço e dados do pagador." });
-      return;
+      return null;
     }
 
     const { error } = await supabase.from("receipts" as any).insert({
@@ -233,22 +237,96 @@ export default function EmissaoRecibo() {
 
     if (error) {
       toast({ title: "Erro ao salvar recibo", description: "Verifique se a tabela receipts existe no Supabase." });
-      return;
+      return null;
     }
 
     toast({ title: "Recibo salvo", description: recNumber });
+    return recNumber;
+  };
+
+  const fetchCompanySettings = async () => {
+    const { data } = await supabase
+      .from("company_settings")
+      .select("name, cnpj, address, city, state")
+      .order("created_at", { ascending: false })
+      .limit(1);
+    return data && data.length > 0 ? data[0] : null;
+  };
+
+  const generatePdf = async (recNumber: string) => {
+    const company = await fetchCompanySettings();
+    const amountNum = parseFloat(valor || "0");
+    const issueDate = (dataEmissao && dataEmissao.length >= 10) ? dataEmissao : new Date().toISOString().slice(0, 10);
+
+    const emitterAddress = company ? [company.address, company.city, company.state].filter(Boolean).join(", ") : "";
+    const payerAddress = [pagadorEndereco, pagadorCidade, pagadorUF].filter(Boolean).join(", ");
+
+    const payload = {
+      filename: `recibo-${recNumber}.pdf`,
+      receipt_number: recNumber,
+      total_value: formatBRL(amountNum),
+      emitter: {
+        name: company?.name || "",
+        cpf_cnpj: company?.cnpj || "",
+        address: emitterAddress,
+      },
+      payer: {
+        name: pagadorNome,
+        cpf_cnpj: pagadorDocumento,
+        address: payerAddress,
+      },
+      items: [
+        { description: servico, quantity: 1, price: formatBRL(amountNum), total: formatBRL(amountNum) },
+      ],
+      observation: "",
+      amount_text: valorExtenso,
+      recepit_table_insert: null,
+      issue_date: issueDate,
+    } as const;
+
+    const res = await fetch(EDGE_PDF_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const msg = await res.text();
+      throw new Error(msg || "Falha ao gerar PDF");
+    }
+
+    const { url } = await res.json();
+    return url as string;
   };
 
   const onVisualizar = async () => {
     await maybeSaveFavorite();
-    await saveReceipt();
-    toast({ title: "Visualização", description: "Pré-visualização do recibo." });
+    const rec = await saveReceipt();
+    if (rec) {
+      try {
+        const url = await generatePdf(rec);
+        toast({ title: "Pré-visualização pronta", description: url });
+      } catch (e: any) {
+        toast({ title: "Erro ao gerar PDF", description: String(e?.message || e) });
+      }
+    }
   };
 
   const onGerarPDF = async () => {
     await maybeSaveFavorite();
-    await saveReceipt();
-    toast({ title: "PDF", description: "Geração de PDF ainda não implementada." });
+    const rec = await saveReceipt();
+    if (rec) {
+      try {
+        const url = await generatePdf(rec);
+        toast({ title: "PDF gerado e salvo", description: url });
+        window.open(url, "_blank", "noopener,noreferrer");
+      } catch (e: any) {
+        toast({ title: "Erro ao gerar PDF", description: String(e?.message || e) });
+      }
+    }
   };
 
   return (
