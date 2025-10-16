@@ -220,6 +220,12 @@ export default function AgendaPage() {
     setIsModalOpen(true);
   };
 
+  const handleAddHotel = () => {
+    setEditingHotel(undefined);
+    setHotelForm({ nome: "", telefone: "", cidade: "", endereco: "", preco_single: "", preco_duplo: "" });
+    setIsHotelModalOpen(true);
+  };
+
   const handleEditContact = (contact: Contact) => {
     if (contact.origin === "hoteis") {
       toast({
