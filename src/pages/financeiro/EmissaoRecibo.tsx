@@ -412,7 +412,8 @@ export default function EmissaoRecibo() {
       const bytes = await drawPdf(rec);
       const blob = new Blob([bytes], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
-      window.open(url, "_blank", "noopener,noreferrer");
+      setPreviewUrl(url);
+      setIsPreviewOpen(true);
       toast({ title: "Pré-visualização pronta" });
     } catch (e: any) {
       toast({ title: "Erro ao gerar PDF", description: String(e?.message || e) });
@@ -663,7 +664,7 @@ export default function EmissaoRecibo() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="pagador-endereco">Endereço</Label>
-                <Input id="pagador-endereco" placeholder="Endere��o completo" value={pagadorEndereco} onChange={(e) => setPagadorEndereco(e.target.value)} />
+                <Input id="pagador-endereco" placeholder="Endereço completo" value={pagadorEndereco} onChange={(e) => setPagadorEndereco(e.target.value)} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
