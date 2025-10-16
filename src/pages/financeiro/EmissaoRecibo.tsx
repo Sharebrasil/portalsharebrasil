@@ -47,6 +47,8 @@ export default function EmissaoRecibo() {
   const [valor, setValor] = useState<string>("");
   const [valorExtenso, setValorExtenso] = useState<string>("");
   const [servico, setServico] = useState("");
+  const [numeroDoc, setNumeroDoc] = useState("");
+  const [prazoMaximoQuitacao, setPrazoMaximoQuitacao] = useState<string>("");
 
   const [pagadorNome, setPagadorNome] = useState("");
   const [pagadorDocumento, setPagadorDocumento] = useState("");
@@ -265,6 +267,8 @@ export default function EmissaoRecibo() {
       amount: amountNum,
       amount_text: valorExtenso,
       service_description: servico,
+      number_doc: numeroDoc || null,
+      payoff_number: prazoMaximoQuitacao || null,
       payer_name: pagadorNome,
       payer_document: pagadorDocumento,
       payer_address: pagadorEndereco || null,
@@ -337,7 +341,8 @@ export default function EmissaoRecibo() {
     page.drawText("TOTAL", { x: width - 80, y: tableY, size: 10, font: bold });
     tableY -= 12; page.drawLine({ start: { x: 30, y: tableY+6 }, end: { x: width - 30, y: tableY+6 }, thickness: 0.5 });
 
-    page.drawText(servico, { x: 35, y: tableY, size: 10, font });
+    const descLinha = numeroDoc ? `${servico} - NºDOC ${numeroDoc}` : servico;
+    page.drawText(descLinha, { x: 35, y: tableY, size: 10, font });
     page.drawText("1", { x: width - 200, y: tableY, size: 10, font });
     page.drawText(formatBRL(amountNum), { x: width - 140, y: tableY, size: 10, font });
     page.drawText(formatBRL(amountNum), { x: width - 80, y: tableY, size: 10, font });
@@ -345,9 +350,13 @@ export default function EmissaoRecibo() {
     page.drawText("Total:", { x: width - 140, y: tableY - 20, size: 10, font: bold });
     page.drawText(formatBRL(amountNum), { x: width - 80, y: tableY - 20, size: 10, font });
 
-    page.drawText("Observação:", { x: 30, y: 110, size: 10, font: bold });
-    page.drawText("Valor por extenso:", { x: 30, y: 90, size: 10, font: bold });
-    page.drawText(valorExtenso, { x: 30, y: 76, size: 10, font });
+    const prazoLabel = "PRAZO MÁXIMO DE QUITAÇÃO:";
+    const prazoValor = prazoMaximoQuitacao ? new Date(prazoMaximoQuitacao).toLocaleDateString("pt-BR") : "";
+    page.drawText(`${prazoLabel} ${prazoValor}`.trim(), { x: 30, y: 110, size: 10, font });
+
+    page.drawText("Observação:", { x: 30, y: 95, size: 10, font: bold });
+    page.drawText("Valor por extenso:", { x: 30, y: 80, size: 10, font: bold });
+    page.drawText(valorExtenso, { x: 30, y: 66, size: 10, font });
 
     const bytes = await pdfDoc.save();
     return bytes;
@@ -536,6 +545,16 @@ export default function EmissaoRecibo() {
               <div className="space-y-2">
                 <Label htmlFor="servico">Descrição do Serviço</Label>
                 <Textarea id="servico" placeholder="Descreva os serviços prestados" rows={3} value={servico} onChange={(e) => setServico(e.target.value)} />
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="numero-doc">Número Doc Infraero (opcional)</Label>
+                  <Input id="numero-doc" placeholder="Ex.: 4004" value={numeroDoc} onChange={(e)=>setNumeroDoc(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="prazo">PRAZO MÁXIMO DE QUITAÇÃO</Label>
+                  <Input id="prazo" type="date" value={prazoMaximoQuitacao} onChange={(e)=>setPrazoMaximoQuitacao(e.target.value)} />
+                </div>
               </div>
             </CardContent>
           </Card>
