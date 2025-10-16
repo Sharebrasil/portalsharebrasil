@@ -40,6 +40,7 @@ export default function EmissaoRecibo() {
   const [numero, setNumero] = useState("");
   const [dataEmissao, setDataEmissao] = useState<string>("");
   const [valor, setValor] = useState<string>("");
+  const [valorExtenso, setValorExtenso] = useState<string>("");
   const [servico, setServico] = useState("");
 
   const [pagadorNome, setPagadorNome] = useState("");
@@ -171,13 +172,82 @@ export default function EmissaoRecibo() {
     }
   };
 
+  const getYearSuffix = (dateStr?: string) => {
+    const d = dateStr ? new Date(dateStr) : new Date();
+    const yy = d.getFullYear() % 100;
+    return yy.toString().padStart(2, "0");
+  };
+
+  const random3 = () => Math.floor(Math.random() * 1000).toString().padStart(3, "0");
+
+  const generateUniqueReceiptNumber = async (yearSuffix: string): Promise<string> => {
+    for (let i = 0; i < 10; i++) {
+      const candidate = `${random3()}/${yearSuffix}`;
+      const { data, error } = await supabase
+        .from("receipts" as any)
+        .select("id")
+        .eq("receipt_number", candidate)
+        .limit(1);
+      if (!error && (!data || data.length === 0)) return candidate;
+    }
+    throw new Error("Falha ao gerar número único de recibo");
+  };
+
+  const ensureNumero = async () => {
+    const yy = getYearSuffix(dataEmissao);
+    if (!numero || !numero.endsWith(`/${yy}`)) {
+      const n = await generateUniqueReceiptNumber(yy);
+      setNumero(n);
+      return n;
+    }
+    return numero;
+  };
+
+  const saveReceipt = async () => {
+    if (!user?.id) {
+      toast({ title: "Sessão necessária", description: "Faça login para salvar o recibo." });
+      return;
+    }
+    const recNumber = await ensureNumero();
+    const issueDate = (dataEmissao && dataEmissao.length >= 10) ? dataEmissao : new Date().toISOString().slice(0, 10);
+    const amountNum = parseFloat(valor || "0");
+
+    if (!recNumber || !issueDate || !amountNum || !valorExtenso.trim() || !servico.trim() || !pagadorNome.trim() || !pagadorDocumento.trim()) {
+      toast({ title: "Preencha os campos obrigatórios", description: "Número, data, valor, valor por extenso, serviço e dados do pagador." });
+      return;
+    }
+
+    const { error } = await supabase.from("receipts" as any).insert({
+      receipt_number: recNumber,
+      issue_date: issueDate,
+      amount: amountNum,
+      amount_text: valorExtenso,
+      service_description: servico,
+      payer_name: pagadorNome,
+      payer_document: pagadorDocumento,
+      payer_address: pagadorEndereco || null,
+      payer_city: pagadorCidade || null,
+      payer_state: pagadorUF || null,
+      user_id: user.id,
+    });
+
+    if (error) {
+      toast({ title: "Erro ao salvar recibo", description: "Verifique se a tabela receipts existe no Supabase." });
+      return;
+    }
+
+    toast({ title: "Recibo salvo", description: recNumber });
+  };
+
   const onVisualizar = async () => {
     await maybeSaveFavorite();
+    await saveReceipt();
     toast({ title: "Visualização", description: "Pré-visualização do recibo." });
   };
 
   const onGerarPDF = async () => {
     await maybeSaveFavorite();
+    await saveReceipt();
     toast({ title: "PDF", description: "Geração de PDF ainda não implementada." });
   };
 
@@ -220,7 +290,12 @@ export default function EmissaoRecibo() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="valor-extenso">Valor por Extenso</Label>
-                <Input id="valor-extenso" placeholder="Será preenchido automaticamente" disabled />
+                <Input
+                  id="valor-extenso"
+                  placeholder="Ex.: Um mil reais e cinquenta centavos"
+                  value={valorExtenso}
+                  onChange={(e) => setValorExtenso(e.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="servico">Descrição do Serviço</Label>
