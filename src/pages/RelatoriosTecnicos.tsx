@@ -1,56 +1,49 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FileText, Download, Search, Eye } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { OSDialog } from "@/components/relatorios/OSDialog";
 
 export default function RelatoriosTecnicos() {
-  const [relatorios, setRelatorios] = useState([
-    {
-      id: 1,
-      numero: "OS-2025-001",
-      tipo: "Manutenção Preventiva",
-      aeronave: "PT-ABC",
-      data: "2025-10-15",
-      mecanico: "João Silva",
-      status: "finalizado",
-      descricao: "Inspeção 50h realizada conforme manual"
-    },
-    {
-      id: 2,
-      numero: "OS-2025-002",
-      tipo: "Manutenção Corretiva",
-      aeronave: "PT-XYZ",
-      data: "2025-10-18",
-      mecanico: "Maria Santos",
-      status: "em_andamento",
-      descricao: "Reparo no sistema elétrico"
-    },
-    {
-      id: 3,
-      numero: "OS-2025-003",
-      tipo: "Inspeção",
-      aeronave: "PT-DEF",
-      data: "2025-10-20",
-      mecanico: "Pedro Costa",
-      status: "pendente",
-      descricao: "Inspeção pré-voo detalhada"
-    },
-  ]);
+  const [relatorios, setRelatorios] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleSaveOS = (os: any) => {
-    const existingIndex = relatorios.findIndex(r => r.id === os.id);
-    if (existingIndex >= 0) {
-      const updated = [...relatorios];
-      updated[existingIndex] = os;
-      setRelatorios(updated);
-    } else {
-      setRelatorios([...relatorios, os]);
-    }
-  };
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const { fetchManutencoesWithAircraft } = await import("@/services/manutencoes");
+        const rows = await fetchManutencoesWithAircraft();
+        const mapped = rows.map((m) => ({
+          id: m.id,
+          tipo: m.tipo,
+          aeronave: m.aeronave_registration || "-",
+          data: m.data_programada,
+          mecanico: m.mecanico,
+          status: m.etapa,
+          descricao: m.observacoes || "",
+        }));
+        setRelatorios(mapped);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="p-6 flex items-center justify-center min-h-[400px]">
+          <span className="text-muted-foreground">Carregando relatórios...</span>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -64,7 +57,6 @@ export default function RelatoriosTecnicos() {
               Gerencie as Ordens de Serviço e relatórios técnicos de manutenção
             </p>
           </div>
-          <OSDialog onSave={handleSaveOS} />
         </div>
 
         <div className="grid gap-4 md:grid-cols-4">
@@ -76,7 +68,7 @@ export default function RelatoriosTecnicos() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-success">
-                {relatorios.filter(r => r.status === "finalizado").length}
+                {relatorios.filter(r => r.status === "concluida").length}
               </div>
             </CardContent>
           </Card>
@@ -145,17 +137,19 @@ export default function RelatoriosTecnicos() {
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <h3 className="font-semibold text-foreground">{relatorio.numero}</h3>
+                        <h3 className="font-semibold text-foreground">{relatorio.tipo}</h3>
                         <Badge variant="outline" className="text-xs">
-                          {relatorio.tipo}
+                          {relatorio.aeronave || "-"}
                         </Badge>
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        Aeronave: {relatorio.aeronave} | Mecânico: {relatorio.mecanico}
+                        Mecânico: {relatorio.mecanico}
                       </p>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {relatorio.descricao}
-                      </p>
+                      {relatorio.descricao && (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {relatorio.descricao}
+                        </p>
+                      )}
                       <p className="text-xs text-muted-foreground mt-1">
                         Data: {new Date(relatorio.data).toLocaleDateString('pt-BR')}
                       </p>
@@ -164,16 +158,16 @@ export default function RelatoriosTecnicos() {
                   <div className="flex items-center gap-2">
                     <Badge
                       className={
-                        relatorio.status === "finalizado"
+                        relatorio.status === "concluida"
                           ? "bg-success text-white"
                           : relatorio.status === "em_andamento"
                           ? "bg-warning text-black"
                           : "bg-primary text-primary-foreground"
                       }
                     >
-                      {relatorio.status === "finalizado" && "Finalizado"}
+                      {relatorio.status === "concluida" && "Finalizado"}
                       {relatorio.status === "em_andamento" && "Em Andamento"}
-                      {relatorio.status === "pendente" && "Pendente"}
+                      {relatorio.status === "aguardando" && "Pendente"}
                     </Badge>
                     <Button variant="outline" size="sm">
                       <Eye className="h-4 w-4 mr-1" />
