@@ -406,6 +406,101 @@ export default function EmissaoRecibo() {
           </Button>
         </div>
 
+        <Tabs defaultValue="descricoes" className="w-full">
+          <TabsList className="grid w-full grid-cols-3 max-w-xl mt-2">
+            <TabsTrigger value="descricoes">Descrição favoritas</TabsTrigger>
+            <TabsTrigger value="recibos">Recibos</TabsTrigger>
+            <TabsTrigger value="pagadores">Pagador favoritos</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="descricoes">
+            <Card className="mt-4">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><FileText className="h-4 w-4" /> Descrições favoritas</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex gap-2">
+                  <Input placeholder="Nova descrição" value={newFavoriteDescription} onChange={(e)=>setNewFavoriteDescription(e.target.value)} />
+                  <Button onClick={async()=>{
+                    if (!user?.id || !newFavoriteDescription.trim()) return;
+                    const { error } = await supabase.from("favorite_services" as any).insert({ description: newFavoriteDescription.trim(), user_id: user.id });
+                    if (!error) { setNewFavoriteDescription(""); await loadFavoriteDescriptions(); toast({ title: "Descrição adicionada" }); }
+                    else toast({ title: "Erro", description: error.message });
+                  }}>
+                    <FolderPlus className="h-4 w-4 mr-2" /> Adicionar
+                  </Button>
+                </div>
+                <div className="space-y-2">
+                  {favoriteDescriptions.map(d => (
+                    <div key={d.id} className="flex items-center justify-between rounded border p-2">
+                      <span className="text-sm">{d.description}</span>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={()=>setServico(d.description)}>Usar</Button>
+                        <Button variant="destructive" size="sm" onClick={async()=>{ await supabase.from("favorite_services" as any).delete().eq("id", d.id); await loadFavoriteDescriptions(); }}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                  {favoriteDescriptions.length===0 && <div className="text-sm text-muted-foreground">Nenhuma descrição favorita</div>}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="recibos">
+            <Card className="mt-4">
+              <CardHeader>
+                <CardTitle>Recibos</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {recentReceipts.map(r => (
+                  <div key={r.id} className="flex items-center justify-between rounded border p-2">
+                    <div className="text-sm">{r.receipt_number} • {new Date(r.issue_date).toLocaleDateString()} • {formatBRL(r.amount)}</div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={async()=>{ const path = `${user?.id}/recibo-${r.receipt_number}.pdf`; const { data } = await supabase.storage.from("recibos").createSignedUrl(path, 300); if (data?.signedUrl) window.open(data.signedUrl, "_blank"); }}>
+                        Ver
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={async()=>{ const path = `${user?.id}/recibo-${r.receipt_number}.pdf`; const { data } = await supabase.storage.from("recibos").createSignedUrl(path, 300); if (data?.signedUrl) window.open(data.signedUrl, "_blank"); }}>
+                        Baixar
+                      </Button>
+                      <Button variant="destructive" size="sm" onClick={async()=>{ const path = `${user?.id}/recibo-${r.receipt_number}.pdf`; await supabase.storage.from("recibos").remove([path]); await supabase.from("receipts" as any).delete().eq("id", r.id); await loadReceipts(); }}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+                {recentReceipts.length===0 && <div className="text-sm text-muted-foreground">Nenhum recibo</div>}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="pagadores">
+            <Card className="mt-4">
+              <CardHeader>
+                <CardTitle>Pagadores favoritos</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {favoritePayers.map(p => (
+                  <div key={p.id} className="flex items-center justify-between rounded border p-2">
+                    <div className="text-sm">
+                      <div className="font-medium">{p.name}</div>
+                      <div className="text-muted-foreground text-xs">{p.document}</div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={()=>applySuggestion({ type: "favorite", id: p.id, label: p.name, sublabel: p.document, value: p })}>Usar</Button>
+                      <Button variant="destructive" size="sm" onClick={async()=>{ await supabase.from("favorite_payers" as any).delete().eq("id", p.id); await loadFavoritePayers(); }}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+                {favoritePayers.length===0 && <div className="text-sm text-muted-foreground">Nenhum pagador favorito</div>}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
