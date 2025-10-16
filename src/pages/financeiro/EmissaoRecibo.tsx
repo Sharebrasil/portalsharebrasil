@@ -548,7 +548,7 @@ export default function EmissaoRecibo() {
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="numero-doc">Número Doc Infraero (opcional)</Label>
+                  <Label htmlFor="numero-doc"><p>Número Doc</p></Label>
                   <Input id="numero-doc" placeholder="Ex.: 4004" value={numeroDoc} onChange={(e)=>setNumeroDoc(e.target.value)} />
                 </div>
                 <div className="space-y-2">
