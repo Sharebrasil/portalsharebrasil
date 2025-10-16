@@ -80,6 +80,7 @@ const App = () => {
               <Route path="/tripulacao" element={renderProtected(<GestaoTripulacao />)} />
               <Route path="/tripulacao/:id" element={renderProtected(<TripulanteDetalhes />)} />
               <Route path="/admin/usuarios" element={renderProtected(<GestaoUsuarios />)} />
+              <Route path="/abastecimento" element={renderProtected(<ControleAbastecimento />)} />
               <Route path="/diario-bordo" element={renderProtected(<DiarioBordo />)} />
               <Route path="/diario-bordo/:aircraftId" element={renderProtected(<DiarioBordoDetalhes />)} />
               <Route path="/manutencao/vencimentos" element={renderProtected(<ControleVencimentos />)} />
