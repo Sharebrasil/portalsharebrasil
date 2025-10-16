@@ -13,6 +13,7 @@ import { Receipt, Download, Eye, Plus, Star, Users, Trash2, FolderPlus, FileText
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { numberToCurrencyWordsPtBr } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface FavoritePayer {
   id: string;
