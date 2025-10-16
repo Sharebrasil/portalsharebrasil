@@ -391,17 +391,7 @@ export default function AgendaPage() {
           />
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            {categories.map((category) => (
-              <TabsTrigger key={category.id} value={category.id} className="flex items-center gap-2">
-                {category.icon}
-                <span className="hidden sm:inline">{category.label}</span>
-              </TabsTrigger>
-            ))}
-          </TabsList>
-
-          <TabsContent value={activeTab} className="mt-6">
+        <div className="w-full mt-6">
             {loading ? (
               <div className="flex items-center justify-center py-12">
                 <div className="text-muted-foreground">Carregando...</div>
@@ -534,8 +524,7 @@ export default function AgendaPage() {
                 ))}
               </div>
             )}
-          </TabsContent>
-        </Tabs>
+        </div>
 
         <ContactModal
           isOpen={isModalOpen}
