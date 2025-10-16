@@ -311,10 +311,7 @@ export default function AgendaPage() {
     }
   };
 
-  const filteredContacts = contacts.filter((contact) => {
-    if (activeTab === "todos") return true;
-    return contact.categoria === activeTab;
-  });
+  const filteredContacts = contacts;
 
   const groupedContacts = filteredContacts.reduce((acc, contact) => {
     if (!acc[contact.categoria]) {
