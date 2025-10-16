@@ -59,7 +59,7 @@ export default function RelatoriosTecnicos() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-success">
-                {relatorios.filter(r => r.status === "finalizado").length}
+                {relatorios.filter(r => r.status === "concluida").length}
               </div>
             </CardContent>
           </Card>
