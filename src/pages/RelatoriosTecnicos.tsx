@@ -128,17 +128,19 @@ export default function RelatoriosTecnicos() {
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <h3 className="font-semibold text-foreground">{relatorio.numero}</h3>
+                        <h3 className="font-semibold text-foreground">{relatorio.tipo}</h3>
                         <Badge variant="outline" className="text-xs">
-                          {relatorio.tipo}
+                          {relatorio.aeronave || "-"}
                         </Badge>
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        Aeronave: {relatorio.aeronave} | Mecânico: {relatorio.mecanico}
+                        Mecânico: {relatorio.mecanico}
                       </p>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {relatorio.descricao}
-                      </p>
+                      {relatorio.descricao && (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {relatorio.descricao}
+                        </p>
+                      )}
                       <p className="text-xs text-muted-foreground mt-1">
                         Data: {new Date(relatorio.data).toLocaleDateString('pt-BR')}
                       </p>
