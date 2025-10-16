@@ -246,32 +246,22 @@ export default function AgendaPage() {
   };
 
   const handleDeleteContact = async (contact: Contact) => {
-    if (contact.origin === "hoteis") {
-      toast({
-        title: "Ação não disponível",
-        description: "Exclua hotéis pelo cadastro específico de hotéis.",
-      });
-      return;
-    }
-
     try {
+      if (contact.origin === "hoteis") {
+        const { error } = await supabase.from("hoteis").delete().eq("id", contact.id);
+        if (error) throw error;
+        toast({ title: "Sucesso", description: "Hotel excluído com sucesso" });
+        await loadContacts(searchTerm.trim() ? searchTerm : undefined);
+        return;
+      }
+
       const { error } = await supabase.from("contacts").delete().eq("id", contact.id);
-
       if (error) throw error;
-
-      toast({
-        title: "Sucesso",
-        description: "Contato excluído com sucesso",
-      });
-
+      toast({ title: "Sucesso", description: "Contato excluído com sucesso" });
       await loadContacts(searchTerm.trim() ? searchTerm : undefined);
     } catch (error) {
-      console.error("Erro ao excluir contato:", error);
-      toast({
-        title: "Erro",
-        description: "Erro ao excluir contato",
-        variant: "destructive",
-      });
+      console.error("Erro ao excluir:", error);
+      toast({ title: "Erro", description: "Erro ao excluir registro", variant: "destructive" });
     }
   };
 
