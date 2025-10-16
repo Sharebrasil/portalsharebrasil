@@ -31,6 +31,8 @@ interface ClientSuggestion {
   company_name: string | null;
   cnpj: string | null;
   address: string | null;
+  city: string | null;
+  state: string | null;
 }
 
 type SuggestionItem =
