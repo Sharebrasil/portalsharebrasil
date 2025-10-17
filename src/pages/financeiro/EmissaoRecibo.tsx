@@ -848,7 +848,7 @@ export default function EmissaoRecibo() {
         </Card>
       </div>
 
-      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+      <Dialog open={isPreviewOpen} onOpenChange={(open)=>{ setIsPreviewOpen(open); if(!open && previewUrl){ URL.revokeObjectURL(previewUrl); setPreviewUrl(null); } }}>
         <DialogContent className="max-w-4xl h-[80vh]">
           <DialogHeader>
             <DialogTitle>Pré-visualização do Recibo</DialogTitle>
