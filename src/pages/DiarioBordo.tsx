@@ -17,6 +17,7 @@ export default function DiarioBordo() {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [addAerodromeOpen, setAddAerodromeOpen] = useState(false);
   const [createDiaryOpen, setCreateDiaryOpen] = useState(false);
+  const [editingAircraft, setEditingAircraft] = useState<any | null>(null);
   const navigate = useNavigate();
 
   const { data: aircraft, isLoading } = useQuery({
