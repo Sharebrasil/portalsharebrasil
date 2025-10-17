@@ -29,6 +29,7 @@ export function AddAircraftDialog({ open, onOpenChange, aircraft }: AddAircraftD
     year: "",
     status: "Ativa",
     fuel_consumption: "",
+    base: "",
   });
 
   useEffect(() => {
@@ -42,6 +43,7 @@ export function AddAircraftDialog({ open, onOpenChange, aircraft }: AddAircraftD
         year: "",
         status: aircraft.status ?? "Ativa",
         fuel_consumption: aircraft.fuel_consumption != null ? String(aircraft.fuel_consumption) : "",
+        base: (aircraft as any).base ?? "",
       });
     } else if (open) {
       setFormData({
@@ -53,6 +55,7 @@ export function AddAircraftDialog({ open, onOpenChange, aircraft }: AddAircraftD
         year: "",
         status: "Ativa",
         fuel_consumption: "",
+        base: "",
       });
     }
   }, [aircraft, open]);
@@ -73,6 +76,7 @@ export function AddAircraftDialog({ open, onOpenChange, aircraft }: AddAircraftD
             owner_name: formData.owner_name,
             status: formData.status,
             fuel_consumption: formData.fuel_consumption || null,
+            base: formData.base || null,
           })
           .eq('id', aircraft.id);
         if (error) throw error;
@@ -87,6 +91,7 @@ export function AddAircraftDialog({ open, onOpenChange, aircraft }: AddAircraftD
           year: formData.year || null,
           status: formData.status,
           fuel_consumption: formData.fuel_consumption || null,
+          base: formData.base || null,
         }]);
         if (error) throw error;
         toast({ title: "Sucesso!", description: "Aeronave cadastrada com sucesso." });
@@ -179,6 +184,16 @@ export function AddAircraftDialog({ open, onOpenChange, aircraft }: AddAircraftD
               onChange={(e) => setFormData({ ...formData, owner_name: e.target.value })}
               placeholder="Nome do Proprietário"
               required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="base">Base</Label>
+            <Input
+              id="base"
+              value={formData.base}
+              onChange={(e) => setFormData({ ...formData, base: e.target.value })}
+              placeholder="Ex.: SBRJ, SBCY ou cidade"
             />
           </div>
 
