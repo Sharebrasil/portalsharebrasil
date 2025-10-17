@@ -59,10 +59,6 @@ export default function DiarioBordo() {
               <Plus className="h-4 w-4" />
               Criar Diário
             </Button>
-            <Button onClick={() => setAddAerodromeOpen(true)} variant="outline" className="gap-2">
-              <MapPin className="h-4 w-4" />
-              Adicionar Aeródromo
-            </Button>
           </div>
         </div>
 
