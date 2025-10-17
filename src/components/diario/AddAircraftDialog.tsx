@@ -72,7 +72,7 @@ export function AddAircraftDialog({ open, onOpenChange, aircraft }: AddAircraftD
             serial_number: formData.serial_number,
             owner_name: formData.owner_name,
             status: formData.status,
-            fuel_consumption: formData.fuel_consumption ? parseFloat(formData.fuel_consumption) : null,
+            fuel_consumption: formData.fuel_consumption || null,
           })
           .eq('id', aircraft.id);
         if (error) throw error;
@@ -84,9 +84,9 @@ export function AddAircraftDialog({ open, onOpenChange, aircraft }: AddAircraftD
           model: formData.model,
           serial_number: formData.serial_number,
           owner_name: formData.owner_name,
-          year: formData.year ? parseInt(formData.year, 10) : null,
+          year: formData.year || null,
           status: formData.status,
-          fuel_consumption: formData.fuel_consumption ? parseFloat(formData.fuel_consumption) : null,
+          fuel_consumption: formData.fuel_consumption || null,
         }]);
         if (error) throw error;
         toast({ title: "Sucesso!", description: "Aeronave cadastrada com sucesso." });
