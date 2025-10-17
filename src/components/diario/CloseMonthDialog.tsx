@@ -40,7 +40,7 @@ export function CloseMonthDialog({
     setIsLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       const { error } = await supabase
         .from('monthly_diary_closures')
         .insert({
