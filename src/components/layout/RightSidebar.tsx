@@ -182,11 +182,14 @@ export function RightSidebar() {
                     <span className="text-sm">{item.label}</span>
                   </div>
                   <Badge variant={statusConfig.variant}>{statusConfig.label}</Badge>
-                </div>
-              </Button>
-            );
-          })}
+               
+            </div>
+          ))}
         </CardContent>
       </Card>
-    </aside>;
+
+      <FlightPlanDialog open={flightPlanOpen} onOpenChange={setFlightPlanOpen} />
+      <FlightScheduleDialog open={scheduleOpen} onOpenChange={setScheduleOpen} />
+    </aside>
+  );
 }
