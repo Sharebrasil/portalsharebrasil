@@ -21,7 +21,7 @@ interface FavoritePayer {
   document: string;
   address: string | null;
   city: string | null;
-  state: string | null;
+  uf: string | null;
   user_id: string;
   created_at: string | null;
 }
@@ -32,12 +32,12 @@ interface ClientSuggestion {
   cnpj: string | null;
   address: string | null;
   city: string | null;
-  state: string | null;
+  uf: string | null;
 }
 
 type SuggestionItem =
   | { type: "favorite"; id: string; label: string; sublabel?: string; value: FavoritePayer }
-  | { type: "client"; id: string; label: string; sublabel?: string; value: ClientSuggestion };
+  | { type: "clients"; id: string; label: string; sublabel?: string; value: ClientsSuggestion };
 
 const LOGO_FALLBACK = "https://cdn.builder.io/api/v1/image/assets%2F7985eb4f070c4737bdb55def52f94842%2Fca8ebec9b8374e83bee3347e23f6dbfb?format=webp&width=400";
 
@@ -109,7 +109,7 @@ export default function EmissaoRecibo() {
         if (user?.id) {
           const favRes = await supabase
             .from("favorite_payers" as any)
-            .select("id, name, document, address, city, state, user_id, created_at")
+            .select("id, name, document, address, city, uf, user_id, created_at")
             .eq("user_id", user.id)
             .ilike("name", `%${term}%`)
             .limit(5);
@@ -132,13 +132,13 @@ export default function EmissaoRecibo() {
       try {
         const clientsRes = await supabase
           .from("clients")
-          .select("id, company_name, cnpj, address, city, state")
+          .select("id, company_name, cnpj, address, city, uf")
           .ilike("company_name", `%${term}%`)
           .limit(5);
         const clients: ClientSuggestion[] = clientsRes.data ?? [];
         clients.forEach((c) =>
           results.push({
-            type: "client",
+            type: "clients",
             id: c.id,
             label: c.company_name ?? "Sem nome",
             sublabel: c.cnpj ?? undefined,
@@ -160,13 +160,13 @@ export default function EmissaoRecibo() {
       setPagadorDocumento(s.value.document ?? "");
       setPagadorEndereco(s.value.address ?? "");
       setPagadorCidade(s.value.city ?? "");
-      setPagadorUF(s.value.state ?? "");
+      setPagadorUF(s.value.uf ?? "");
     } else {
       setPagadorNome(s.value.company_name ?? "");
       setPagadorDocumento(s.value.cnpj ?? "");
       setPagadorEndereco(s.value.address ?? "");
       setPagadorCidade(s.value.city ?? "");
-      setPagadorUF(s.value.state ?? "");
+      setPagadorUF(s.value.uf ?? "");
     }
     setShowSuggestions(false);
   };
@@ -183,7 +183,7 @@ export default function EmissaoRecibo() {
         document: pagadorDocumento,
         address: pagadorEndereco || null,
         city: pagadorCidade || null,
-        state: pagadorUF || null,
+        uf: pagadorUF || null,
         user_id: user?.id,
       });
       if (error) throw error;
@@ -243,7 +243,7 @@ export default function EmissaoRecibo() {
 
   const loadFavoritePayers = async () => {
     if (!user?.id) return;
-    const { data } = await supabase.from("favorite_payers" as any).select("id, name, document, address, city, state, user_id, created_at").eq("user_id", user.id).order("created_at", { ascending: false });
+    const { data } = await supabase.from("favorite_payers" as any).select("id, name, document, address, city, uf, user_id, created_at").eq("user_id", user.id).order("created_at", { ascending: false });
     setFavoritePayers((data as any) ?? []);
   };
 
@@ -280,7 +280,7 @@ export default function EmissaoRecibo() {
       payer_document: pagadorDocumento,
       payer_address: pagadorEndereco || null,
       payer_city: pagadorCidade || null,
-      payer_state: pagadorUF || null,
+      payer_uf: pagadorUF || null,
       user_id: user.id,
     });
 
@@ -296,196 +296,103 @@ export default function EmissaoRecibo() {
   const fetchCompanySettings = async () => {
     const { data } = await supabase
       .from("company_settings")
-      .select("name, cnpj, address, city, state, logo_url")
+      .select("name, cnpj, address, city, uf, logo_url")
       .order("created_at", { ascending: false })
       .limit(1);
     return data && data.length > 0 ? data[0] : null;
   };
 
-  interface ReceiptData {
-    receipt_number: string;
-    issue_date: string;
-    amount: number;
-    amount_text: string;
-    service_description: string;
-    payer_name: string;
-    payer_document: string;
-    payer_address?: string;
-    payer_city?: string;
-    payer_uf?: string;
-    number_doc?: string;
-    payoff_number?: string;
-  }
+  const drawPdf = async (recNumber: string): Promise<Uint8Array> => {
+    const company = await fetchCompanySettings();
+    const amountNum = parseFloat(valor || "0");
 
-  interface CompanyData {
-    name: string;
-    cnpj: string;
-    address: string;
-    city: string;
-    uf: string;
-    phone?: string;
-  }
+    const emitterAddress = company ? [company.address, company.city, company.uf].filter(Boolean).join(", ") : "";
+    const payerAddress = [pagadorEndereco, pagadorCidade, pagadorUF].filter(Boolean).join(", ");
 
-  const formatDate = (dateStr: string) => {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString("pt-BR");
-  };
-
-  function wrapText(text: string, maxWidth: number, fontRef: any, fontSize: number): string[] {
-    const words = text.split(" ");
-    const lines: string[] = [];
-    let currentLine = "";
-    for (const word of words) {
-      const testLine = currentLine ? `${currentLine} ${word}` : word;
-      const testWidth = fontRef.widthOfTextAtSize(testLine, fontSize);
-      if (testWidth > maxWidth && currentLine) {
-        lines.push(currentLine);
-        currentLine = word;
-      } else {
-        currentLine = testLine;
-      }
-    }
-    if (currentLine) lines.push(currentLine);
-    return lines;
-  }
-
-  const generateReceiptPDF = async (
-    receipt: ReceiptData,
-    company: CompanyData
-  ): Promise<Uint8Array> => {
     const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([595, 420]);
+    const page = pdfDoc.addPage([420, 595]);
     const { width, height } = page.getSize();
-
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
     try {
-      const logoUrl = "/logo.share.png";
-      const logoBytes = await fetch(logoUrl).then((r) => r.arrayBuffer());
-      const logoImage = await pdfDoc.embedPng(logoBytes);
-      const logoWidth = 80;
-      const logoHeight = 50;
-      page.drawImage(logoImage, {
-        x: 30,
-        y: height - logoHeight - 20,
-        width: logoWidth,
-        height: logoHeight,
-      });
+      const logoBytes = await fetch(company?.logo_url || LOGO_FALLBACK).then(r => r.arrayBuffer());
+      const png = await pdfDoc.embedPng(logoBytes);
+      page.drawImage(png, { x: 30, y: height - 80, width: 80, height: 50 });
     } catch {}
 
-    const titleText = "RECIBO DE PAGAMENTO";
-    const titleWidth = fontBold.widthOfTextAtSize(titleText, 14);
-    page.drawText(titleText, {
-      x: (width - titleWidth) / 2,
-      y: height - 40,
-      size: 14,
-      font: fontBold,
-      color: rgb(0, 0, 0),
+    page.drawText("RECIBO DE PAGAMENTO", { x: 150, y: height - 40, size: 14, font: bold });
+
+    page.drawRectangle({ x: width - 170, y: height - 95, width: 140, height: 60, color: rgb(0.95,0.95,0.95), borderColor: rgb(0,0,0), borderWidth: 0.5 });
+    page.drawText(`Valor: ${formatBRL(amountNum)}`, { x: width - 160, y: height - 60, size: 10, font });
+    page.drawText(`Recibo: ${recNumber}`, { x: width - 160, y: height - 78, size: 10, font });
+
+    let y = height - 120;
+    page.drawText("Emissor:", { x: 30, y, size: 11, font: bold });
+    y -= 14; page.drawText(company?.name || "", { x: 30, y, size: 10, font });
+    y -= 14; page.drawText(company?.cnpj || "", { x: 30, y, size: 10, font });
+    y -= 14; page.drawText(emitterAddress, { x: 30, y, size: 10, font });
+
+    y = height - 120;
+    page.drawText("Pagador:", { x: width/2 + 10, y, size: 11, font: bold });
+    y -= 14; page.drawText(pagadorNome || "", { x: width/2 + 10, y, size: 10, font });
+    y -= 14; page.drawText(pagadorDocumento || "", { x: width/2 + 10, y, size: 10, font });
+    y -= 14; page.drawText(payerAddress, { x: width/2 + 10, y, size: 10, font });
+
+    let tableY = height - 180;
+    page.drawLine({ start: { x: 30, y: tableY }, end: { x: width - 30, y: tableY }, thickness: 0.5 });
+    tableY -= 12;
+    page.drawText("DESCRIÇÃO", { x: 35, y: tableY, size: 10, font: bold });
+    page.drawText("QUANT.", { x: width - 200, y: tableY, size: 10, font: bold });
+    page.drawText("PREÇO", { x: width - 140, y: tableY, size: 10, font: bold });
+    page.drawText("TOTAL", { x: width - 80, y: tableY, size: 10, font: bold });
+    tableY -= 12; page.drawLine({ start: { x: 30, y: tableY+6 }, end: { x: width - 30, y: tableY+6 }, thickness: 0.5 });
+
+    const wrapText = (text: string, maxWidth: number, fontRef: any, size: number): string[] => {
+      const words = text.split(/\s+/);
+      const lines: string[] = [];
+      let line = "";
+      for (const w of words) {
+        const test = line ? `${line} ${w}` : w;
+        const wpx = fontRef.widthOfTextAtSize(test, size);
+        if (wpx > maxWidth && line) {
+          lines.push(line);
+          line = w;
+        } else {
+          line = test;
+        }
+      }
+      if (line) lines.push(line);
+      return lines;
+    };
+
+    const descLinha = numeroDoc ? `${servico} - NºDOC ${numeroDoc}` : servico;
+    const descMaxWidth = (width - 210) - 35; // from 35 to before QUANT column
+    const descLines = wrapText(descLinha, descMaxWidth, font, 10);
+    descLines.forEach((ln, idx) => {
+      const yLine = tableY - idx * 12;
+      page.drawText(ln, { x: 35, y: yLine, size: 10, font });
+      if (idx === 0) {
+        page.drawText("1", { x: width - 200, y: yLine, size: 10, font });
+        page.drawText(formatBRL(amountNum), { x: width - 140, y: yLine, size: 10, font });
+        page.drawText(formatBRL(amountNum), { x: width - 80, y: yLine, size: 10, font });
+      }
     });
+    tableY -= (descLines.length - 1) * 12;
 
-    const boxX = width - 170;
-    const boxY = height - 95;
-    const boxWidth = 140;
-    const boxHeight = 60;
-    page.drawRectangle({ x: boxX, y: boxY, width: boxWidth, height: boxHeight, borderColor: rgb(0, 0, 0), borderWidth: 1, color: rgb(0.95, 0.95, 0.95) });
-    page.drawText(formatBRL(receipt.amount), { x: boxX + 10, y: boxY + 35, size: 12, font: fontBold });
-    page.drawText(`Número do recibo:`, { x: boxX + 10, y: boxY + 18, size: 8, font });
-    page.drawText(receipt.receipt_number, { x: boxX + 10, y: boxY + 8, size: 10, font: fontBold });
+    page.drawText("Total:", { x: width - 140, y: tableY - 20, size: 10, font: bold });
+    page.drawText(formatBRL(amountNum), { x: width - 80, y: tableY - 20, size: 10, font });
 
-    let yPos = height - 110;
-    page.drawText("Emissor", { x: 30, y: yPos, size: 10, font: fontBold });
-    yPos -= 15; page.drawText(company.name, { x: 30, y: yPos, size: 9, font: fontBold });
-    yPos -= 13; page.drawText(`CNPJ: ${company.cnpj}`, { x: 30, y: yPos, size: 8, font });
-    yPos -= 13; page.drawText(company.phone || "/ (65) 98173-0641", { x: 30, y: yPos, size: 8, font });
-    yPos -= 13; page.drawText(`${company.address},`, { x: 30, y: yPos, size: 8, font });
-    yPos -= 13; page.drawText(`${company.city} - ${company.uf}`, { x: 30, y: yPos, size: 8, font });
+    const prazoLabel = "PRAZO MÁXIMO DE QUITAÇÃO:";
+    const prazoValor = prazoMaximoQuitacao ? new Date(prazoMaximoQuitacao).toLocaleDateString("pt-BR") : "";
+    page.drawText(`${prazoLabel} ${prazoValor}`.trim(), { x: 30, y: 110, size: 10, font });
 
-    yPos = height - 110;
-    const payerX = 310;
-    page.drawText("Pagador", { x: payerX, y: yPos, size: 10, font: fontBold });
-    yPos -= 15;
-    const payerNameLines = wrapText(receipt.payer_name, 250, font, 9);
-    payerNameLines.forEach((line) => { page.drawText(line, { x: payerX, y: yPos, size: 9, font: fontBold }); yPos -= 13; });
-    page.drawText(`CNPJ: ${receipt.payer_document}`, { x: payerX, y: yPos, size: 8, font });
-
-    yPos -= 25;
-    page.drawLine({ start: { x: 30, y: yPos }, end: { x: width - 30, y: yPos }, thickness: 1, color: rgb(0, 0, 0) });
-
-    yPos -= 18;
-    page.drawText("DESCRIÇÃO", { x: 35, y: yPos, size: 9, font: fontBold });
-    page.drawText("QUANT.", { x: width - 220, y: yPos, size: 9, font: fontBold });
-    page.drawText("PREÇO", { x: width - 160, y: yPos, size: 9, font: fontBold });
-    page.drawText("TOTAL", { x: width - 90, y: yPos, size: 9, font: fontBold });
-
-    yPos -= 8;
-    page.drawLine({ start: { x: 30, y: yPos }, end: { x: width - 30, y: yPos }, thickness: 0.5, color: rgb(0, 0, 0) });
-
-    yPos -= 15;
-    let fullDescription = receipt.service_description;
-    if (receipt.number_doc) fullDescription += ` - NºDOC ${receipt.number_doc}`;
-    const descriptionLines = wrapText(fullDescription, width - 280, font, 9);
-    descriptionLines.forEach((line, idx) => { page.drawText(line, { x: 35, y: yPos - idx * 12, size: 9, font }); });
-    page.drawText("1", { x: width - 220, y: yPos, size: 9, font });
-    page.drawText(formatBRL(receipt.amount), { x: width - 160, y: yPos, size: 9, font });
-    page.drawText(formatBRL(receipt.amount), { x: width - 90, y: yPos, size: 9, font });
-    yPos -= descriptionLines.length * 12 + 10;
-
-    page.drawLine({ start: { x: width - 180, y: yPos }, end: { x: width - 30, y: yPos }, thickness: 0.5, color: rgb(0, 0, 0) });
-
-    yPos -= 15; page.drawText("Subtotal:", { x: width - 180, y: yPos, size: 9, font });
-    page.drawText(formatBRL(receipt.amount), { x: width - 90, y: yPos, size: 9, font });
-    yPos -= 12; page.drawText("Desconto:", { x: width - 180, y: yPos, size: 9, font });
-    page.drawText("R$ 0,00", { x: width - 90, y: yPos, size: 9, font });
-    yPos -= 15; page.drawText("Total:", { x: width - 180, y: yPos, size: 10, font: fontBold });
-    page.drawText(formatBRL(receipt.amount), { x: width - 90, y: yPos, size: 10, font: fontBold });
-
-    yPos -= 35;
-    const observacaoText = receipt.service_description.includes("REFERENTE A TARIFA")
-      ? `Observação: ${receipt.service_description}${receipt.number_doc ? ' - NºDOC ' + receipt.number_doc : ''}. PRAZO PARA QUITAÇÃO ${receipt.payoff_number ? formatDate(receipt.payoff_number) : ''}.`
-      : `Observação: ${receipt.service_description}.`;
-    const obsLines = wrapText(observacaoText, width - 80, font, 8);
-    obsLines.forEach((line, idx) => { page.drawText(line, { x: 30, y: yPos - idx * 11, size: 8, font }); });
-    yPos -= obsLines.length * 11 + 15;
-
-    page.drawText(`Declaração:`, { x: 30, y: yPos, size: 8, font: fontBold });
-    yPos -= 12;
-    const declaracaoText = `Recebemos de ${receipt.payer_name}, a importância de ${receipt.amount_text}, referente aos itens listados acima. Para maior clareza, firmo o presente recibo para que produza seus efeitos, dando plena, geral e irrevogável quitação pelo valor recebido.`;
-    const declLines = wrapText(declaracaoText, width - 60, font, 8);
-    declLines.forEach((line, idx) => { page.drawText(line, { x: 30, y: yPos - idx * 11, size: 8, font }); });
+    page.drawText("Observação:", { x: 30, y: 95, size: 10, font: bold });
+    page.drawText("Valor por extenso:", { x: 30, y: 80, size: 10, font: bold });
+    page.drawText(valorExtenso, { x: 30, y: 66, size: 10, font });
 
     const bytes = await pdfDoc.save();
     return bytes;
-  };
-
-  const drawPdf = async (recNumber: string): Promise<Uint8Array> => {
-    const company = await fetchCompanySettings();
-
-    const companyData: CompanyData = {
-      name: company?.name || "SHARE BRASIL SERVICOS ADMINISTRATIVOS",
-      cnpj: company?.cnpj || "30.898.549/0001-06",
-      address: company?.address || "Avenida Presidente Arthur Bernardes, 1457, Centro-Sul",
-      city: company?.city || "Várzea Grande",
-      uf: (company as any)?.uf || (company as any)?.state || "MT",
-      phone: "/ (65) 98173-0641",
-    };
-
-    const receiptData: ReceiptData = {
-      receipt_number: recNumber,
-      issue_date: dataEmissao || new Date().toISOString().slice(0, 10),
-      amount: parseFloat(valor || "0"),
-      amount_text: valorExtenso,
-      service_description: servico,
-      payer_name: pagadorNome,
-      payer_document: pagadorDocumento,
-      payer_address: pagadorEndereco || undefined,
-      payer_city: pagadorCidade || undefined,
-      payer_uf: pagadorUF || undefined,
-      number_doc: numeroDoc || undefined,
-      payoff_number: prazoMaximoQuitacao || undefined,
-    };
-
-    return await generateReceiptPDF(receiptData, companyData);
   };
 
   const uploadPdfAndGetUrl = async (bytes: Uint8Array, recNumber: string) => {
