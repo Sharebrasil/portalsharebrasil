@@ -3,7 +3,22 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
-const SUPABASE_KEY = (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY) as string;
+
+const keyCandidates = [
+  import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined,
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined,
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY as string | undefined,
+];
+
+const SUPABASE_KEY = keyCandidates.find((k): k is string => typeof k === 'string' && k.length > 0);
+
+if (!SUPABASE_URL) {
+  throw new Error('VITE_SUPABASE_URL is required.');
+}
+
+if (!SUPABASE_KEY) {
+  throw new Error('Supabase anon/publishable key is required. Set VITE_SUPABASE_ANON_KEY (preferred) or VITE_SUPABASE_PUBLISHABLE_KEY.');
+}
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_KEY, {
   auth: {
