@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,13 +8,15 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Info } from "lucide-react";
+import type { Database } from "@/integrations/supabase/types";
 
 interface AddAerodromeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  aerodrome?: Database["public"]["Tables"]["aerodromes"]["Row"] | null;
 }
 
-export function AddAerodromeDialog({ open, onOpenChange }: AddAerodromeDialogProps) {
+export function AddAerodromeDialog({ open, onOpenChange, aerodrome }: AddAerodromeDialogProps) {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -25,31 +27,50 @@ export function AddAerodromeDialog({ open, onOpenChange }: AddAerodromeDialogPro
     coordenadas: "",
   });
 
+  useEffect(() => {
+    if (aerodrome) {
+      setFormData({
+        name: aerodrome.name ?? "",
+        icao_code: aerodrome.icao_code ?? "",
+        coordenadas: (aerodrome as any).coordenadas ?? "",
+      });
+    } else if (open) {
+      setFormData({ name: "", icao_code: "", coordenadas: "" });
+    }
+  }, [aerodrome, open]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const { error } = await supabase.from('aerodromes').insert([{
-        name: formData.name,
-        icao_code: formData.icao_code.toUpperCase(),
-        coordenadas: formData.coordenadas,
-      }]);
-
-      if (error) throw error;
-
-      toast({
-        title: "Sucesso!",
-        description: "Aeródromo adicionado com sucesso.",
-      });
+      if (aerodrome) {
+        const { error } = await supabase
+          .from('aerodromes')
+          .update({
+            name: formData.name,
+            icao_code: formData.icao_code.toUpperCase(),
+            coordenadas: formData.coordenadas || null,
+          })
+          .eq('id', aerodrome.id);
+        if (error) throw error;
+        toast({ title: "Sucesso!", description: "Aeródromo atualizado com sucesso." });
+      } else {
+        const { error } = await supabase.from('aerodromes').insert([{
+          name: formData.name,
+          icao_code: formData.icao_code.toUpperCase(),
+          coordenadas: formData.coordenadas,
+        }]);
+        if (error) throw error;
+        toast({ title: "Sucesso!", description: "Aeródromo adicionado com sucesso." });
+      }
 
       queryClient.invalidateQueries({ queryKey: ['aerodromes'] });
       onOpenChange(false);
-      setFormData({ name: "", icao_code: "", coordenadas: "" });
     } catch (error: any) {
       toast({
         title: "Erro",
-        description: error.message || "Erro ao adicionar aeródromo.",
+        description: error.message || (aerodrome ? "Erro ao atualizar aeródromo." : "Erro ao adicionar aeródromo."),
         variant: "destructive",
       });
     } finally {
@@ -61,7 +82,7 @@ export function AddAerodromeDialog({ open, onOpenChange }: AddAerodromeDialogPro
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Adicionar Aeródromo</DialogTitle>
+          <DialogTitle>{aerodrome ? 'Editar Aeródromo' : 'Adicionar Aeródromo'}</DialogTitle>
         </DialogHeader>
         
         <Alert>
@@ -111,7 +132,7 @@ export function AddAerodromeDialog({ open, onOpenChange }: AddAerodromeDialogPro
               Cancelar
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? "Salvando..." : "Salvar"}
+              {loading ? "Salvando..." : (aerodrome ? 'Atualizar' : 'Salvar')}
             </Button>
           </div>
         </form>
