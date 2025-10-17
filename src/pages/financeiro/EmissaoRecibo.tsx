@@ -52,6 +52,7 @@ export default function EmissaoRecibo() {
   const [servico, setServico] = useState("");
   const [numeroDoc, setNumeroDoc] = useState("");
   const [prazoMaximoQuitacao, setPrazoMaximoQuitacao] = useState<string>("");
+  const [observacoes, setObservacoes] = useState("");
 
   const [pagadorNome, setPagadorNome] = useState("");
   const [pagadorDocumento, setPagadorDocumento] = useState("");
@@ -263,8 +264,8 @@ export default function EmissaoRecibo() {
     const issueDate = (dataEmissao && dataEmissao.length >= 10) ? dataEmissao : new Date().toISOString().slice(0, 10);
     const amountNum = parseFloat(valor || "0");
 
-    if (!recNumber || !issueDate || !amountNum || !valorExtenso.trim() || !servico.trim() || !pagadorNome.trim() || !pagadorDocumento.trim()) {
-      toast({ title: "Preencha os campos obrigatórios", description: "Número, data, valor, valor por extenso, serviço e dados do pagador." });
+    if (!recNumber || !issueDate || !amountNum || !servico.trim() || !pagadorNome.trim() || !pagadorDocumento.trim()) {
+      toast({ title: "Preencha os campos obrigatórios", description: "Número, data, valor, serviço e dados do pagador." });
       return null;
     }
 
@@ -282,6 +283,7 @@ export default function EmissaoRecibo() {
       payer_city: pagadorCidade || null,
       payer_uf: pagadorUF || null,
       user_id: user.id,
+      observacoes: observacoes || null,
     });
 
     if (error) {
@@ -296,7 +298,7 @@ export default function EmissaoRecibo() {
   const fetchCompanySettings = async () => {
     const { data } = await supabase
       .from("company_settings")
-      .select("name, cnpj, address, city, uf, logo_url")
+      .select("name, cnpj, address, city, state, phone, logo_url")
       .order("created_at", { ascending: false })
       .limit(1);
     return data && data.length > 0 ? data[0] : null;
@@ -306,8 +308,9 @@ export default function EmissaoRecibo() {
     const company = await fetchCompanySettings();
     const amountNum = parseFloat(valor || "0");
 
-    const emitterAddress = company ? [company.address, company.city, company.uf].filter(Boolean).join(", ") : "";
-    const payerAddress = [pagadorEndereco, pagadorCidade, pagadorUF].filter(Boolean).join(", ");
+    const emitterAddress = company ? [company.address].filter(Boolean).join("") : "";
+    const emitterCityState = company ? [company.city, company.state].filter(Boolean).join(" - ") : "";
+    const payerAddress = pagadorEndereco || "";
 
     const pdfDoc = await PDFDocument.create();
     const page = pdfDoc.addPage([420, 595]);
@@ -318,36 +321,33 @@ export default function EmissaoRecibo() {
     try {
       const logoBytes = await fetch(company?.logo_url || LOGO_FALLBACK).then(r => r.arrayBuffer());
       const png = await pdfDoc.embedPng(logoBytes);
-      page.drawImage(png, { x: 30, y: height - 80, width: 80, height: 50 });
+      page.drawImage(png, { x: 30, y: height - 70, width: 60, height: 40 });
     } catch {}
 
-    page.drawText("RECIBO DE PAGAMENTO", { x: 150, y: height - 40, size: 14, font: bold });
+    page.drawText("RECIBO DE PAGAMENTO", { x: width / 2 - 80, y: height - 50, size: 14, font: bold });
 
-    page.drawRectangle({ x: width - 170, y: height - 95, width: 140, height: 60, color: rgb(0.95,0.95,0.95), borderColor: rgb(0,0,0), borderWidth: 0.5 });
-    page.drawText(`Valor: ${formatBRL(amountNum)}`, { x: width - 160, y: height - 60, size: 10, font });
-    page.drawText(`Recibo: ${recNumber}`, { x: width - 160, y: height - 78, size: 10, font });
+    page.drawRectangle({ x: width - 160, y: height - 85, width: 130, height: 55, borderColor: rgb(0.7,0.7,0.7), borderWidth: 1 });
+    page.drawText(formatBRL(amountNum), { x: width - 150, y: height - 55, size: 11, font: bold });
+    page.drawText(`Número do recibo:`, { x: width - 150, y: height - 70, size: 8, font });
+    page.drawText(recNumber, { x: width - 150, y: height - 80, size: 8, font });
 
-    let y = height - 120;
-    page.drawText("Emissor:", { x: 30, y, size: 11, font: bold });
-    y -= 14; page.drawText(company?.name || "", { x: 30, y, size: 10, font });
-    y -= 14; page.drawText(company?.cnpj || "", { x: 30, y, size: 10, font });
-    y -= 14; page.drawText(emitterAddress, { x: 30, y, size: 10, font });
+    let y = height - 110;
+    page.drawText("Emissor", { x: 30, y, size: 9, font: bold });
+    y -= 13; page.drawText(company?.name || "", { x: 30, y, size: 9, font: bold });
+    y -= 12; page.drawText(`CNPJ: ${company?.cnpj || ""}`, { x: 30, y, size: 8, font });
+    if (company?.phone) {
+      y -= 11; page.drawText(`/ (${company.phone.substring(0, 2)}) ${company.phone.substring(2)}`, { x: 30, y, size: 8, font });
+    }
+    if (emitterAddress) {
+      y -= 11; page.drawText(emitterAddress, { x: 30, y, size: 8, font });
+    }
+    if (emitterCityState) {
+      y -= 11; page.drawText(emitterCityState, { x: 30, y, size: 8, font });
+    }
 
-    y = height - 120;
-    page.drawText("Pagador:", { x: width/2 + 10, y, size: 11, font: bold });
-    y -= 14; page.drawText(pagadorNome || "", { x: width/2 + 10, y, size: 10, font });
-    y -= 14; page.drawText(pagadorDocumento || "", { x: width/2 + 10, y, size: 10, font });
-    y -= 14; page.drawText(payerAddress, { x: width/2 + 10, y, size: 10, font });
-
-    let tableY = height - 180;
-    page.drawLine({ start: { x: 30, y: tableY }, end: { x: width - 30, y: tableY }, thickness: 0.5 });
-    tableY -= 12;
-    page.drawText("DESCRIÇÃO", { x: 35, y: tableY, size: 10, font: bold });
-    page.drawText("QUANT.", { x: width - 200, y: tableY, size: 10, font: bold });
-    page.drawText("PREÇO", { x: width - 140, y: tableY, size: 10, font: bold });
-    page.drawText("TOTAL", { x: width - 80, y: tableY, size: 10, font: bold });
-    tableY -= 12; page.drawLine({ start: { x: 30, y: tableY+6 }, end: { x: width - 30, y: tableY+6 }, thickness: 0.5 });
-
+    y = height - 110;
+    page.drawText("Pagador", { x: 220, y, size: 9, font: bold });
+    y -= 13;
     const wrapText = (text: string, maxWidth: number, fontRef: any, size: number): string[] => {
       const words = text.split(/\s+/);
       const lines: string[] = [];
@@ -366,30 +366,74 @@ export default function EmissaoRecibo() {
       return lines;
     };
 
-    const descLinha = numeroDoc ? `${servico} - NºDOC ${numeroDoc}` : servico;
-    const descMaxWidth = (width - 210) - 35; // from 35 to before QUANT column
-    const descLines = wrapText(descLinha, descMaxWidth, font, 10);
+    const payerNameLines = wrapText(pagadorNome.toUpperCase(), 170, bold, 9);
+    payerNameLines.forEach((line, idx) => {
+      page.drawText(line, { x: 220, y: y - (idx * 11), size: 9, font: bold });
+    });
+    y -= (payerNameLines.length * 11);
+
+    y -= 1;
+    page.drawText(`CNPJ: ${pagadorDocumento}`, { x: 220, y, size: 8, font });
+
+    let tableY = height - 210;
+    page.drawLine({ start: { x: 30, y: tableY }, end: { x: width - 30, y: tableY }, thickness: 1 });
+    tableY -= 14;
+    page.drawText("DESCRIÇÃO", { x: 35, y: tableY, size: 9, font: bold });
+    page.drawText("QUANT.", { x: 230, y: tableY, size: 9, font: bold });
+    page.drawText("PREÇO", { x: 290, y: tableY, size: 9, font: bold });
+    page.drawText("TOTAL", { x: 350, y: tableY, size: 9, font: bold });
+    tableY -= 2;
+    page.drawLine({ start: { x: 30, y: tableY }, end: { x: width - 30, y: tableY }, thickness: 0.5 });
+    tableY -= 14;
+
+    const descMaxWidth = 185;
+    const descLines = wrapText(servico, descMaxWidth, font, 9);
     descLines.forEach((ln, idx) => {
-      const yLine = tableY - idx * 12;
-      page.drawText(ln, { x: 35, y: yLine, size: 10, font });
+      const yLine = tableY - (idx * 11);
+      page.drawText(ln, { x: 35, y: yLine, size: 9, font });
       if (idx === 0) {
-        page.drawText("1", { x: width - 200, y: yLine, size: 10, font });
-        page.drawText(formatBRL(amountNum), { x: width - 140, y: yLine, size: 10, font });
-        page.drawText(formatBRL(amountNum), { x: width - 80, y: yLine, size: 10, font });
+        page.drawText("1", { x: 245, y: yLine, size: 9, font });
+        page.drawText(formatBRL(amountNum), { x: 285, y: yLine, size: 9, font });
+        page.drawText(formatBRL(amountNum), { x: 345, y: yLine, size: 9, font });
       }
     });
-    tableY -= (descLines.length - 1) * 12;
+    tableY -= (descLines.length * 11) + 10;
 
-    page.drawText("Total:", { x: width - 140, y: tableY - 20, size: 10, font: bold });
-    page.drawText(formatBRL(amountNum), { x: width - 80, y: tableY - 20, size: 10, font });
+    page.drawLine({ start: { x: 30, y: tableY }, end: { x: width - 30, y: tableY }, thickness: 0.5 });
+    tableY -= 16;
+    page.drawText("Subtotal:", { x: 280, y: tableY, size: 9, font });
+    page.drawText(formatBRL(amountNum), { x: 345, y: tableY, size: 9, font });
+    tableY -= 12;
+    page.drawText("Desconto:", { x: 280, y: tableY, size: 9, font });
+    page.drawText("R$ 0,00", { x: 345, y: tableY, size: 9, font });
+    tableY -= 12;
+    page.drawText("Total:", { x: 280, y: tableY, size: 9, font: bold });
+    page.drawText(formatBRL(amountNum), { x: 345, y: tableY, size: 9, font: bold });
 
-    const prazoLabel = "PRAZO MÁXIMO DE QUITAÇÃO:";
-    const prazoValor = prazoMaximoQuitacao ? new Date(prazoMaximoQuitacao).toLocaleDateString("pt-BR") : "";
-    page.drawText(`${prazoLabel} ${prazoValor}`.trim(), { x: 30, y: 110, size: 10, font });
+    tableY -= 25;
 
-    page.drawText("Observação:", { x: 30, y: 95, size: 10, font: bold });
-    page.drawText("Valor por extenso:", { x: 30, y: 80, size: 10, font: bold });
-    page.drawText(valorExtenso, { x: 30, y: 66, size: 10, font });
+    if (observacoes && observacoes.trim()) {
+      const obsLines = wrapText(`Observação: ${observacoes}`, width - 60, font, 8);
+      obsLines.forEach((line, idx) => {
+        page.drawText(line, { x: 30, y: tableY - (idx * 10), size: 8, font });
+      });
+      tableY -= (obsLines.length * 10) + 10;
+    } else {
+      tableY -= 10;
+    }
+
+    if (prazoMaximoQuitacao) {
+      const prazoFormatted = new Date(prazoMaximoQuitacao).toLocaleDateString("pt-BR");
+      page.drawText(`PRAZO MÁXIMO DE QUITAÇÃO ${prazoFormatted}`, { x: 30, y: tableY, size: 8, font });
+      tableY -= 15;
+    }
+
+    const valorExtensoText = valorExtenso || numberToCurrencyWordsPtBr(amountNum);
+    const declaracaoText = `Declaração: Recebemos de ${pagadorNome.toUpperCase()}, a importância de ${valorExtensoText.toLowerCase()}, referente aos itens listados acima. Para maior clareza, firmo o presente recibo para que produza seus efeitos, dando plena, geral e irrevogável quitação pelo valor recebido.`;
+    const declLines = wrapText(declaracaoText, width - 60, font, 7);
+    declLines.forEach((line, idx) => {
+      page.drawText(line, { x: 30, y: tableY - (idx * 9), size: 7, font });
+    });
 
     const bytes = await pdfDoc.save();
     return bytes;
@@ -426,12 +470,19 @@ export default function EmissaoRecibo() {
     if (!rec) return;
     try {
       const bytes = await drawPdf(rec);
-      const url = await uploadPdfAndGetUrl(bytes, rec);
-      toast({ title: "PDF gerado e salvo", description: url });
-      window.open(url, "_blank", "noopener,noreferrer");
+      const blob = new Blob([bytes], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `recibo-${rec}.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+
+      await uploadPdfAndGetUrl(bytes, rec);
       await loadReceipts();
     } catch (e: any) {
-      toast({ title: "Erro ao gerar/enviar PDF", description: String(e?.message || e) });
+      toast({ title: "Erro ao gerar PDF", description: String(e?.message || e) });
     }
   };
 
@@ -501,11 +552,26 @@ export default function EmissaoRecibo() {
                   <div key={r.id} className="flex items-center justify-between rounded border p-2">
                     <div className="text-sm">{r.receipt_number} • {new Date(r.issue_date).toLocaleDateString()} • {formatBRL(r.amount)}</div>
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={async()=>{ const path = `${user?.id}/recibo-${r.receipt_number}.pdf`; const { data } = await supabase.storage.from("recibos").createSignedUrl(path, 300); if (data?.signedUrl) window.open(data.signedUrl, "_blank"); }}>
-                        Ver
+                      <Button variant="outline" size="sm" onClick={async()=>{
+                        const path = `${user?.id}/recibo-${r.receipt_number}.pdf`;
+                        const { data } = await supabase.storage.from("recibos").createSignedUrl(path, 3600);
+                        if (data?.signedUrl) window.open(data.signedUrl, "_blank");
+                      }}>
+                        <Eye className="h-4 w-4" />
                       </Button>
-                      <Button variant="outline" size="sm" onClick={async()=>{ const path = `${user?.id}/recibo-${r.receipt_number}.pdf`; const { data } = await supabase.storage.from("recibos").createSignedUrl(path, 300); if (data?.signedUrl) window.open(data.signedUrl, "_blank"); }}>
-                        Baixar
+                      <Button variant="outline" size="sm" onClick={async()=>{
+                        const path = `${user?.id}/recibo-${r.receipt_number}.pdf`;
+                        const { data: fileData } = await supabase.storage.from("recibos").download(path);
+                        if (fileData) {
+                          const url = URL.createObjectURL(fileData);
+                          const link = document.createElement("a");
+                          link.href = url;
+                          link.download = `recibo-${r.receipt_number}.pdf`;
+                          link.click();
+                          URL.revokeObjectURL(url);
+                        }
+                      }}>
+                        <Download className="h-4 w-4" />
                       </Button>
                       <Button variant="destructive" size="sm" onClick={async()=>{ const path = `${user?.id}/recibo-${r.receipt_number}.pdf`; await supabase.storage.from("recibos").remove([path]); await supabase.from("receipts" as any).delete().eq("id", r.id); await loadReceipts(); }}>
                         <Trash2 className="h-4 w-4" />
@@ -568,13 +634,8 @@ export default function EmissaoRecibo() {
                 <Input id="valor" type="number" placeholder="0,00" step="0.01" value={valor} onChange={(e) => setValor(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="valor-extenso">Valor por Extenso</Label>
-                <Input
-                  id="valor-extenso"
-                  placeholder="Ex.: Um mil reais e cinquenta centavos"
-                  value={valorExtenso}
-                  onChange={(e) => setValorExtenso(e.target.value)}
-                />
+                <Label htmlFor="observacoes">Observações (opcional)</Label>
+                <Textarea id="observacoes" placeholder="Observações adicionais" rows={2} value={observacoes} onChange={(e) => setObservacoes(e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="servico">Descrição do Serviço</Label>
@@ -586,7 +647,7 @@ export default function EmissaoRecibo() {
                   <Input id="numero-doc" placeholder="Ex.: 4004" value={numeroDoc} onChange={(e)=>setNumeroDoc(e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="prazo">PRAZO MÁXIMO DE QUITAÇÃO</Label>
+                  <Label htmlFor="prazo">Prazo Máximo de Quitação</Label>
                   <Input id="prazo" type="date" value={prazoMaximoQuitacao} onChange={(e)=>setPrazoMaximoQuitacao(e.target.value)} />
                 </div>
               </div>
