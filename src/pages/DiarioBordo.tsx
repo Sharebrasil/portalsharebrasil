@@ -189,6 +189,29 @@ export default function DiarioBordo() {
                         <TableCell>{ac.model}</TableCell>
                         <TableCell>{ac.status ?? '—'}</TableCell>
                         <TableCell>{ac.fuel_consumption != null ? Number(ac.fuel_consumption).toFixed(1) : '—'}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="icon" onClick={(e) => { e.stopPropagation(); setEditingAircraft(ac); setAddDialogOpen(true); }} aria-label="Editar">
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="icon"
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                if (!confirm(`Excluir aeronave ${ac.registration}?`)) return;
+                                const { error } = await supabase.from('aircraft').delete().eq('id', ac.id);
+                                if (error) {
+                                  // eslint-disable-next-line no-alert
+                                  alert(error.message);
+                                }
+                              }}
+                              aria-label="Excluir"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
                       </TableRow>
                     ))}
                     {(!aircraft || aircraft.length === 0) && (
