@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { TripulanteFormDialog } from "@/components/tripulacao/TripulanteFormDialog";
+import { useNavigate } from "react-router-dom";
 
  type CrewMemberRow = Database["public"]["Tables"]["crew_members"]["Row"];
 
@@ -18,6 +19,7 @@ export default function GestaoTripulacao() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<CrewMemberRow | null>(null);
+  const navigate = useNavigate();
 
   const loadCrew = async () => {
     try {

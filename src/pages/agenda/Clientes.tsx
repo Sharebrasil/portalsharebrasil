@@ -28,6 +28,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -52,8 +53,15 @@ interface Cliente {
   observations?: string;
   cnpj_card_url?: string;
   aircraft?: string;
+  aircraft_id?: string | null;
   logo_url?: string;
   documents?: ClientDocument[];
+}
+
+interface AircraftOption {
+  id: string;
+  registration: string;
+  model: string;
 }
 
 export default function Clientes() {
@@ -77,8 +85,9 @@ export default function Clientes() {
     email: "",
     financial_contact: "",
     observations: "",
-    aircraft: "",
+    aircraft_id: "",
   });
+  const [aircraftOptions, setAircraftOptions] = useState<AircraftOption[]>([]);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [documentFiles, setDocumentFiles] = useState<File[]>([]);
@@ -86,6 +95,7 @@ export default function Clientes() {
 
   useEffect(() => {
     loadClientes();
+    loadAircraftOptions();
   }, []);
 
   const loadClientes = async () => {
@@ -93,11 +103,15 @@ export default function Clientes() {
       setLoading(true);
       const { data, error } = await supabase
         .from("clients")
-        .select("*")
+        .select("*, aircraft:aircraft_id(id, registration, model)")
         .order("company_name");
 
       if (error) throw error;
-      setClientes(data || []);
+      const mapped: Cliente[] = ((data as any[]) || []).map((row: any) => ({
+        ...row,
+        aircraft: row.aircraft ? `${row.aircraft.registration} - ${row.aircraft.model}` : undefined,
+      }));
+      setClientes(mapped);
     } catch (error) {
       console.error("Erro ao carregar clientes:", error);
       toast({
@@ -108,6 +122,14 @@ export default function Clientes() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadAircraftOptions = async () => {
+    const { data, error } = await supabase
+      .from("aircraft")
+      .select("id, registration, model")
+      .order("registration");
+    if (!error) setAircraftOptions((data as any) || []);
   };
 
   const handleViewCliente = (cliente: Cliente) => {
@@ -133,7 +155,7 @@ export default function Clientes() {
         email: cliente.email || "",
         financial_contact: cliente.financial_contact || "",
         observations: cliente.observations || "",
-        aircraft: cliente.aircraft || "",
+        aircraft_id: cliente.aircraft_id || "",
       });
       setLogoPreview(cliente.logo_url || null);
     } else {
@@ -149,7 +171,7 @@ export default function Clientes() {
         email: "",
         financial_contact: "",
         observations: "",
-        aircraft: "",
+        aircraft_id: "",
       });
       setLogoPreview(null);
     }
@@ -234,7 +256,17 @@ export default function Clientes() {
       }
 
       const updatedData = {
-        ...formData,
+        company_name: formData.company_name,
+        cnpj: formData.cnpj,
+        inscricao_estadual: formData.inscricao_estadual,
+        address: formData.address,
+        city: formData.city,
+        uf: formData.uf,
+        phone: formData.phone,
+        email: formData.email,
+        financial_contact: formData.financial_contact,
+        observations: formData.observations,
+        aircraft_id: formData.aircraft_id || null,
         logo_url: logoUrl,
         documents: [...existingDocs, ...newDocs],
       };
@@ -667,15 +699,19 @@ export default function Clientes() {
               </div>
 
               <div>
-                <Label htmlFor="aircraft">Aeronave</Label>
-                <Input
-                  id="aircraft"
-                  value={formData.aircraft}
-                  onChange={(e) =>
-                    setFormData({ ...formData, aircraft: e.target.value })
-                  }
-                  placeholder="Modelo da aeronave"
-                />
+                <Label htmlFor="aircraft_id">Aeronave</Label>
+                <Select value={formData.aircraft_id} onValueChange={(v) => setFormData({ ...formData, aircraft_id: v })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a aeronave" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {aircraftOptions.map((a) => (
+                      <SelectItem key={a.id} value={a.id}>
+                        {a.registration} - {a.model}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="col-span-2">
@@ -699,7 +735,7 @@ export default function Clientes() {
                   <div>
                     <Label>Logo da Empresa</Label>
                     <p className="text-sm text-muted-foreground mb-2">
-                      Faça upload da logo da empresa (formatos: PNG, JPG, SVG)
+                      Fa��a upload da logo da empresa (formatos: PNG, JPG, SVG)
                     </p>
                   </div>
 
@@ -813,7 +849,7 @@ export default function Clientes() {
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir Cliente</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir este cliente? Esta ação não pode ser desfeita.
+              Tem certeza que deseja excluir este cliente? Esta ação n��o pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

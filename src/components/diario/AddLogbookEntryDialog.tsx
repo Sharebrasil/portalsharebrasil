@@ -220,8 +220,8 @@ export function AddLogbookEntryDialog({ open, onOpenChange, aircraftId, prefille
                 </PopoverTrigger>
                 <PopoverContent className="w-full p-0" align="start">
                   <Command>
-                    <CommandInput 
-                      placeholder="Digite o código ICAO..." 
+                    <CommandInput
+                      placeholder="Digite o código ICAO..."
                       value={formData.departure_airport}
                       onValueChange={(value) => setFormData({ ...formData, departure_airport: value.toUpperCase() })}
                     />
@@ -259,8 +259,8 @@ export function AddLogbookEntryDialog({ open, onOpenChange, aircraftId, prefille
                 </PopoverTrigger>
                 <PopoverContent className="w-full p-0" align="start">
                   <Command>
-                    <CommandInput 
-                      placeholder="Digite o código ICAO..." 
+                    <CommandInput
+                      placeholder="Digite o código ICAO..."
                       value={formData.arrival_airport}
                       onValueChange={(value) => setFormData({ ...formData, arrival_airport: value.toUpperCase() })}
                     />
