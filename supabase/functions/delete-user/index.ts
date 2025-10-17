@@ -84,13 +84,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Prevent self-deletion if desired (safety); allow if not required by business rules
-    // if (body.userId === requesterId) {
-    //   return new Response(
-    //     JSON.stringify({ error: "Operação não permitida" }),
-    //     { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    //   );
-    // }
 
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(body.userId);
     if (deleteError) {
