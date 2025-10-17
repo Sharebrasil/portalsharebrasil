@@ -1,52 +1,86 @@
 import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { TripulacaoCard } from "@/components/tripulacao/TripulacaoCard";
-import { fetchCrewMembers, type CrewMember, CREW_ROLE_LABELS } from "@/services/crew";
-import { Plus, Search, Users, Loader2 } from "lucide-react";
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Plus, Users, Loader2, Edit } from "lucide-react";
 import { toast } from "sonner";
-import type { AppRole } from "@/lib/roles";
+import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
+import { TripulanteFormDialog } from "@/components/tripulacao/TripulanteFormDialog";
+
+ type CrewMemberRow = Database["public"]["Tables"]["crew_members"]["Row"];
 
 export default function GestaoTripulacao() {
-  const [crewMembers, setCrewMembers] = useState<CrewMember[]>([]);
+  const [crewMembers, setCrewMembers] = useState<CrewMemberRow[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editing, setEditing] = useState<CrewMemberRow | null>(null);
+
+  const loadCrew = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("crew_members")
+        .select("*")
+        .order("full_name", { ascending: true });
+      if (error) throw error;
+      setCrewMembers(data ?? []);
+    } catch (err) {
+      console.error("Erro ao buscar tripulantes:", err);
+      toast.error("Não foi possível carregar os tripulantes");
+      setCrewMembers([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const loadCrew = async () => {
-      try {
-        setLoading(true);
-        const data = await fetchCrewMembers();
-        setCrewMembers(data);
-      } catch (err) {
-        console.error("Erro ao buscar tripulantes:", err);
-        toast.error("Não foi possível carregar os tripulantes");
-        setCrewMembers([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadCrew();
+    void loadCrew();
   }, []);
 
   const filteredCrewMembers = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
     if (!term) return crewMembers;
 
-    return crewMembers.filter((member) => {
-      const matchesName = member.full_name?.toLowerCase().includes(term);
-      const matchesEmail = member.email?.toLowerCase().includes(term);
-      const matchesRole = member.roles?.some((role: AppRole) => CREW_ROLE_LABELS[role].toLowerCase().includes(term));
-      return Boolean(matchesName || matchesEmail || matchesRole);
+    return crewMembers.filter((m) => {
+      const name = m.full_name?.toLowerCase() ?? "";
+      const email = m.email?.toLowerCase() ?? "";
+      const canac = m.canac?.toLowerCase() ?? "";
+      const status = m.status?.toLowerCase() ?? "";
+      return (
+        name.includes(term) || email.includes(term) || canac.includes(term) || status.includes(term)
+      );
     });
   }, [crewMembers, searchTerm]);
 
-  const totalPilotoChefes = useMemo(() => crewMembers.filter((m) => m.roles.includes("piloto_chefe" as AppRole)).length, [crewMembers]);
-  const totalTripulantes = useMemo(() => crewMembers.filter((m) => m.roles.includes("tripulante" as AppRole)).length, [crewMembers]);
-  const totalComTelefone = useMemo(() => crewMembers.filter((m) => Boolean(m.phone)).length, [crewMembers]);
+  const totals = useMemo(() => {
+    const total = crewMembers.length;
+    const ativos = crewMembers.filter((m) => (m.status ?? "active") === "active").length;
+    const inativos = total - ativos;
+    return { total, ativos, inativos };
+  }, [crewMembers]);
+
+  const handleNew = () => {
+    setEditing(null);
+    setDialogOpen(true);
+  };
+
+  const handleEdit = (member: CrewMemberRow) => {
+    setEditing(member);
+    setDialogOpen(true);
+  };
+
+  const handleDialogChange = (refresh: boolean) => {
+    setDialogOpen(false);
+    setEditing(null);
+    if (refresh) {
+      void loadCrew();
+    }
+  };
 
   return (
     <Layout>
@@ -60,21 +94,21 @@ export default function GestaoTripulacao() {
               <div className="flex items-center gap-2">
                 <Users className="h-5 w-5 text-muted-foreground" />
                 <div className="text-sm">
-                  <div>Total Piloto Chefes: {totalPilotoChefes}</div>
-                  <div>Total Tripulantes: {totalTripulantes}</div>
-                  <div>Com telefone: {totalComTelefone}</div>
+                  <div>Total: {totals.total}</div>
+                  <div>Ativos: {totals.ativos}</div>
+                  <div>Inativos: {totals.inativos}</div>
                 </div>
               </div>
 
               <div className="flex items-center gap-2">
                 <Input
-                  placeholder="Pesquisar tripulante, e-mail ou cargo..."
+                  placeholder="Pesquisar por nome, e-mail, CANAC, status..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="max-w-sm"
                   aria-label="Pesquisar tripulante"
                 />
-                <Button variant="default" className="flex items-center gap-2">
+                <Button onClick={handleNew} className="flex items-center gap-2">
                   <Plus className="h-4 w-4" />
                   Novo
                 </Button>
@@ -88,14 +122,44 @@ export default function GestaoTripulacao() {
             ) : filteredCrewMembers.length === 0 ? (
               <div className="py-8 text-center text-sm text-muted-foreground">Nenhum tripulante encontrado.</div>
             ) : (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-                {filteredCrewMembers.map((member) => (
-                  <TripulacaoCard key={member.id} member={member} />
-                ))}
-              </div>
+              <Table>
+                <TableCaption>Lista de tripulantes</TableCaption>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>CANAC</TableHead>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Telefone</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Atualizado em</TableHead>
+                    <TableHead className="w-[1%]">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredCrewMembers.map((m) => (
+                    <TableRow key={m.id}>
+                      <TableCell>{m.canac}</TableCell>
+                      <TableCell>{m.full_name}</TableCell>
+                      <TableCell>{m.email ?? ""}</TableCell>
+                      <TableCell>{m.phone ?? ""}</TableCell>
+                      <TableCell className={m.status === "active" ? "text-green-600" : "text-muted-foreground"}>
+                        {m.status ?? ""}
+                      </TableCell>
+                      <TableCell>{m.updated_at ? new Date(m.updated_at).toLocaleDateString() : ""}</TableCell>
+                      <TableCell>
+                        <Button size="sm" variant="outline" onClick={() => handleEdit(m)} className="flex items-center gap-1">
+                          <Edit className="h-4 w-4" /> Editar
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             )}
           </CardContent>
         </Card>
+
+        <TripulanteFormDialog open={dialogOpen} onOpenChange={handleDialogChange} crewMember={editing as any} />
       </div>
     </Layout>
   );
