@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,13 +7,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import type { Database } from "@/integrations/supabase/types";
 
 interface AddAircraftDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  aircraft?: Database["public"]["Tables"]["aircraft"]["Row"] | null;
 }
 
-export function AddAircraftDialog({ open, onOpenChange }: AddAircraftDialogProps) {
+export function AddAircraftDialog({ open, onOpenChange, aircraft }: AddAircraftDialogProps) {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -29,31 +31,19 @@ export function AddAircraftDialog({ open, onOpenChange }: AddAircraftDialogProps
     fuel_consumption: "",
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      const { error } = await supabase.from('aircraft').insert([{
-        registration: formData.registration,
-        manufacturer: formData.manufacturer,
-        model: formData.model,
-        serial_number: formData.serial_number,
-        owner_name: formData.owner_name,
-        year: formData.year ? parseInt(formData.year, 10) : null,
-        status: formData.status,
-        fuel_consumption: formData.fuel_consumption ? parseFloat(formData.fuel_consumption) : null,
-      }]);
-
-      if (error) throw error;
-
-      toast({
-        title: "Sucesso!",
-        description: "Aeronave cadastrada com sucesso.",
+  useEffect(() => {
+    if (aircraft) {
+      setFormData({
+        registration: aircraft.registration ?? "",
+        manufacturer: aircraft.manufacturer ?? "",
+        model: aircraft.model ?? "",
+        serial_number: aircraft.serial_number ?? "",
+        owner_name: aircraft.owner_name ?? "",
+        year: "",
+        status: aircraft.status ?? "Ativa",
+        fuel_consumption: aircraft.fuel_consumption != null ? String(aircraft.fuel_consumption) : "",
       });
-
-      queryClient.invalidateQueries({ queryKey: ['aircraft'] });
-      onOpenChange(false);
+    } else if (open) {
       setFormData({
         registration: "",
         manufacturer: "",
@@ -64,10 +54,50 @@ export function AddAircraftDialog({ open, onOpenChange }: AddAircraftDialogProps
         status: "Ativa",
         fuel_consumption: "",
       });
+    }
+  }, [aircraft, open]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      if (aircraft) {
+        const { error } = await supabase
+          .from('aircraft')
+          .update({
+            registration: formData.registration,
+            manufacturer: formData.manufacturer,
+            model: formData.model,
+            serial_number: formData.serial_number,
+            owner_name: formData.owner_name,
+            status: formData.status,
+            fuel_consumption: formData.fuel_consumption ? parseFloat(formData.fuel_consumption) : null,
+          })
+          .eq('id', aircraft.id);
+        if (error) throw error;
+        toast({ title: "Sucesso!", description: "Aeronave atualizada com sucesso." });
+      } else {
+        const { error } = await supabase.from('aircraft').insert([{
+          registration: formData.registration,
+          manufacturer: formData.manufacturer,
+          model: formData.model,
+          serial_number: formData.serial_number,
+          owner_name: formData.owner_name,
+          year: formData.year ? parseInt(formData.year, 10) : null,
+          status: formData.status,
+          fuel_consumption: formData.fuel_consumption ? parseFloat(formData.fuel_consumption) : null,
+        }]);
+        if (error) throw error;
+        toast({ title: "Sucesso!", description: "Aeronave cadastrada com sucesso." });
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['aircraft'] });
+      onOpenChange(false);
     } catch (error: any) {
       toast({
         title: "Erro",
-        description: error.message || "Erro ao cadastrar aeronave.",
+        description: error.message || (aircraft ? "Erro ao atualizar aeronave." : "Erro ao cadastrar aeronave."),
         variant: "destructive",
       });
     } finally {
@@ -79,7 +109,7 @@ export function AddAircraftDialog({ open, onOpenChange }: AddAircraftDialogProps
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Adicionar Nova Aeronave</DialogTitle>
+          <DialogTitle>{aircraft ? 'Editar Aeronave' : 'Adicionar Nova Aeronave'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -183,7 +213,7 @@ export function AddAircraftDialog({ open, onOpenChange }: AddAircraftDialogProps
               Cancelar
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? "Salvando..." : "Salvar"}
+              {loading ? (aircraft ? "Salvando..." : "Salvando...") : (aircraft ? "Atualizar" : "Salvar")}
             </Button>
           </div>
         </form>

@@ -3,8 +3,8 @@ import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plane, Plus, Calendar, Clock, MapPin } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { Plane, Plus, Calendar, Clock, MapPin, Pencil, Trash2 } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AddAircraftDialog } from "@/components/diario/AddAircraftDialog";
 import { AddAerodromeDialog } from "@/components/diario/AddAerodromeDialog";
@@ -17,7 +17,9 @@ export default function DiarioBordo() {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [addAerodromeOpen, setAddAerodromeOpen] = useState(false);
   const [createDiaryOpen, setCreateDiaryOpen] = useState(false);
+  const [editingAircraft, setEditingAircraft] = useState<any | null>(null);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const { data: aircraft, isLoading } = useQuery({
     queryKey: ['aircraft'],
@@ -26,7 +28,7 @@ export default function DiarioBordo() {
         .from('aircraft')
         .select('*')
         .order('registration');
-      
+
       if (error) throw error;
       return data;
     },
@@ -41,6 +43,17 @@ export default function DiarioBordo() {
         .order('icao_code');
       if (error) throw error;
       return data;
+    },
+  });
+
+  const { data: airports } = useQuery({
+    queryKey: ['airports'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('airports')
+        .select('icao_code, latitude, longitude');
+      if (error) throw error;
+      return data ?? [];
     },
   });
 
@@ -151,13 +164,68 @@ export default function DiarioBordo() {
                 <TabsTrigger value="nova">Criar Nova Aeronave</TabsTrigger>
                 <TabsTrigger value="aerodromos">Gerenciar Aeródromo</TabsTrigger>
               </TabsList>
-              <TabsContent value="nova" className="pt-4">
+              <TabsContent value="nova" className="pt-4 space-y-4">
                 <div className="flex items-center gap-3">
-                  <Button onClick={() => setAddDialogOpen(true)} className="gap-2">
+                  <Button onClick={() => { setEditingAircraft(null); setAddDialogOpen(true); }} className="gap-2">
                     <Plus className="h-4 w-4" />
                     Nova Aeronave
                   </Button>
                 </div>
+
+                <div className="text-sm text-muted-foreground">Aeronaves cadastradas</div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Matrícula</TableHead>
+                      <TableHead>Modelo</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Consumo (L/H)</TableHead>
+                      <TableHead className="w-[1%]">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {aircraft?.map((ac) => (
+                      <TableRow key={ac.id} className="cursor-pointer" onClick={() => navigate(`/diario-bordo/${ac.id}`)}>
+                        <TableCell className="font-medium">{ac.registration}</TableCell>
+                        <TableCell>{ac.model}</TableCell>
+                        <TableCell>{ac.status ?? '—'}</TableCell>
+                        <TableCell>{ac.fuel_consumption != null ? Number(ac.fuel_consumption).toFixed(1) : '—'}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="icon" onClick={(e) => { e.stopPropagation(); setEditingAircraft(ac); setAddDialogOpen(true); }} aria-label="Editar">
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="icon"
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                if (!confirm(`Excluir aeronave ${ac.registration}?`)) return;
+                                const { error } = await supabase.from('aircraft').delete().eq('id', ac.id);
+                                if (error) {
+                                  // eslint-disable-next-line no-alert
+                                  alert(error.message);
+                                } else {
+                                  queryClient.invalidateQueries({ queryKey: ['aircraft'] });
+                                }
+                              }}
+                              aria-label="Excluir"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {(!aircraft || aircraft.length === 0) && (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center text-muted-foreground">
+                          Nenhuma aeronave cadastrada.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
               </TabsContent>
               <TabsContent value="aerodromos" className="pt-4">
                 <div className="flex items-center justify-between mb-4">
@@ -172,18 +240,26 @@ export default function DiarioBordo() {
                     <TableRow>
                       <TableHead>Código ICAO</TableHead>
                       <TableHead>Nome</TableHead>
+                      <TableHead>Coordenadas</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {aerodromes?.map((a) => (
-                      <TableRow key={a.id}>
-                        <TableCell className="font-medium">{a.icao_code}</TableCell>
-                        <TableCell>{a.name}</TableCell>
-                      </TableRow>
-                    ))}
+                    {aerodromes?.map((a) => {
+                      const coords = (airports ?? []).find((ap) => (ap.icao_code ?? '').toUpperCase() === (a.icao_code ?? '').toUpperCase());
+                      const coordText = coords && coords.latitude != null && coords.longitude != null
+                        ? `${coords.latitude.toFixed(6)}, ${coords.longitude.toFixed(6)}`
+                        : "-";
+                      return (
+                        <TableRow key={a.id}>
+                          <TableCell className="font-medium">{a.icao_code}</TableCell>
+                          <TableCell>{a.name}</TableCell>
+                          <TableCell>{coordText}</TableCell>
+                        </TableRow>
+                      );
+                    })}
                     {(!aerodromes || aerodromes.length === 0) && (
                       <TableRow>
-                        <TableCell colSpan={2} className="text-center text-muted-foreground">
+                        <TableCell colSpan={3} className="text-center text-muted-foreground">
                           Nenhum aeródromo cadastrado.
                         </TableCell>
                       </TableRow>
@@ -195,7 +271,7 @@ export default function DiarioBordo() {
           </CardContent>
         </Card>
 
-        <AddAircraftDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} />
+        <AddAircraftDialog open={addDialogOpen} onOpenChange={(o)=>{ setAddDialogOpen(o); if(!o) setEditingAircraft(null); }} aircraft={editingAircraft} />
         <AddAerodromeDialog open={addAerodromeOpen} onOpenChange={setAddAerodromeOpen} />
         <CreateDiaryDialog
           open={createDiaryOpen}

@@ -97,6 +97,20 @@ export default function DiarioBordoDetalhes() {
     enabled: !!aircraftId,
   });
 
+  const { data: yearClosures } = useQuery({
+    queryKey: ['year-closures', aircraftId, selectedYear],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('monthly_diary_closures')
+        .select('month')
+        .eq('aircraft_id', aircraftId)
+        .eq('year', parseInt(selectedYear));
+      if (error) throw error;
+      return data ?? [] as { month: number }[];
+    },
+    enabled: !!aircraftId,
+  });
+
   const months = [
     "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
     "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
@@ -165,7 +179,25 @@ export default function DiarioBordoDetalhes() {
           </div>
         </div>
 
-        {isMonthClosed && monthClosure && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
+          {months.map((m, idx) => {
+            const closed = (yearClosures ?? []).some((c: any) => c.month === idx + 1);
+            const isActive = parseInt(selectedMonth) === idx;
+            return (
+              <Button
+                key={m}
+                variant={isActive ? 'default' : closed ? 'secondary' : 'outline'}
+                size="sm"
+                className="justify-center"
+                onClick={() => setSelectedMonth(idx.toString())}
+              >
+                {m} {closed ? '🔒' : ''}
+              </Button>
+            );
+          })}
+        </div>
+
+        {isMonthClosed && hasEntries && monthClosure && (
           <Alert>
             <Lock className="h-4 w-4" />
             <AlertDescription>
