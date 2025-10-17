@@ -663,30 +663,24 @@ export default function DiarioBordoDetalhes() {
                     />
                   </td>
                   <td className="border border-gray-300 p-1">
-                    <select
+                    <Input
                       value={entry.pic}
                       onChange={(e) => updateEntry(index, 'pic', e.target.value)}
                       disabled={isClosed}
-                      className="h-7 text-xs w-20 border rounded px-1"
-                    >
-                      <option value="">-</option>
-                      {crewMembers?.map(crew => (
-                        <option key={crew.canac} value={crew.canac}>{crew.canac}</option>
-                      ))}
-                    </select>
+                      list="crew-canac-list"
+                      placeholder="CANAC"
+                      className="h-7 text-xs w-20"
+                    />
                   </td>
                   <td className="border border-gray-300 p-1">
-                    <select
+                    <Input
                       value={entry.sic}
                       onChange={(e) => updateEntry(index, 'sic', e.target.value)}
                       disabled={isClosed}
-                      className="h-7 text-xs w-20 border rounded px-1"
-                    >
-                      <option value="">-</option>
-                      {crewMembers?.map(crew => (
-                        <option key={crew.canac} value={crew.canac}>{crew.canac}</option>
-                      ))}
-                    </select>
+                      list="crew-canac-list"
+                      placeholder="CANAC"
+                      className="h-7 text-xs w-20"
+                    />
                   </td>
                   <td className="border border-gray-300 p-1">
                     <Input
@@ -744,6 +738,11 @@ export default function DiarioBordoDetalhes() {
               ))}
             </tbody>
           </table>
+          <datalist id="crew-canac-list">
+            {crewMembers?.map(crew => (
+              <option key={crew.canac} value={crew.canac}>{crew.full_name} - {crew.canac}</option>
+            ))}
+          </datalist>
         </div>
       </div>
     </Layout>
