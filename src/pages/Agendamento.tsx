@@ -1,199 +1,292 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Layout } from "@/components/layout/Layout";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Plus, Plane, Calendar, Clock, MapPin, User, Users, FileText, Pencil, Trash2 } from "lucide-react";
+import { Plus, Calendar as CalendarIcon, List, Plane, Clock, Users } from "lucide-react";
+import { FlightScheduleDialog } from "@/components/scheduling/FlightScheduleDialog";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { AgendamentoDialog } from "@/components/agendamento/AgendamentoDialog";
-import { fetchFlightSchedulesWithDetails, type FlightScheduleWithDetails } from "@/services/flightSchedules";
-import type { Tables } from "@/integrations/supabase/types";
+import { useQuery } from "@tanstack/react-query";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-export default function Agendamento() {
-  const [agendamentos, setAgendamentos] = useState<FlightScheduleWithDetails[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedAgendamento, setSelectedAgendamento] = useState<Tables<'flight_schedules'> | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
+export default function Agendamentos() {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedAircraft, setSelectedAircraft] = useState("all");
 
-  useEffect(() => {
-    fetchAgendamentos();
-  }, []);
-
-  const fetchAgendamentos = async () => {
-    try {
-      const data = await fetchFlightSchedulesWithDetails();
-      setAgendamentos(data);
-    } catch (error) {
-      console.error("Erro ao buscar agendamentos:", error);
-      toast.error("Erro ao carregar agendamentos");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm("Tem certeza que deseja excluir este agendamento?")) return;
-
-    try {
-      const { error } = await supabase
+  const { data: schedules, isLoading, refetch } = useQuery({
+    queryKey: ["flight-schedules", selectedAircraft],
+    queryFn: async () => {
+      let query = supabase
         .from("flight_schedules")
-        .delete()
-        .eq("id", id);
+        .select(`
+          *,
+          aircraft:aircraft_id(registration, model),
+          client:client_id(company_name),
+          crew:crew_member_id(full_name)
+        `)
+        .order("flight_date", { ascending: false })
+        .order("flight_time", { ascending: false });
 
+      if (selectedAircraft !== "all") {
+        query = query.eq("aircraft_id", selectedAircraft);
+      }
+      
+      const { data, error } = await query;
       if (error) throw error;
-      toast.success("Agendamento excluído com sucesso");
-      fetchAgendamentos();
-    } catch (error) {
-      console.error("Erro ao excluir agendamento:", error);
-      toast.error("Erro ao excluir agendamento");
-    }
-  };
+      return data;
+    },
+  });
 
-  const handleEdit = (agendamento: Tables<'flight_schedules'>) => {
-    setSelectedAgendamento(agendamento);
-    setDialogOpen(true);
-  };
+  const { data: aircraft } = useQuery({
+    queryKey: ["aircraft"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("aircraft")
+        .select("id, registration, model");
+      if (error) throw error;
+      return data;
+    },
+  });
 
-  const handleDialogClose = () => {
-    setDialogOpen(false);
-    setSelectedAgendamento(null);
-    fetchAgendamentos();
+  const stats = {
+    total: schedules?.length || 0,
+    confirmed: schedules?.filter(s => s.status === "confirmado").length || 0,
+    pending: schedules?.filter(s => s.status === "pendente").length || 0,
+    today: schedules?.filter(s => s.flight_date === new Date().toISOString().split('T')[0]).length || 0,
   };
 
   const getStatusBadge = (status: string) => {
-    const statusMap = {
-      pendente: { label: "Pendente", color: "bg-warning text-black" },
-      agendado: { label: "Agendado", color: "bg-primary text-primary-foreground" },
-      confirmado: { label: "Confirmado", color: "bg-success text-white" },
-      cancelado: { label: "Cancelado", color: "bg-destructive text-destructive-foreground" },
+    const variants: Record<string, { label: string; className: string }> = {
+      pendente: { label: "pendente", className: "bg-warning/20 text-warning border-warning" },
+      confirmado: { label: "confirmado", className: "bg-success/20 text-success border-success" },
+      cancelado: { label: "cancelado", className: "bg-destructive/20 text-destructive border-destructive" },
     };
-    const statusInfo = statusMap[status as keyof typeof statusMap] || statusMap.pendente;
-    return <Badge className={statusInfo.color}>{statusInfo.label}</Badge>;
+    return variants[status] || variants.pendente;
   };
 
-  if (loading) {
-    return (
-      <Layout>
-        <div className="p-6">
-          <div className="text-center">Carregando...</div>
-        </div>
-      </Layout>
-    );
-  }
+  const getFlightTypeBadge = (type: string) => {
+    const types: Record<string, string> = {
+      executivo: "executivo",
+      treinamento: "treinamento",
+      manutencao: "manutenção",
+      particular: "particular",
+    };
+    return types[type] || type;
+  };
 
   return (
     <Layout>
       <div className="p-6 space-y-6">
-        <div className="flex justify-between items-center">
+        {/* Header */}
+        <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-3xl font-bold text-foreground mb-2">Agendamento de Voo</h1>
-            <p className="text-muted-foreground">Gerencie os agendamentos de voo</p>
+            <h1 className="text-3xl font-bold text-foreground">Agendamento de Aeronaves</h1>
+            <p className="text-muted-foreground mt-1">
+              Gerencie os voos e reservas das aeronaves
+            </p>
           </div>
-          <Button onClick={() => setDialogOpen(true)} className="gap-2">
-            <Plus className="h-4 w-4" />
-            Novo Agendamento
-          </Button>
+          <div className="flex gap-3">
+            <Button variant="outline" size="icon">
+              <CalendarIcon className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" size="icon">
+              <List className="h-4 w-4" />
+            </Button>
+            <Button onClick={() => setIsDialogOpen(true)} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Novo Agendamento
+            </Button>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {agendamentos.map((agendamento) => (
-            <Card key={agendamento.id} className="bg-gradient-card border-border shadow-card hover:shadow-lg transition-all">
-              <CardContent className="p-6 space-y-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 rounded-lg bg-primary/10">
-                      <Plane className="h-6 w-6 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-foreground">
-                        {agendamento.aircraft?.registration || "N/A"}
-                      </h3>
-                      <p className="text-sm text-muted-foreground">{agendamento.flight_type}</p>
-                    </div>
-                  </div>
-                  {getStatusBadge(agendamento.status)}
+        {/* Stats Cards */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/20">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Total de Voos</p>
+                  <p className="text-3xl font-bold text-foreground">{stats.total}</p>
                 </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-foreground">
-                      {new Date(agendamento.flight_date).toLocaleDateString("pt-BR")}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-foreground">{agendamento.flight_time}</span>
-                    {agendamento.estimated_duration && (
-                      <span className="text-muted-foreground">({agendamento.estimated_duration})</span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-foreground">
-                      {agendamento.origin} → {agendamento.destination}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-foreground">
-                      {agendamento.crew_members?.full_name || "N/A"}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-foreground">
-                      {agendamento.clients?.company_name || "N/A"}
-                    </span>
-                  </div>
+                <div className="p-3 bg-blue-500/20 rounded-lg">
+                  <Plane className="h-6 w-6 text-blue-500" />
                 </div>
+              </div>
+            </CardContent>
+          </Card>
 
-                {agendamento.observations && (
-                  <div className="pt-2 border-t border-border">
-                    <div className="flex items-start gap-2 text-sm">
-                      <FileText className="h-4 w-4 text-muted-foreground mt-0.5" />
-                      <p className="text-muted-foreground text-xs">{agendamento.observations}</p>
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex gap-2 pt-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => handleEdit(agendamento)}
-                  >
-                    <Pencil className="h-4 w-4 mr-2" />
-                    Editar
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleDelete(agendamento.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+          <Card className="bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-500/20">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Confirmados</p>
+                  <p className="text-3xl font-bold text-foreground">{stats.confirmed}</p>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
+                <div className="p-3 bg-green-500/20 rounded-lg">
+                  <CalendarIcon className="h-6 w-6 text-green-500" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-orange-500/10 to-orange-600/5 border-orange-500/20">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Pendentes</p>
+                  <p className="text-3xl font-bold text-foreground">{stats.pending}</p>
+                </div>
+                <div className="p-3 bg-orange-500/20 rounded-lg">
+                  <Clock className="h-6 w-6 text-orange-500" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-500/20">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Hoje</p>
+                  <p className="text-3xl font-bold text-foreground">{stats.today}</p>
+                </div>
+                <div className="p-3 bg-purple-500/20 rounded-lg">
+                  <Users className="h-6 w-6 text-purple-500" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        {agendamentos.length === 0 && (
-          <div className="text-center py-12">
-            <Plane className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground">Nenhum agendamento encontrado</p>
-          </div>
-        )}
+        {/* Filter */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-muted-foreground">Filtrar por aeronave:</span>
+              <Select value={selectedAircraft} onValueChange={setSelectedAircraft}>
+                <SelectTrigger className="w-[250px]">
+                  <SelectValue placeholder="Todas as aeronaves" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover">
+                  <SelectItem value="all">Todas as aeronaves</SelectItem>
+                  {aircraft?.map((ac) => (
+                    <SelectItem key={ac.id} value={ac.id}>
+                      {ac.registration}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Schedules List */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Plane className="h-5 w-5" />
+              Lista de Agendamentos ({stats.total})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="text-center text-muted-foreground py-12">
+                Carregando agendamentos...
+              </div>
+            ) : schedules && schedules.length > 0 ? (
+              <div className="space-y-4">
+                {schedules.map((schedule: any) => (
+                  <Card key={schedule.id} className="hover:shadow-primary transition-shadow">
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between">
+                        <div className="flex gap-4">
+                          <div className="p-3 bg-primary/10 rounded-lg">
+                            <Plane className="h-6 w-6 text-primary" />
+                          </div>
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-3">
+                              <h3 className="font-bold text-lg">{schedule.aircraft?.registration || "N/A"}</h3>
+                              <Badge variant="outline" className={getStatusBadge(schedule.status).className}>
+                                {getStatusBadge(schedule.status).label}
+                              </Badge>
+                              <Badge variant="outline">{getFlightTypeBadge(schedule.flight_type)}</Badge>
+                            </div>
+                            
+                            <div className="grid grid-cols-4 gap-6 text-sm">
+                              <div>
+                                <p className="text-muted-foreground mb-1">Data</p>
+                                <p className="font-medium">{new Date(schedule.flight_date).toLocaleDateString("pt-BR")}</p>
+                              </div>
+                              <div>
+                                <p className="text-muted-foreground mb-1">Horário</p>
+                                <p className="font-medium">{schedule.flight_time} {schedule.estimated_duration && `(${schedule.estimated_duration})`}</p>
+                              </div>
+                              <div>
+                                <p className="text-muted-foreground mb-1">Rota</p>
+                                <p className="font-medium">{schedule.origin} → {schedule.destination}</p>
+                              </div>
+                              <div>
+                                <p className="text-muted-foreground mb-1">Passageiros</p>
+                                <p className="font-medium">{schedule.passengers}</p>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-6 text-sm">
+                              <div>
+                                <p className="text-muted-foreground mb-1">Tripulação</p>
+                                <p className="font-medium">{schedule.crew?.full_name || "Não atribuído"}</p>
+                              </div>
+                              {schedule.contact && (
+                                <div>
+                                  <p className="text-muted-foreground mb-1">Contato</p>
+                                  <p className="font-medium">{schedule.contact}</p>
+                                </div>
+                              )}
+                            </div>
+
+                            {schedule.observations && (
+                              <div>
+                                <p className="text-muted-foreground text-sm mb-1">Observações</p>
+                                <p className="text-sm bg-muted/50 p-3 rounded-md">{schedule.observations}</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm">
+                            Editar
+                          </Button>
+                          <Button variant="destructive" size="sm">
+                            Excluir
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground mb-4">
+                  Nenhum agendamento encontrado
+                </p>
+                <Button onClick={() => setIsDialogOpen(true)} variant="outline" className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  Criar Primeiro Agendamento
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <FlightScheduleDialog 
+          open={isDialogOpen} 
+          onOpenChange={setIsDialogOpen}
+          onSuccess={refetch}
+        />
       </div>
-
-      <AgendamentoDialog
-        open={dialogOpen}
-        onClose={handleDialogClose}
-        agendamento={selectedAgendamento}
-      />
     </Layout>
   );
 }
