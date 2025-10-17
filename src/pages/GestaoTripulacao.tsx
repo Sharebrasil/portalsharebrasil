@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { TripulanteFormDialog } from "@/components/tripulacao/TripulanteFormDialog";
+import { useNavigate } from "react-router-dom";
 
  type CrewMemberRow = Database["public"]["Tables"]["crew_members"]["Row"];
 
@@ -18,6 +19,7 @@ export default function GestaoTripulacao() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<CrewMemberRow | null>(null);
+  const navigate = useNavigate();
 
   const loadCrew = async () => {
     try {
@@ -136,7 +138,7 @@ export default function GestaoTripulacao() {
                 </TableHeader>
                 <TableBody>
                   {filteredCrewMembers.map((m) => (
-                    <TableRow key={m.id} className="cursor-pointer group" onClick={() => navigate(`/tripulacao/${m.id}`)}>
+                    <TableRow key={m.id} className="cursor-pointer group" onClick={() => { navigate(`/tripulacao/${m.id}`); window.open(`${window.location.origin}${window.location.pathname}#/tripulacao/${m.id}?tab=anexos`, "_blank", "noopener"); }}>
                       <TableCell>{m.canac}</TableCell>
                       <TableCell>{m.full_name}</TableCell>
                       <TableCell>{m.email ?? ""}</TableCell>
