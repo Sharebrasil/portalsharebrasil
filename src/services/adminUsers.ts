@@ -128,7 +128,7 @@ export interface CreateManagedUserInput {
 }
 
 export const createManagedUser = async (input: CreateManagedUserInput) => {
-  const { data, error } = await supabase.functions.invoke("admin-create-user", {
+  const { data, error } = await supabase.functions.invoke("create-user", {
     body: {
       email: input.email,
       password: input.password,
@@ -169,7 +169,7 @@ export interface UpdateManagedUserInput {
 }
 
 export const updateManagedUser = async (input: UpdateManagedUserInput) => {
-  const { error } = await supabase.functions.invoke("admin-update-user", {
+  const { error } = await supabase.functions.invoke("update-user", {
     body: {
       userId: input.userId,
       email: input.email,
@@ -194,7 +194,7 @@ export const updateManagedUser = async (input: UpdateManagedUserInput) => {
 };
 
 export const deleteManagedUser = async (userId: string) => {
-  const { error } = await supabase.functions.invoke("admin-delete-user", {
+  const { error } = await supabase.functions.invoke("delete-user", {
     body: { userId },
   });
 

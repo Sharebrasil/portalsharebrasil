@@ -44,6 +44,8 @@ interface Cliente {
   cnpj: string;
   inscricao_estadual?: string;
   address?: string;
+  city?: string;
+  uf?: string;
   phone?: string;
   email?: string;
   financial_contact?: string;
@@ -69,6 +71,8 @@ export default function Clientes() {
     cnpj: "",
     inscricao_estadual: "",
     address: "",
+    city: "",
+    uf: "",
     phone: "",
     email: "",
     financial_contact: "",
@@ -123,6 +127,8 @@ export default function Clientes() {
         cnpj: cliente.cnpj || "",
         inscricao_estadual: cliente.inscricao_estadual || "",
         address: cliente.address || "",
+        city: cliente.city || "",
+        uf: cliente.uf || "",
         phone: cliente.phone || "",
         email: cliente.email || "",
         financial_contact: cliente.financial_contact || "",
@@ -137,6 +143,8 @@ export default function Clientes() {
         cnpj: "",
         inscricao_estadual: "",
         address: "",
+        city: "",
+        uf: "",
         phone: "",
         email: "",
         financial_contact: "",
@@ -600,7 +608,28 @@ export default function Clientes() {
                   onChange={(e) =>
                     setFormData({ ...formData, address: e.target.value })
                   }
-                  placeholder="Rua, número, bairro, cidade - UF"
+                  placeholder="Rua, número, bairro"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="city">Cidade</Label>
+                <Input
+                  id="city"
+                  value={formData.city}
+                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                  placeholder="São Paulo"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="uf">UF</Label>
+                <Input
+                  id="uf"
+                  value={formData.uf}
+                  onChange={(e) => setFormData({ ...formData, uf: e.target.value.toUpperCase().slice(0,2) })}
+                  placeholder="SP"
+                  maxLength={2}
                 />
               </div>
 

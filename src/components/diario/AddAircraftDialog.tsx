@@ -24,6 +24,7 @@ export function AddAircraftDialog({ open, onOpenChange }: AddAircraftDialogProps
     model: "",
     serial_number: "",
     owner_name: "",
+    year: "",
     status: "Ativa",
     fuel_consumption: "",
   });
@@ -39,6 +40,7 @@ export function AddAircraftDialog({ open, onOpenChange }: AddAircraftDialogProps
         model: formData.model,
         serial_number: formData.serial_number,
         owner_name: formData.owner_name,
+        year: formData.year ? parseInt(formData.year, 10) : null,
         status: formData.status,
         fuel_consumption: formData.fuel_consumption ? parseFloat(formData.fuel_consumption) : null,
       }]);
@@ -58,6 +60,7 @@ export function AddAircraftDialog({ open, onOpenChange }: AddAircraftDialogProps
         model: "",
         serial_number: "",
         owner_name: "",
+        year: "",
         status: "Ativa",
         fuel_consumption: "",
       });
@@ -114,8 +117,8 @@ export function AddAircraftDialog({ open, onOpenChange }: AddAircraftDialogProps
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
+          <div className="grid grid-cols-3 gap-4">
+            <div className="space-y-2 col-span-2">
               <Label htmlFor="serial_number">Número de Série *</Label>
               <Input
                 id="serial_number"
@@ -127,15 +130,26 @@ export function AddAircraftDialog({ open, onOpenChange }: AddAircraftDialogProps
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="owner_name">Proprietário *</Label>
+              <Label htmlFor="year">Ano</Label>
               <Input
-                id="owner_name"
-                value={formData.owner_name}
-                onChange={(e) => setFormData({ ...formData, owner_name: e.target.value })}
-                placeholder="Nome do Proprietário"
-                required
+                id="year"
+                type="number"
+                value={formData.year}
+                onChange={(e) => setFormData({ ...formData, year: e.target.value.replace(/[^0-9]/g, '').slice(0,4) })}
+                placeholder="2020"
               />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="owner_name">Proprietário *</Label>
+            <Input
+              id="owner_name"
+              value={formData.owner_name}
+              onChange={(e) => setFormData({ ...formData, owner_name: e.target.value })}
+              placeholder="Nome do Proprietário"
+              required
+            />
           </div>
 
           <div className="space-y-2">
