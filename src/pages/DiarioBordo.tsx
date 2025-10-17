@@ -26,7 +26,7 @@ export default function DiarioBordo() {
         .from('aircraft')
         .select('*')
         .order('registration');
-      
+
       if (error) throw error;
       return data;
     },
@@ -41,6 +41,17 @@ export default function DiarioBordo() {
         .order('icao_code');
       if (error) throw error;
       return data;
+    },
+  });
+
+  const { data: airports } = useQuery({
+    queryKey: ['airports'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('airports')
+        .select('icao_code, latitude, longitude');
+      if (error) throw error;
+      return data ?? [];
     },
   });
 
