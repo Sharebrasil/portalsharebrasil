@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { formatDecimalHoursToHHMM, parseHHMMToDecimal, formatMinutesToHHMM } from "@/lib/utils";
 
 const MONTHS = [
   "JANEIRO", "FEVEREIRO", "MARÇO", "ABRIL", "MAIO", "JUNHO",
@@ -159,33 +160,40 @@ export default function DiarioBordoDetalhes() {
       return;
     }
 
-    const formattedEntries = data.map(entry => ({
-      id: entry.id,
-      data: entry.entry_date,
-      de: entry.departure_airport,
-      para: entry.arrival_airport,
-      ac: entry.aircraft_commander || '',
-      dep: entry.departure_time,
-      pou: entry.arrival_time,
-      cor: entry.flight_type_code || '',
-      tvoo: entry.flight_time_hours?.toString() || '',
-      tdia: entry.day_time?.toString() || '',
-      tnoit: entry.night_hours?.toString() || '',
-      total: entry.total_time?.toString() || '',
-      ifr: entry.ifr_count?.toString() || '',
-      pousos: entry.landings?.toString() || '',
-      abast: entry.fuel_added?.toString() || '',
-      fuel: entry.fuel_liters?.toString() || '',
-      celula_ant: entry.cell_before?.toString() || '',
-      celula_post: entry.cell_after?.toString() || '',
-      celula_disp: entry.cell_disp?.toString() || '',
-      pic: entry.pic_canac || '',
-      sic: entry.sic_canac || '',
-      diarias: entry.daily_rate?.toString() || '',
-      extras: entry.extras || '',
-      voo_para: entry.flight_number || '',
-      confere: entry.confirmed || false,
-    }));
+    const formattedEntries = data.map(entry => {
+      const flightMinutes = (Number(entry.flight_time_hours) || 0) * 60 + (Number(entry.flight_time_minutes) || 0)
+      const totalMinutes = Math.round((Number(entry.total_time) || 0) * 60) || flightMinutes
+      const nightMinutes = (Number(entry.night_time_hours) || 0) * 60 + (Number(entry.night_time_minutes) || 0)
+      const dayMinutes = Math.max(0, totalMinutes - nightMinutes)
+
+      return {
+        id: entry.id,
+        data: entry.entry_date,
+        de: entry.departure_airport,
+        para: entry.arrival_airport,
+        ac: entry.aircraft_commander || '',
+        dep: entry.departure_time,
+        pou: entry.arrival_time,
+        cor: entry.flight_type_code || '',
+        tvoo: formatMinutesToHHMM(flightMinutes || totalMinutes),
+        tdia: formatMinutesToHHMM(dayMinutes),
+        tnoit: formatMinutesToHHMM(nightMinutes),
+        total: formatMinutesToHHMM(totalMinutes),
+        ifr: formatDecimalHoursToHHMM(entry.ifr_count ?? 0),
+        pousos: entry.landings?.toString() || '',
+        abast: entry.fuel_added?.toString() || '',
+        fuel: entry.fuel_liters?.toString() || '',
+        celula_ant: entry.cell_before?.toString() || '',
+        celula_post: entry.cell_after?.toString() || '',
+        celula_disp: entry.cell_disp?.toString() || '',
+        pic: entry.pic_canac || '',
+        sic: entry.sic_canac || '',
+        diarias: entry.daily_rate?.toString() || '',
+        extras: entry.extras || '',
+        voo_para: entry.flight_number || '',
+        confere: entry.confirmed || false,
+      } as LogbookEntry
+    });
 
     setEntries(formattedEntries);
   };
@@ -236,6 +244,17 @@ export default function DiarioBordoDetalhes() {
 
     const entry = entries[index];
 
+    const tvooDec = parseHHMMToDecimal(entry.tvoo)
+    const tnoitDec = parseHHMMToDecimal(entry.tnoit)
+    const tdiaDec = parseHHMMToDecimal(entry.tdia)
+    const totalDec = parseHHMMToDecimal(entry.total) || tvooDec
+    const ifrDec = parseHHMMToDecimal(entry.ifr)
+
+    const flightHours = Math.floor(tvooDec)
+    const flightMinutes = Math.round((tvooDec - flightHours) * 60)
+    const nightHours = Math.floor(tnoitDec)
+    const nightMinutes = Math.round((tnoitDec - nightHours) * 60)
+
     const entryData = {
       logbook_month_id: logbookMonth.id,
       aircraft_id: aircraftId,
@@ -246,12 +265,14 @@ export default function DiarioBordoDetalhes() {
       departure_time: entry.dep,
       arrival_time: entry.pou,
       flight_type_code: entry.cor,
-      flight_time_hours: parseFloat(entry.tvoo) || 0,
-      flight_time_minutes: 0,
-      day_time: parseFloat(entry.tdia) || 0,
-      night_hours: parseFloat(entry.tnoit) || 0,
-      total_time: parseFloat(entry.total) || 0,
-      ifr_count: parseInt(entry.ifr) || 0,
+      flight_time_hours: flightHours,
+      flight_time_minutes: flightMinutes,
+      day_time: tdiaDec,
+      night_hours: tnoitDec,
+      night_time_hours: nightHours,
+      night_time_minutes: nightMinutes,
+      total_time: totalDec,
+      ifr_count: ifrDec,
       landings: parseInt(entry.pousos) || 0,
       fuel_added: parseFloat(entry.abast) || 0,
       fuel_liters: parseFloat(entry.fuel) || 0,
@@ -264,7 +285,7 @@ export default function DiarioBordoDetalhes() {
       extras: entry.extras,
       flight_number: entry.voo_para,
       confirmed: entry.confere,
-    };
+    } as Record<string, any>;
 
     if (entry.id) {
       const { error } = await supabase
@@ -556,8 +577,10 @@ export default function DiarioBordoDetalhes() {
                   </td>
                   <td className="border border-gray-300 p-1">
                     <Input
-                      type="number"
-                      step="0.1"
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="01:30"
+                      pattern="^\\d{1,2}:\\d{2}$"
                       value={entry.tvoo}
                       onChange={(e) => updateEntry(index, 'tvoo', e.target.value)}
                       disabled={isClosed}
@@ -566,8 +589,10 @@ export default function DiarioBordoDetalhes() {
                   </td>
                   <td className="border border-gray-300 p-1">
                     <Input
-                      type="number"
-                      step="0.1"
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="01:30"
+                      pattern="^\\d{1,2}:\\d{2}$"
                       value={entry.tdia}
                       onChange={(e) => updateEntry(index, 'tdia', e.target.value)}
                       disabled={isClosed}
@@ -576,8 +601,10 @@ export default function DiarioBordoDetalhes() {
                   </td>
                   <td className="border border-gray-300 p-1">
                     <Input
-                      type="number"
-                      step="0.1"
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="01:30"
+                      pattern="^\\d{1,2}:\\d{2}$"
                       value={entry.tnoit}
                       onChange={(e) => updateEntry(index, 'tnoit', e.target.value)}
                       disabled={isClosed}
@@ -586,8 +613,10 @@ export default function DiarioBordoDetalhes() {
                   </td>
                   <td className="border border-gray-300 p-1">
                     <Input
-                      type="number"
-                      step="0.1"
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="01:30"
+                      pattern="^\\d{1,2}:\\d{2}$"
                       value={entry.total}
                       onChange={(e) => updateEntry(index, 'total', e.target.value)}
                       disabled={isClosed}
@@ -596,11 +625,14 @@ export default function DiarioBordoDetalhes() {
                   </td>
                   <td className="border border-gray-300 p-1">
                     <Input
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="00:00"
+                      pattern="^\\d{1,2}:\\d{2}$"
                       value={entry.ifr}
                       onChange={(e) => updateEntry(index, 'ifr', e.target.value)}
                       disabled={isClosed}
-                      className="h-7 text-xs w-12"
+                      className="h-7 text-xs w-16"
                     />
                   </td>
                   <td className="border border-gray-300 p-1">

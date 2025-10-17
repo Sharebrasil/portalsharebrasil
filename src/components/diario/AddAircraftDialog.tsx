@@ -29,6 +29,7 @@ export function AddAircraftDialog({ open, onOpenChange, aircraft }: AddAircraftD
     year: "",
     status: "Ativa",
     fuel_consumption: "",
+    base: "",
   });
 
   useEffect(() => {
@@ -42,6 +43,7 @@ export function AddAircraftDialog({ open, onOpenChange, aircraft }: AddAircraftD
         year: "",
         status: aircraft.status ?? "Ativa",
         fuel_consumption: aircraft.fuel_consumption != null ? String(aircraft.fuel_consumption) : "",
+        base: (aircraft as any).base ?? "",
       });
     } else if (open) {
       setFormData({
@@ -53,6 +55,7 @@ export function AddAircraftDialog({ open, onOpenChange, aircraft }: AddAircraftD
         year: "",
         status: "Ativa",
         fuel_consumption: "",
+        base: "",
       });
     }
   }, [aircraft, open]);
@@ -73,6 +76,7 @@ export function AddAircraftDialog({ open, onOpenChange, aircraft }: AddAircraftD
             owner_name: formData.owner_name,
             status: formData.status,
             fuel_consumption: formData.fuel_consumption || null,
+            base: formData.base || null,
           })
           .eq('id', aircraft.id);
         if (error) throw error;
@@ -87,6 +91,7 @@ export function AddAircraftDialog({ open, onOpenChange, aircraft }: AddAircraftD
           year: formData.year || null,
           status: formData.status,
           fuel_consumption: formData.fuel_consumption || null,
+          base: formData.base || null,
         }]);
         if (error) throw error;
         toast({ title: "Sucesso!", description: "Aeronave cadastrada com sucesso." });
@@ -107,7 +112,7 @@ export function AddAircraftDialog({ open, onOpenChange, aircraft }: AddAircraftD
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="w-[90vw] max-w-[520px] sm:max-w-[520px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{aircraft ? 'Editar Aeronave' : 'Adicionar Nova Aeronave'}</DialogTitle>
         </DialogHeader>
@@ -123,7 +128,7 @@ export function AddAircraftDialog({ open, onOpenChange, aircraft }: AddAircraftD
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="manufacturer">Fabricante *</Label>
               <Input
@@ -147,8 +152,8 @@ export function AddAircraftDialog({ open, onOpenChange, aircraft }: AddAircraftD
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
-            <div className="space-y-2 col-span-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="serial_number">Número de Série *</Label>
               <Input
                 id="serial_number"
@@ -179,6 +184,16 @@ export function AddAircraftDialog({ open, onOpenChange, aircraft }: AddAircraftD
               onChange={(e) => setFormData({ ...formData, owner_name: e.target.value })}
               placeholder="Nome do Proprietário"
               required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="base">Base</Label>
+            <Input
+              id="base"
+              value={formData.base}
+              onChange={(e) => setFormData({ ...formData, base: e.target.value })}
+              placeholder="Ex.: SBRJ, SBCY ou cidade"
             />
           </div>
 

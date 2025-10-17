@@ -8,7 +8,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
+import { cn, formatBRL, parseBRL } from "@/lib/utils";
 import { CalendarIcon, Info } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -109,7 +109,7 @@ export function AddLogbookEntryDialog({ open, onOpenChange, aircraftId, prefille
         fuel_cell: formData.fuel_cell ? parseFloat(formData.fuel_cell) : null,
         pc: formData.pc ? parseFloat(formData.pc) : null,
         isc: formData.isc || null,
-        daily_rate: formData.daily_rate ? parseFloat(formData.daily_rate) : null,
+        daily_rate: formData.daily_rate ? parseBRL(formData.daily_rate) : null,
         extras: formData.extras || null,
         flight_type: formData.flight_type || null,
         remarks: formData.remarks || null,
@@ -469,13 +469,19 @@ export function AddLogbookEntryDialog({ open, onOpenChange, aircraftId, prefille
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="daily_rate">Diárias</Label>
+              <Label htmlFor="daily_rate">Diárias (R$)</Label>
               <Input
                 id="daily_rate"
-                type="number"
-                step="0.01"
+                type="text"
+                inputMode="decimal"
+                placeholder="R$ 0,00"
                 value={formData.daily_rate}
-                onChange={(e) => setFormData({ ...formData, daily_rate: e.target.value })}
+                onChange={(e) => {
+                  const val = e.target.value
+                  const num = parseBRL(val)
+                  const formatted = val.trim() === '' ? '' : formatBRL(num)
+                  setFormData({ ...formData, daily_rate: formatted })
+                }}
               />
             </div>
 

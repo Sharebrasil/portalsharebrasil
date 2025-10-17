@@ -56,6 +56,7 @@ export type Database = {
           total_hours: number | null
           updated_at: string | null
           year: string | null
+          base: string | null
         }
         Insert: {
           cell_hours_before?: number | null
@@ -76,6 +77,7 @@ export type Database = {
           total_hours?: number | null
           updated_at?: string | null
           year?: string | null
+          base?: string | null
         }
         Update: {
           cell_hours_before?: number | null
@@ -96,6 +98,7 @@ export type Database = {
           total_hours?: number | null
           year?: string | null
           updated_at?: string | null
+          base?: string | null
         }
         Relationships: []
       }
