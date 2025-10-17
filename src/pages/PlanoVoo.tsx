@@ -3,16 +3,18 @@ import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plane, FileText, Pencil } from "lucide-react";
+import { Plane, FileText, Pencil, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { fetchFlightSchedulesWithDetails, type FlightScheduleWithDetails } from "@/services/flightSchedules";
 import { FlightPlanForm } from "@/components/plano-voo/FlightPlanForm";
+import { FlightPlanDialog } from "@/components/plano-voo/FlightPlanDialog";
 import { cn } from "@/lib/utils";
 
 export default function PlanoVoo() {
   const [schedules, setSchedules] = useState<FlightScheduleWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(null);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchConfirmedSchedules();
@@ -77,9 +79,15 @@ export default function PlanoVoo() {
   return (
     <Layout>
       <div className="p-6 space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">Plano de Voo</h1>
-          <p className="text-muted-foreground">Agendamentos confirmados disponíveis para criar plano de voo</p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground mb-2">Plano de Voo</h1>
+            <p className="text-muted-foreground">Agendamentos confirmados disponíveis para criar plano de voo</p>
+          </div>
+          <Button onClick={() => setCreateDialogOpen(true)} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Criar Plano de Voo
+          </Button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -179,6 +187,8 @@ export default function PlanoVoo() {
             <p className="text-muted-foreground">Nenhum agendamento confirmado encontrado</p>
           </div>
         )}
+
+        <FlightPlanDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} />
       </div>
     </Layout>
   );

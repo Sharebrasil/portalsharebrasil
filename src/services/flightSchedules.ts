@@ -29,7 +29,7 @@ export async function fetchFlightSchedulesWithDetails(
   const { status, includeFlightPlans = false } = options;
 
   let selectString =
-    "*, aircraft(id, registration, model), clients(id, company_name)";
+    "*, aircraft:aircraft_id(id, registration, model), clients:client_id(id, company_name)";
 
   if (includeFlightPlans) {
     selectString += ", flight_plans(id)";
@@ -46,12 +46,64 @@ export async function fetchFlightSchedulesWithDetails(
 
   const { data, error } = await query;
 
-  if (error) {
-    console.error("Error details:", error);
-    throw new Error(`Falha ao buscar agendamentos: ${error.message}`);
-  }
+  let schedules: (Tables<'flight_schedules'> & FlightScheduleRelations)[] = [];
 
-  const schedules = (data ?? []) as unknown as (Tables<'flight_schedules'> & FlightScheduleRelations)[];
+  if (error) {
+    const isRelationshipError = /relationship|schema cache/i.test(error.message || "");
+    if (!isRelationshipError) {
+      console.error("Error details:", error);
+      throw new Error(`Falha ao buscar agendamentos: ${error.message}`);
+    }
+
+    // Fallback without relational selects: fetch base rows then hydrate
+    const { data: baseRows, error: baseErr } = await supabase
+      .from("flight_schedules")
+      .select("*")
+      .order("flight_date", { ascending: true });
+
+    if (baseErr) {
+      console.error("Error details:", baseErr);
+      throw new Error(`Falha ao buscar agendamentos: ${baseErr.message}`);
+    }
+
+    const rows = (baseRows ?? []) as Tables<'flight_schedules'>[];
+
+    // Collect IDs
+    const aircraftIds = Array.from(new Set(rows.map(r => r.aircraft_id).filter((v): v is string => Boolean(v))));
+    const clientIds = Array.from(new Set(rows.map(r => r.client_id).filter((v): v is string => Boolean(v))));
+
+    // Fetch related tables
+    const [{ data: aircraftRows }, { data: clientRows }] = await Promise.all([
+      aircraftIds.length ? supabase.from("aircraft").select("id, registration, model").in("id", aircraftIds) : Promise.resolve({ data: [], error: null } as any),
+      clientIds.length ? supabase.from("clients").select("id, company_name").in("id", clientIds) : Promise.resolve({ data: [], error: null } as any),
+    ]);
+
+    const aircraftMap = new Map<string, Pick<AircraftRow, "id" | "registration" | "model">>();
+    const clientMap = new Map<string, Pick<ClientRow, "id" | "company_name">>();
+
+    (aircraftRows as Pick<AircraftRow, "id" | "registration" | "model">[] | undefined)?.forEach(a => aircraftMap.set(a.id, a));
+    (clientRows as Pick<ClientRow, "id" | "company_name">[] | undefined)?.forEach(c => clientMap.set(c.id, c));
+
+    let plansBySchedule = new Map<string, Pick<FlightPlanRow, "id">[]>();
+    if (includeFlightPlans) {
+      const { data: planRows } = await supabase.from("flight_plans").select("id, flight_schedule_id");
+      (planRows as { id: string; flight_schedule_id: string | null }[] | undefined)?.forEach(p => {
+        if (!p.flight_schedule_id) return;
+        const arr = plansBySchedule.get(p.flight_schedule_id) || [];
+        arr.push({ id: p.id } as Pick<FlightPlanRow, "id">);
+        plansBySchedule.set(p.flight_schedule_id, arr);
+      });
+    }
+
+    schedules = rows.map((r) => ({
+      ...(r as any),
+      aircraft: r.aircraft_id ? aircraftMap.get(r.aircraft_id) ?? null : null,
+      clients: r.client_id ? clientMap.get(r.client_id) ?? null : null,
+      flight_plans: includeFlightPlans ? plansBySchedule.get(r.id) ?? [] : null,
+    }));
+  } else {
+    schedules = (data ?? []) as unknown as (Tables<'flight_schedules'> & FlightScheduleRelations)[];
+  }
 
   const crewIds = Array.from(
     new Set(

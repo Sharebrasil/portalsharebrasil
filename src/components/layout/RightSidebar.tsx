@@ -51,6 +51,7 @@ export function RightSidebar() {
     month: 'long',
     day: 'numeric'
   });
+
   const flightOperations: FlightOperation[] = [
     {
       label: "Agendamento",
@@ -91,6 +92,7 @@ export function RightSidebar() {
       path: "/documentos",
     },
   ];
+
   const maintenanceItems: MaintenanceItem[] = [
     {
       label: "Controle de Vencimentos",
@@ -111,7 +113,9 @@ export function RightSidebar() {
       path: "/manutencao/relatorios",
     },
   ];
-  return <aside className="w-80 bg-background border-l border-border p-4 space-y-6">
+
+  return (
+    <aside className="w-80 bg-background border-l border-border p-4 space-y-6">
       {/* Horário do Sistema */}
       <Card className="bg-gradient-card border-border shadow-card">
         <CardHeader className="pb-3">
@@ -167,7 +171,6 @@ export function RightSidebar() {
         <CardContent className="pt-0 space-y-2">
           {maintenanceItems.map((item, index) => {
             const statusConfig = maintenanceStatusConfig[item.status];
-
             return (
               <Button
                 key={index}
@@ -182,14 +185,12 @@ export function RightSidebar() {
                     <span className="text-sm">{item.label}</span>
                   </div>
                   <Badge variant={statusConfig.variant}>{statusConfig.label}</Badge>
-               
-            </div>
-          ))}
+                </div>
+              </Button>
+            );
+          })}
         </CardContent>
       </Card>
-
-      <FlightPlanDialog open={flightPlanOpen} onOpenChange={setFlightPlanOpen} />
-      <FlightScheduleDialog open={scheduleOpen} onOpenChange={setScheduleOpen} />
     </aside>
   );
 }
