@@ -53,8 +53,15 @@ interface Cliente {
   observations?: string;
   cnpj_card_url?: string;
   aircraft?: string;
+  aircraft_id?: string | null;
   logo_url?: string;
   documents?: ClientDocument[];
+}
+
+interface AircraftOption {
+  id: string;
+  registration: string;
+  model: string;
 }
 
 export default function Clientes() {
