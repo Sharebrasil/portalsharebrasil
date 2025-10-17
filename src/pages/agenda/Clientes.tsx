@@ -124,6 +124,14 @@ export default function Clientes() {
     }
   };
 
+  const loadAircraftOptions = async () => {
+    const { data, error } = await supabase
+      .from("aircraft")
+      .select("id, registration, model")
+      .order("registration");
+    if (!error) setAircraftOptions((data as any) || []);
+  };
+
   const handleViewCliente = (cliente: Cliente) => {
     setViewingCliente(cliente);
   };
