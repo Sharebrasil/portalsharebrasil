@@ -112,7 +112,7 @@ export function AddAircraftDialog({ open, onOpenChange, aircraft }: AddAircraftD
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="w-[95vw] max-w-[640px] sm:max-w-[640px]">
         <DialogHeader>
           <DialogTitle>{aircraft ? 'Editar Aeronave' : 'Adicionar Nova Aeronave'}</DialogTitle>
         </DialogHeader>
