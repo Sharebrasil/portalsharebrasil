@@ -204,6 +204,10 @@ export default function DiarioBordo() {
                                 if (error) {
                                   // eslint-disable-next-line no-alert
                                   alert(error.message);
+                                } else {
+                                  // reload query cache by simple location reload or better, invalidate via query client in dialog context
+                                  // Fallback: force a small refresh by navigating
+                                  window.location.hash = window.location.hash;
                                 }
                               }}
                               aria-label="Excluir"
