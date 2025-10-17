@@ -1,33 +1,66 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Plus, Calendar as CalendarIcon, Lock, FileDown } from "lucide-react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { Card } from "@/components/ui/card";
+import { ArrowLeft, Plus, Check } from "lucide-react";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { AddLogbookEntryDialog } from "@/components/diario/AddLogbookEntryDialog";
-import { LogbookTable } from "@/components/diario/LogbookTable";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CloseMonthDialog } from "@/components/diario/CloseMonthDialog";
-import { AircraftMetricsForm } from "@/components/diario/AircraftMetricsForm";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+
+const MONTHS = [
+  "JANEIRO", "FEVEREIRO", "MARÇO", "ABRIL", "MAIO", "JUNHO",
+  "JULHO", "AGOSTO", "SETEMBRO", "OUTUBRO", "NOVEMBRO", "DEZEMBRO"
+];
+
+interface LogbookEntry {
+  id?: string;
+  data: string;
+  de: string;
+  para: string;
+  ac: string;
+  dep: string;
+  pou: string;
+  cor: string;
+  tvoo: string;
+  tdia: string;
+  tnoit: string;
+  total: string;
+  ifr: string;
+  pousos: string;
+  abast: string;
+  fuel: string;
+  celula_ant: string;
+  celula_post: string;
+  celula_disp: string;
+  pic: string;
+  sic: string;
+  diarias: string;
+  extras: string;
+  voo_para: string;
+  confere: boolean;
+}
 
 export default function DiarioBordoDetalhes() {
   const { aircraftId } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const location = useLocation();
-  const params = new URLSearchParams(location.search);
-  const monthParam = params.get('month');
-  const yearParam = params.get('year');
-  const [addEntryOpen, setAddEntryOpen] = useState(false);
-  const [closeMonthOpen, setCloseMonthOpen] = useState(false);
-  const [prefilledDate, setPrefilledDate] = useState<Date | undefined>(undefined);
+  const { roles } = useAuth();
+
   const [selectedMonth, setSelectedMonth] = useState(
-    monthParam !== null && !Number.isNaN(parseInt(monthParam)) ? parseInt(monthParam).toString() : new Date().getMonth().toString()
+    searchParams.get('month') || String(new Date().getMonth() + 1)
   );
   const [selectedYear, setSelectedYear] = useState(
-    yearParam !== null && !Number.isNaN(parseInt(yearParam)) ? parseInt(yearParam).toString() : new Date().getFullYear().toString()
+    searchParams.get('year') || String(new Date().getFullYear())
+  );
+  const [entries, setEntries] = useState<LogbookEntry[]>([]);
+  const [newRowIndex, setNewRowIndex] = useState<number | null>(null);
+
+  const canConfirm = roles.some(role =>
+    role === "admin" || role === "piloto_chefe" || role === "gestor_master"
   );
 
   const { data: aircraft } = useQuery({
@@ -38,251 +71,677 @@ export default function DiarioBordoDetalhes() {
         .select('*')
         .eq('id', aircraftId)
         .single();
-      
+
       if (error) throw error;
       return data;
     },
     enabled: !!aircraftId,
   });
 
-  const { data: entries, isLoading, refetch: refetchEntries } = useQuery({
-    queryKey: ['logbook-entries', aircraftId, selectedMonth, selectedYear],
+  const { data: logbookMonth, refetch: refetchMonth } = useQuery({
+    queryKey: ['logbook-month', aircraftId, selectedYear, selectedMonth],
     queryFn: async () => {
-      const startDate = `${selectedYear}-${(parseInt(selectedMonth) + 1).toString().padStart(2, '0')}-01`;
-      const endDate = new Date(parseInt(selectedYear), parseInt(selectedMonth) + 1, 0);
-      const endDateStr = `${selectedYear}-${(parseInt(selectedMonth) + 1).toString().padStart(2, '0')}-${endDate.getDate()}`;
+      const { data, error } = await supabase
+        .from('logbook_months')
+        .select('*')
+        .eq('aircraft_id', aircraftId)
+        .eq('year', parseInt(selectedYear))
+        .eq('month', parseInt(selectedMonth))
+        .maybeSingle();
 
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!aircraftId,
+  });
+
+  const { data: crewMembers } = useQuery({
+    queryKey: ['crew-members'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('crew_members')
+        .select('canac, full_name')
+        .order('full_name');
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: clients } = useQuery({
+    queryKey: ['clients'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('clients')
+        .select('id, company_name')
+        .order('company_name');
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  useEffect(() => {
+    setSearchParams({ month: selectedMonth, year: selectedYear });
+  }, [selectedMonth, selectedYear, setSearchParams]);
+
+  useEffect(() => {
+    if (logbookMonth) {
+      loadEntries();
+    }
+  }, [logbookMonth]);
+
+  const loadEntries = async () => {
+    if (!logbookMonth) return;
+
+    const { data, error } = await supabase
+      .from('logbook_entries')
+      .select('*')
+      .eq('logbook_month_id', logbookMonth.id)
+      .order('entry_date', { ascending: true });
+
+    if (error) {
+      console.error('Error loading entries:', error);
+      return;
+    }
+
+    const formattedEntries = data.map(entry => ({
+      id: entry.id,
+      data: entry.entry_date,
+      de: entry.departure_airport,
+      para: entry.arrival_airport,
+      ac: entry.aircraft_commander || '',
+      dep: entry.departure_time,
+      pou: entry.arrival_time,
+      cor: entry.flight_type_code || '',
+      tvoo: entry.flight_time_hours?.toString() || '',
+      tdia: entry.day_time?.toString() || '',
+      tnoit: entry.night_hours?.toString() || '',
+      total: entry.total_time?.toString() || '',
+      ifr: entry.ifr_count?.toString() || '',
+      pousos: entry.landings?.toString() || '',
+      abast: entry.fuel_added?.toString() || '',
+      fuel: entry.fuel_liters?.toString() || '',
+      celula_ant: entry.cell_before?.toString() || '',
+      celula_post: entry.cell_after?.toString() || '',
+      celula_disp: entry.cell_disp?.toString() || '',
+      pic: entry.pic_canac || '',
+      sic: entry.sic_canac || '',
+      diarias: entry.daily_rate?.toString() || '',
+      extras: entry.extras || '',
+      voo_para: entry.flight_number || '',
+      confere: entry.confirmed || false,
+    }));
+
+    setEntries(formattedEntries);
+  };
+
+  const addNewRow = () => {
+    const newEntry: LogbookEntry = {
+      data: '',
+      de: '',
+      para: '',
+      ac: '',
+      dep: '',
+      pou: '',
+      cor: '',
+      tvoo: '',
+      tdia: '',
+      tnoit: '',
+      total: '',
+      ifr: '',
+      pousos: '',
+      abast: '',
+      fuel: '',
+      celula_ant: '',
+      celula_post: '',
+      celula_disp: '',
+      pic: '',
+      sic: '',
+      diarias: '',
+      extras: '',
+      voo_para: '',
+      confere: false,
+    };
+
+    setEntries([...entries, newEntry]);
+    setNewRowIndex(entries.length);
+  };
+
+  const updateEntry = (index: number, field: keyof LogbookEntry, value: any) => {
+    const updated = [...entries];
+    updated[index] = { ...updated[index], [field]: value };
+    setEntries(updated);
+  };
+
+  const saveEntry = async (index: number) => {
+    if (!logbookMonth) {
+      toast.error("Diário de bordo não encontrado");
+      return;
+    }
+
+    const entry = entries[index];
+
+    const entryData = {
+      logbook_month_id: logbookMonth.id,
+      aircraft_id: aircraftId,
+      entry_date: entry.data,
+      departure_airport: entry.de,
+      arrival_airport: entry.para,
+      aircraft_commander: entry.ac,
+      departure_time: entry.dep,
+      arrival_time: entry.pou,
+      flight_type_code: entry.cor,
+      flight_time_hours: parseFloat(entry.tvoo) || 0,
+      flight_time_minutes: 0,
+      day_time: parseFloat(entry.tdia) || 0,
+      night_hours: parseFloat(entry.tnoit) || 0,
+      total_time: parseFloat(entry.total) || 0,
+      ifr_count: parseInt(entry.ifr) || 0,
+      landings: parseInt(entry.pousos) || 0,
+      fuel_added: parseFloat(entry.abast) || 0,
+      fuel_liters: parseFloat(entry.fuel) || 0,
+      cell_before: parseFloat(entry.celula_ant) || 0,
+      cell_after: parseFloat(entry.celula_post) || 0,
+      cell_disp: parseFloat(entry.celula_disp) || 0,
+      pic_canac: entry.pic,
+      sic_canac: entry.sic,
+      daily_rate: parseFloat(entry.diarias) || 0,
+      extras: entry.extras,
+      flight_number: entry.voo_para,
+      confirmed: entry.confere,
+    };
+
+    if (entry.id) {
+      const { error } = await supabase
+        .from('logbook_entries')
+        .update(entryData)
+        .eq('id', entry.id);
+
+      if (error) {
+        toast.error("Erro ao atualizar entrada");
+        console.error(error);
+        return;
+      }
+    } else {
       const { data, error } = await supabase
         .from('logbook_entries')
-        .select('*')
-        .eq('aircraft_id', aircraftId)
-        .gte('entry_date', startDate)
-        .lte('entry_date', endDateStr)
-        .order('entry_date', { ascending: true });
-      
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!aircraftId,
-  });
+        .insert([entryData])
+        .select()
+        .single();
 
-  const { data: monthClosure, refetch: refetchClosure } = useQuery({
-    queryKey: ['month-closure', aircraftId, selectedMonth, selectedYear],
-    queryFn: async () => {
-      const { data: closureData, error: closureError } = await supabase
-        .from('monthly_diary_closures')
-        .select('*')
-        .eq('aircraft_id', aircraftId)
-        .eq('month', parseInt(selectedMonth) + 1)
-        .eq('year', parseInt(selectedYear))
-        .maybeSingle();
-      
-      if (closureError) throw closureError;
-      
-      if (closureData && closureData.closed_by) {
-        const { data: userData } = await supabase
-          .from('user_profiles')
-          .select('full_name')
-          .eq('id', closureData.closed_by)
-          .single();
-        
-        return {
-          ...closureData,
-          user_name: userData?.full_name || 'Usuário',
-        };
+      if (error) {
+        toast.error("Erro ao salvar entrada");
+        console.error(error);
+        return;
       }
-      
-      return closureData;
-    },
-    enabled: !!aircraftId,
-  });
 
-  const { data: yearClosures } = useQuery({
-    queryKey: ['year-closures', aircraftId, selectedYear],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('monthly_diary_closures')
-        .select('month')
-        .eq('aircraft_id', aircraftId)
-        .eq('year', parseInt(selectedYear));
-      if (error) throw error;
-      return data ?? [] as { month: number }[];
-    },
-    enabled: !!aircraftId,
-  });
+      const updated = [...entries];
+      updated[index].id = data.id;
+      setEntries(updated);
+    }
 
-  const months = [
-    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
-  ];
-
-  const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 5 }, (_, i) => (currentYear - 2 + i).toString());
-
-  const totalHours = entries?.reduce((sum, entry) => sum + entry.total_time, 0) || 0;
-  const totalLandings = entries?.reduce((sum, entry) => sum + entry.landings, 0) || 0;
-  const totalFuelAdded = entries?.reduce((sum, entry) => sum + entry.fuel_added, 0) || 0;
-
-  const isMonthClosed = !!monthClosure;
-  const hasEntries = entries && entries.length > 0;
-
-  const handleCloseSuccess = () => {
-    refetchClosure();
-    refetchEntries();
+    setNewRowIndex(null);
+    toast.success("Entrada salva com sucesso");
+    loadEntries();
   };
 
-  const handleAddEntry = (date?: Date) => {
-    setPrefilledDate(date);
-    setAddEntryOpen(true);
+  const toggleConfirm = async (index: number) => {
+    if (!canConfirm) {
+      toast.error("Você não tem permissão para confirmar entradas");
+      return;
+    }
+
+    const entry = entries[index];
+    if (!entry.id) {
+      toast.error("Salve a entrada antes de confirmar");
+      return;
+    }
+
+    const newConfirmStatus = !entry.confere;
+
+    const { error } = await supabase
+      .from('logbook_entries')
+      .update({
+        confirmed: newConfirmStatus,
+        confirmed_by: newConfirmStatus ? (await supabase.auth.getUser()).data.user?.id : null,
+        confirmed_at: newConfirmStatus ? new Date().toISOString() : null,
+      })
+      .eq('id', entry.id);
+
+    if (error) {
+      toast.error("Erro ao confirmar entrada");
+      return;
+    }
+
+    updateEntry(index, 'confere', newConfirmStatus);
+    toast.success(newConfirmStatus ? "Entrada confirmada" : "Confirmação removida");
   };
+
+  const closeMonth = async () => {
+    if (!logbookMonth) return;
+    if (!canConfirm) {
+      toast.error("Você não tem permissão para fechar o diário");
+      return;
+    }
+
+    const { error } = await supabase
+      .from('logbook_months')
+      .update({
+        is_closed: true,
+        closed_by: (await supabase.auth.getUser()).data.user?.id,
+        closed_at: new Date().toISOString(),
+      })
+      .eq('id', logbookMonth.id);
+
+    if (error) {
+      toast.error("Erro ao fechar o diário");
+      return;
+    }
+
+    toast.success("Diário fechado com sucesso");
+    refetchMonth();
+  };
+
+  if (!logbookMonth) {
+    return (
+      <Layout>
+        <div className="container mx-auto p-6">
+          <div className="flex items-center gap-4 mb-6">
+            <Button variant="ghost" size="icon" onClick={() => navigate('/diario-bordo')}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <h1 className="text-2xl font-bold">Diário de Bordo não encontrado</h1>
+          </div>
+          <p>Crie um diário de bordo para este ano e aeronave.</p>
+        </div>
+      </Layout>
+    );
+  }
+
+  const monthName = MONTHS[parseInt(selectedMonth) - 1];
+  const isClosed = logbookMonth?.is_closed;
 
   return (
     <Layout>
-      <div className="container mx-auto p-6 space-y-6">
+      <div className="container mx-auto p-6 space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={() => navigate('/diario-bordo')}
-            >
+            <Button variant="ghost" size="icon" onClick={() => navigate('/diario-bordo')}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">
-                {aircraft?.registration || 'Carregando...'}
-              </h1>
-              <p className="text-muted-foreground mt-1">
-                {aircraft?.model} - {aircraft?.total_hours?.toFixed(1) || '0.0'}H totais
-              </p>
-            </div>
+            <h1 className="text-2xl font-bold">
+              DIÁRIO {monthName} {selectedYear} {aircraft?.registration}
+            </h1>
           </div>
           <div className="flex gap-2">
-            {!isMonthClosed && hasEntries && (
-              <Button onClick={() => setCloseMonthOpen(true)} variant="destructive" className="gap-2">
-                <Lock className="h-4 w-4" />
-                Encerrar Mês
+            <Select value={selectedMonth} onValueChange={setSelectedMonth} disabled={isClosed}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {MONTHS.map((month, idx) => (
+                  <SelectItem key={idx} value={String(idx + 1)}>
+                    {month.toLowerCase()}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={selectedYear} onValueChange={setSelectedYear} disabled={isClosed}>
+              <SelectTrigger className="w-24">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - 5 + i).map(year => (
+                  <SelectItem key={year} value={String(year)}>
+                    {year}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {!isClosed && (
+              <Button onClick={addNewRow}>
+                <Plus className="h-4 w-4 mr-2" />
+                Novo Voo
               </Button>
             )}
-            {isMonthClosed && (
-              <Button variant="outline" className="gap-2">
-                <FileDown className="h-4 w-4" />
-                Exportar PDF
-              </Button>
-            )}
-            {!isMonthClosed && (
-              <Button onClick={() => handleAddEntry()} className="gap-2">
-                <Plus className="h-4 w-4" />
-                Novo Registro
+            {!isClosed && canConfirm && entries.length > 0 && (
+              <Button onClick={closeMonth} variant="destructive">
+                Fechar Diário
               </Button>
             )}
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
-          {months.map((m, idx) => {
-            const closed = (yearClosures ?? []).some((c: any) => c.month === idx + 1);
-            const isActive = parseInt(selectedMonth) === idx;
-            return (
-              <Button
-                key={m}
-                variant={isActive ? 'default' : closed ? 'secondary' : 'outline'}
-                size="sm"
-                className="justify-center"
-                onClick={() => setSelectedMonth(idx.toString())}
-              >
-                {m} {closed ? '🔒' : ''}
-              </Button>
-            );
-          })}
-        </div>
-
-        {isMonthClosed && hasEntries && monthClosure && (
-          <Alert>
-            <Lock className="h-4 w-4" />
-            <AlertDescription>
-              Mês encerrado em {new Date(monthClosure.closed_at).toLocaleDateString('pt-BR')} por{' '}
-              <span className="font-bold">{(monthClosure as any).user_name || 'Usuário'}</span>
-              {monthClosure.closing_observations && (
-                <>
-                  <br />
-                  <span className="text-sm italic">Observações: {monthClosure.closing_observations}</span>
-                </>
-              )}
-            </AlertDescription>
-          </Alert>
-        )}
-
-        <AircraftMetricsForm aircraftId={aircraftId!} isReadOnly={isMonthClosed} />
-
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <CalendarIcon className="h-5 w-5 text-primary" />
-                Diário de Bordo
-              </CardTitle>
-              <div className="flex gap-3">
-                <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                  <SelectTrigger className="w-[140px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {months.map((month, index) => (
-                      <SelectItem key={index} value={index.toString()}>
-                        {month}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select value={selectedYear} onValueChange={setSelectedYear}>
-                  <SelectTrigger className="w-[100px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {years.map((year) => (
-                      <SelectItem key={year} value={year}>
-                        {year}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+        <Card className="bg-green-100 p-4">
+          <div className="grid grid-cols-4 gap-4 text-sm font-medium">
+            <div>
+              <div>AERONAVE: {aircraft?.registration}</div>
+              <div>MODELO: {aircraft?.model}</div>
+              <div>CONS. MÉD: {aircraft?.fuel_consumption}</div>
             </div>
-          </CardHeader>
-          <CardContent>
-            <LogbookTable 
-              entries={entries || []} 
-              isLoading={isLoading}
-              aircraft={aircraft}
-              isReadOnly={isMonthClosed}
-              onAddEntry={handleAddEntry}
-            />
-          </CardContent>
+            <div>
+              <div className="font-bold">CÉLULA</div>
+              <div>ANTER: {logbookMonth.cell_hours_start || 0} H</div>
+              <div>ATUAL: {logbookMonth.cell_hours_end || 0} H</div>
+              <div>PRÓX.: {(logbookMonth.cell_hours_end || 0) + 100} H</div>
+            </div>
+            <div>
+              <div className="font-bold">HORÍMETRO</div>
+              <div>INÍCIO: {logbookMonth.hobbs_hours_start || 0} H</div>
+              <div>FINAL: {logbookMonth.hobbs_hours_end || 0} H</div>
+              <div>ATIVO: {(logbookMonth.hobbs_hours_end || 0) - (logbookMonth.hobbs_hours_start || 0)} H</div>
+            </div>
+          </div>
         </Card>
 
-        {aircraftId && (
-          <>
-            <AddLogbookEntryDialog 
-              open={addEntryOpen} 
-              onOpenChange={setAddEntryOpen}
-              aircraftId={aircraftId}
-              prefilledDate={prefilledDate}
-              onSuccess={refetchEntries}
-            />
-            <CloseMonthDialog
-              open={closeMonthOpen}
-              onOpenChange={setCloseMonthOpen}
-              aircraftId={aircraftId}
-              month={parseInt(selectedMonth)}
-              year={parseInt(selectedYear)}
-              totalHours={totalHours}
-              totalLandings={totalLandings}
-              totalFuelAdded={totalFuelAdded}
-              onSuccess={handleCloseSuccess}
-            />
-          </>
-        )}
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse border border-gray-300 text-xs">
+            <thead className="bg-yellow-100">
+              <tr>
+                <th className="border border-gray-300 p-1">DATA</th>
+                <th className="border border-gray-300 p-1">DE</th>
+                <th className="border border-gray-300 p-1">PARA</th>
+                <th className="border border-gray-300 p-1">AC</th>
+                <th className="border border-gray-300 p-1">DEP</th>
+                <th className="border border-gray-300 p-1">POU</th>
+                <th className="border border-gray-300 p-1">COR</th>
+                <th className="border border-gray-300 p-1">T VOO</th>
+                <th className="border border-gray-300 p-1">T DIA</th>
+                <th className="border border-gray-300 p-1">T NOIT</th>
+                <th className="border border-gray-300 p-1">TOTAL</th>
+                <th className="border border-gray-300 p-1">IFR</th>
+                <th className="border border-gray-300 p-1">POUSOS</th>
+                <th className="border border-gray-300 p-1">ABAST</th>
+                <th className="border border-gray-300 p-1">FUEL</th>
+                <th className="border border-gray-300 p-1 bg-yellow-200" colSpan={3}>CÉLULA</th>
+                <th className="border border-gray-300 p-1 bg-blue-100" colSpan={2}>CONTROLE COTISTA</th>
+                <th className="border border-gray-300 p-1">PIC</th>
+                <th className="border border-gray-300 p-1">SIC</th>
+                <th className="border border-gray-300 p-1">DIÁRIAS</th>
+                <th className="border border-gray-300 p-1">EXTRAS</th>
+                <th className="border border-gray-300 p-1">VOO PARA</th>
+                <th className="border border-gray-300 p-1">CONF</th>
+              </tr>
+              <tr className="bg-yellow-50">
+                <th className="border border-gray-300 p-1" colSpan={15}></th>
+                <th className="border border-gray-300 p-1 text-[10px]">ANT</th>
+                <th className="border border-gray-300 p-1 text-[10px]">POST</th>
+                <th className="border border-gray-300 p-1 text-[10px]">DISP</th>
+                <th className="border border-gray-300 p-1 text-[10px]">EXTRAS</th>
+                <th className="border border-gray-300 p-1 text-[10px]">VOO PARA</th>
+                <th className="border border-gray-300 p-1" colSpan={6}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {entries.map((entry, index) => (
+                <tr key={entry.id || index} className={newRowIndex === index ? "bg-blue-50" : ""}>
+                  <td className="border border-gray-300 p-1">
+                    <Input
+                      type="date"
+                      value={entry.data}
+                      onChange={(e) => updateEntry(index, 'data', e.target.value)}
+                      disabled={isClosed}
+                      className="h-7 text-xs"
+                    />
+                  </td>
+                  <td className="border border-gray-300 p-1">
+                    <Input
+                      value={entry.de}
+                      onChange={(e) => updateEntry(index, 'de', e.target.value)}
+                      disabled={isClosed}
+                      className="h-7 text-xs w-16"
+                    />
+                  </td>
+                  <td className="border border-gray-300 p-1">
+                    <Input
+                      value={entry.para}
+                      onChange={(e) => updateEntry(index, 'para', e.target.value)}
+                      disabled={isClosed}
+                      className="h-7 text-xs w-16"
+                    />
+                  </td>
+                  <td className="border border-gray-300 p-1">
+                    <Input
+                      value={entry.ac}
+                      onChange={(e) => updateEntry(index, 'ac', e.target.value)}
+                      disabled={isClosed}
+                      className="h-7 text-xs w-12"
+                    />
+                  </td>
+                  <td className="border border-gray-300 p-1">
+                    <Input
+                      type="time"
+                      value={entry.dep}
+                      onChange={(e) => updateEntry(index, 'dep', e.target.value)}
+                      disabled={isClosed}
+                      className="h-7 text-xs w-20"
+                    />
+                  </td>
+                  <td className="border border-gray-300 p-1">
+                    <Input
+                      type="time"
+                      value={entry.pou}
+                      onChange={(e) => updateEntry(index, 'pou', e.target.value)}
+                      disabled={isClosed}
+                      className="h-7 text-xs w-20"
+                    />
+                  </td>
+                  <td className="border border-gray-300 p-1">
+                    <Input
+                      value={entry.cor}
+                      onChange={(e) => updateEntry(index, 'cor', e.target.value)}
+                      disabled={isClosed}
+                      className="h-7 text-xs w-12"
+                    />
+                  </td>
+                  <td className="border border-gray-300 p-1">
+                    <Input
+                      type="number"
+                      step="0.1"
+                      value={entry.tvoo}
+                      onChange={(e) => updateEntry(index, 'tvoo', e.target.value)}
+                      disabled={isClosed}
+                      className="h-7 text-xs w-16"
+                    />
+                  </td>
+                  <td className="border border-gray-300 p-1">
+                    <Input
+                      type="number"
+                      step="0.1"
+                      value={entry.tdia}
+                      onChange={(e) => updateEntry(index, 'tdia', e.target.value)}
+                      disabled={isClosed}
+                      className="h-7 text-xs w-16"
+                    />
+                  </td>
+                  <td className="border border-gray-300 p-1">
+                    <Input
+                      type="number"
+                      step="0.1"
+                      value={entry.tnoit}
+                      onChange={(e) => updateEntry(index, 'tnoit', e.target.value)}
+                      disabled={isClosed}
+                      className="h-7 text-xs w-16"
+                    />
+                  </td>
+                  <td className="border border-gray-300 p-1">
+                    <Input
+                      type="number"
+                      step="0.1"
+                      value={entry.total}
+                      onChange={(e) => updateEntry(index, 'total', e.target.value)}
+                      disabled={isClosed}
+                      className="h-7 text-xs w-16"
+                    />
+                  </td>
+                  <td className="border border-gray-300 p-1">
+                    <Input
+                      type="number"
+                      value={entry.ifr}
+                      onChange={(e) => updateEntry(index, 'ifr', e.target.value)}
+                      disabled={isClosed}
+                      className="h-7 text-xs w-12"
+                    />
+                  </td>
+                  <td className="border border-gray-300 p-1">
+                    <Input
+                      type="number"
+                      value={entry.pousos}
+                      onChange={(e) => updateEntry(index, 'pousos', e.target.value)}
+                      disabled={isClosed}
+                      className="h-7 text-xs w-12"
+                    />
+                  </td>
+                  <td className="border border-gray-300 p-1">
+                    <Input
+                      type="number"
+                      step="0.1"
+                      value={entry.abast}
+                      onChange={(e) => updateEntry(index, 'abast', e.target.value)}
+                      disabled={isClosed}
+                      className="h-7 text-xs w-16"
+                    />
+                  </td>
+                  <td className="border border-gray-300 p-1">
+                    <Input
+                      type="number"
+                      step="0.1"
+                      value={entry.fuel}
+                      onChange={(e) => updateEntry(index, 'fuel', e.target.value)}
+                      disabled={isClosed}
+                      className="h-7 text-xs w-16"
+                    />
+                  </td>
+                  <td className="border border-gray-300 p-1">
+                    <Input
+                      type="number"
+                      step="0.1"
+                      value={entry.celula_ant}
+                      onChange={(e) => updateEntry(index, 'celula_ant', e.target.value)}
+                      disabled={isClosed}
+                      className="h-7 text-xs w-16"
+                    />
+                  </td>
+                  <td className="border border-gray-300 p-1">
+                    <Input
+                      type="number"
+                      step="0.1"
+                      value={entry.celula_post}
+                      onChange={(e) => updateEntry(index, 'celula_post', e.target.value)}
+                      disabled={isClosed}
+                      className="h-7 text-xs w-16"
+                    />
+                  </td>
+                  <td className="border border-gray-300 p-1">
+                    <Input
+                      type="number"
+                      step="0.1"
+                      value={entry.celula_disp}
+                      onChange={(e) => updateEntry(index, 'celula_disp', e.target.value)}
+                      disabled={isClosed}
+                      className="h-7 text-xs w-16"
+                    />
+                  </td>
+                  <td className="border border-gray-300 p-1">
+                    <Input
+                      value={entry.extras}
+                      onChange={(e) => updateEntry(index, 'extras', e.target.value)}
+                      disabled={isClosed}
+                      className="h-7 text-xs w-20"
+                    />
+                  </td>
+                  <td className="border border-gray-300 p-1">
+                    <select
+                      value={entry.voo_para}
+                      onChange={(e) => updateEntry(index, 'voo_para', e.target.value)}
+                      disabled={isClosed}
+                      className="h-7 text-xs w-full border rounded px-1"
+                    >
+                      <option value="">-</option>
+                      {clients?.map(client => (
+                        <option key={client.id} value={client.id}>{client.company_name}</option>
+                      ))}
+                    </select>
+                  </td>
+                  <td className="border border-gray-300 p-1">
+                    <select
+                      value={entry.pic}
+                      onChange={(e) => updateEntry(index, 'pic', e.target.value)}
+                      disabled={isClosed}
+                      className="h-7 text-xs w-20 border rounded px-1"
+                    >
+                      <option value="">-</option>
+                      {crewMembers?.map(crew => (
+                        <option key={crew.canac} value={crew.canac}>{crew.canac}</option>
+                      ))}
+                    </select>
+                  </td>
+                  <td className="border border-gray-300 p-1">
+                    <select
+                      value={entry.sic}
+                      onChange={(e) => updateEntry(index, 'sic', e.target.value)}
+                      disabled={isClosed}
+                      className="h-7 text-xs w-20 border rounded px-1"
+                    >
+                      <option value="">-</option>
+                      {crewMembers?.map(crew => (
+                        <option key={crew.canac} value={crew.canac}>{crew.canac}</option>
+                      ))}
+                    </select>
+                  </td>
+                  <td className="border border-gray-300 p-1">
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={entry.diarias}
+                      onChange={(e) => updateEntry(index, 'diarias', e.target.value)}
+                      disabled={isClosed}
+                      className="h-7 text-xs w-16"
+                    />
+                  </td>
+                  <td className="border border-gray-300 p-1">
+                    <Input
+                      value={entry.extras}
+                      onChange={(e) => updateEntry(index, 'extras', e.target.value)}
+                      disabled={isClosed}
+                      className="h-7 text-xs w-20"
+                    />
+                  </td>
+                  <td className="border border-gray-300 p-1">
+                    <Input
+                      value={entry.voo_para}
+                      onChange={(e) => updateEntry(index, 'voo_para', e.target.value)}
+                      disabled={isClosed}
+                      className="h-7 text-xs w-24"
+                    />
+                  </td>
+                  <td className="border border-gray-300 p-1 text-center">
+                    {newRowIndex === index ? (
+                      <Button
+                        size="sm"
+                        onClick={() => saveEntry(index)}
+                        className="h-7 px-2"
+                      >
+                        Salvar
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant={entry.confere ? "default" : "outline"}
+                        onClick={() => toggleConfirm(index)}
+                        disabled={!canConfirm || isClosed}
+                        className="h-7 w-7 p-0"
+                      >
+                        {entry.confere && <Check className="h-4 w-4" />}
+                      </Button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </Layout>
   );
