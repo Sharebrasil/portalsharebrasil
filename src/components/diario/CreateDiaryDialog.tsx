@@ -1,96 +1,134 @@
-import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
-interface CreateDiaryDialogProps {
+interface CreateLogbookDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreate: (opts: { aircraftId: string; month: number; year: number }) => void;
+  aircraft: Array<{
+    id: string;
+    registration: string;
+    model: string;
+  }>;
 }
 
-export function CreateDiaryDialog({ open, onOpenChange, onCreate }: CreateDiaryDialogProps) {
-  const { data: aircraft } = useQuery({
-    queryKey: ['aircraft'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('aircraft')
-        .select('id, registration, model')
-        .order('registration');
-      if (error) throw error;
-      return data;
-    },
-  });
+export function CreateLogbookDialog({ open, onOpenChange, aircraft }: CreateLogbookDialogProps) {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [selectedAircraft, setSelectedAircraft] = useState<string>("");
+  const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
 
-  const now = new Date();
-  const [aircraftId, setAircraftId] = useState<string>("");
-  const [month] = useState<string>(now.getMonth().toString());
-  const [year, setYear] = useState<string>(now.getFullYear().toString());
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
 
-  useEffect(() => {
-    if (!aircraftId && aircraft && aircraft.length > 0) {
-      setAircraftId(aircraft[0].id);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!selectedAircraft || !selectedYear) {
+      toast.error("Selecione uma aeronave e um ano");
+      return;
     }
-  }, [aircraftId, aircraft]);
 
-  const months = [
-    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
-  ];
-  const currentYear = now.getFullYear();
-  const years = Array.from({ length: 5 }, (_, i) => (currentYear - 2 + i).toString());
+    setLoading(true);
 
-  const handleCreate = () => {
-    if (!aircraftId) return;
-    onCreate({ aircraftId, month: parseInt(month), year: parseInt(year) });
-    onOpenChange(false);
+    try {
+      const months = Array.from({ length: 12 }, (_, i) => ({
+        aircraft_id: selectedAircraft,
+        year: parseInt(selectedYear),
+        month: i + 1,
+        is_closed: false,
+      }));
+
+      const { error } = await supabase
+        .from('logbook_months')
+        .insert(months);
+
+      if (error) {
+        if (error.code === '23505') {
+          toast.error("Diário de bordo já existe para este ano e aeronave");
+        } else {
+          throw error;
+        }
+        return;
+      }
+
+      toast.success("Diário de bordo criado com sucesso!");
+
+      const aircraftData = aircraft.find(a => a.id === selectedAircraft);
+      if (aircraftData) {
+        navigate(`/diario-bordo/${selectedAircraft}?year=${selectedYear}&month=1`);
+      }
+
+      onOpenChange(false);
+      setSelectedAircraft("");
+      setSelectedYear(currentYear.toString());
+    } catch (error: any) {
+      console.error("Erro ao criar diário de bordo:", error);
+      toast.error(error.message || "Não foi possível criar o diário de bordo");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[520px]">
+      <DialogContent>
         <DialogHeader>
-          <DialogTitle>Criar Diário</DialogTitle>
+          <DialogTitle>Criar Diário de Bordo</DialogTitle>
         </DialogHeader>
-        <div className="grid gap-4 py-2">
+
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label>Aeronave</Label>
-            <Select value={aircraftId} onValueChange={setAircraftId}>
+            <Label htmlFor="aircraft">Aeronave *</Label>
+            <Select value={selectedAircraft} onValueChange={setSelectedAircraft}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione a aeronave" />
               </SelectTrigger>
               <SelectContent>
-                {aircraft?.map((ac) => (
+                {aircraft.map((ac) => (
                   <SelectItem key={ac.id} value={ac.id}>
-                    {ac.registration} • {ac.model}
+                    {ac.registration} - {ac.model}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-          <div className="grid grid-cols-1 gap-4">
-            <div className="space-y-2">
-              <Label>Ano</Label>
-              <Select value={year} onValueChange={setYear}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {years.map((y) => (
-                    <SelectItem key={y} value={y}>{y}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="year">Ano *</Label>
+            <Select value={selectedYear} onValueChange={setSelectedYear}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o ano" />
+              </SelectTrigger>
+              <SelectContent>
+                {years.map((year) => (
+                  <SelectItem key={year} value={year.toString()}>
+                    {year}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-          <div className="flex justify-end gap-3 pt-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button onClick={handleCreate} disabled={!aircraftId}>Criar</Button>
+
+          <div className="flex justify-end gap-3 mt-6">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={loading}
+            >
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? 'Criando...' : 'Criar Diário'}
+            </Button>
           </div>
-        </div>
+        </form>
       </DialogContent>
     </Dialog>
   );
