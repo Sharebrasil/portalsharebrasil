@@ -121,6 +121,20 @@ export default function DiarioBordoDetalhes() {
     },
   });
 
+  const { data: company } = useQuery({
+    queryKey: ['company-settings-latest'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('company_settings')
+        .select('logo_url, name')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
   useEffect(() => {
     setSearchParams({ month: selectedMonth, year: selectedYear });
   }, [selectedMonth, selectedYear, setSearchParams]);
@@ -361,6 +375,10 @@ export default function DiarioBordoDetalhes() {
 
   const monthName = MONTHS[parseInt(selectedMonth) - 1];
   const isClosed = logbookMonth?.is_closed;
+  const cellStart = logbookMonth?.cell_hours_start || 0;
+  const cellEnd = logbookMonth?.cell_hours_end || 0;
+  const cellPrev = Math.ceil(cellEnd / 10) * 10;
+  const cellDisp = Math.max(0, Number((cellPrev - cellEnd).toFixed(2)));
 
   return (
     <Layout>
@@ -370,6 +388,9 @@ export default function DiarioBordoDetalhes() {
             <Button variant="ghost" size="icon" onClick={() => navigate('/diario-bordo')}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
+            {company?.logo_url && (
+              <img src={company.logo_url} alt={company.name || 'Logo'} className="h-8 w-auto" />
+            )}
             <h1 className="text-2xl font-bold">
               DIÁRIO {monthName} {selectedYear} {aircraft?.registration}
             </h1>
@@ -418,13 +439,14 @@ export default function DiarioBordoDetalhes() {
             <div>
               <div>AERONAVE: {aircraft?.registration}</div>
               <div>MODELO: {aircraft?.model}</div>
-              <div>CONS. MÉD: {aircraft?.fuel_consumption}</div>
+              <div>CONS. MÉD: {aircraft?.fuel_consumption} L/H</div>
             </div>
             <div>
               <div className="font-bold">CÉLULA</div>
-              <div>ANTER: {logbookMonth.cell_hours_start || 0} H</div>
-              <div>ATUAL: {logbookMonth.cell_hours_end || 0} H</div>
-              <div>PRÓX.: {(logbookMonth.cell_hours_end || 0) + 100} H</div>
+              <div>ANTER.: {cellStart} H</div>
+              <div>ATUAL.: {cellEnd} H</div>
+              <div>P.REV.: {cellPrev} H</div>
+              <div>DISP.: <span className="text-destructive font-semibold">{cellDisp} H</span></div>
             </div>
             <div>
               <div className="font-bold">HORÍMETRO</div>
