@@ -138,7 +138,7 @@ export default function GestaoTripulacao() {
                 </TableHeader>
                 <TableBody>
                   {filteredCrewMembers.map((m) => (
-                    <TableRow key={m.id} className="cursor-pointer group" onClick={() => { navigate(`/tripulacao/${m.id}`); window.open(`${window.location.origin}${window.location.pathname}#/tripulacao/${m.id}?tab=anexos`, "_blank", "noopener"); }}>
+                    <TableRow key={m.id} className="cursor-pointer group" onClick={() => navigate(`/tripulacao/${m.id}`)}>
                       <TableCell>{m.canac}</TableCell>
                       <TableCell>{m.full_name}</TableCell>
                       <TableCell>{m.email ?? ""}</TableCell>
