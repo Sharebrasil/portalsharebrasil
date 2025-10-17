@@ -45,7 +45,7 @@ export function AddAerodromeDialog({ open, onOpenChange }: AddAerodromeDialogPro
 
       queryClient.invalidateQueries({ queryKey: ['aerodromes'] });
       onOpenChange(false);
-      setFormData({ name: "", icao_code: "" , coordenadas ""});
+      setFormData({ name: "", icao_code: "", coordenadas: "" });
     } catch (error: any) {
       toast({
         title: "Erro",
@@ -94,16 +94,17 @@ export function AddAerodromeDialog({ open, onOpenChange }: AddAerodromeDialogPro
               required
             />
           </div>
-          <form onSubmit={handleSubmit} className="space-y-4">
+
           <div className="space-y-2">
             <Label htmlFor="coordenadas">COORDENADAS *</Label>
             <Input
               id="coordenadas"
               value={formData.coordenadas}
-              onChange={(e) => setFormData({ ...formData, coordenadas: e.target.value.toUpperCase() })}
-              placeholder="SBSP"
-              maxLength={4}
+              onChange={(e) => setFormData({ ...formData, coordenadas: e.target.value })}
+              placeholder="S23 37.620 W046 39.300 ou -23.6269,-46.6563"
               required
+            />
+          </div>
 
           <div className="flex justify-end gap-3 pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

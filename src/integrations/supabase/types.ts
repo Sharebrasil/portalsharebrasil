@@ -16,6 +16,7 @@ export type Database = {
           id: string
           name: string
           updated_at: string | null
+          coordenadas: string | null
         }
         Insert: {
           created_at?: string | null
@@ -23,6 +24,7 @@ export type Database = {
           id?: string
           name: string
           updated_at?: string | null
+          coordenadas?: string | null
         }
         Update: {
           created_at?: string | null
@@ -30,6 +32,7 @@ export type Database = {
           id?: string
           name?: string
           updated_at?: string | null
+          coordenadas?: string | null
         }
         Relationships: []
       }

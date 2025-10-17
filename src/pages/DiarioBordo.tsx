@@ -46,7 +46,84 @@ export default function DiarioBordo() {
     },
   });
 
+  type ParsedCoords = { latitude: number; longitude: number };
 
+  const parseCoordinates = (raw?: string | null): ParsedCoords | null => {
+    if (!raw) return null;
+    const s = raw.trim();
+
+    // Try decimal with comma or semicolon separator
+    const dec = s.match(/^\s*([+-]?\d+(?:\.\d+)?)\s*[;,]\s*([+-]?\d+(?:\.\d+)?)\s*$/);
+    if (dec) {
+      const lat = parseFloat(dec[1]);
+      const lon = parseFloat(dec[2]);
+      if (isFinite(lat) && isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180) {
+        return { latitude: lat, longitude: lon };
+      }
+    }
+
+    const dmsToDec = (deg: number, min?: number, sec?: number, hemi?: string) => {
+      let d = Math.abs(deg);
+      if (typeof min === 'number') d += min / 60;
+      if (typeof sec === 'number') d += sec / 3600;
+      if (hemi && /[SW]/i.test(hemi)) d = -d;
+      if (hemi && /[NE]/i.test(hemi)) d = +d;
+      return d;
+    };
+
+    const letterFirst = (text: string, hemiRe: RegExp) => {
+      const re = new RegExp(`(${hemiRe.source})\\s*(\\d{1,3})(?:\\D+(\\d{1,2}(?:\\.\\d+)?))?(?:\\D+(\\d{1,2}(?:\\.\\d+)?))?`, 'i');
+      return text.match(re);
+    };
+
+    const letterLast = (text: string, hemiRe: RegExp) => {
+      const re = new RegExp(`(\\d{1,3})(?:\\D+(\\d{1,2}(?:\\.\\d+)?))?(?:\\D+(\\d{1,2}(?:\\.\\d+)?))?\\D*(${hemiRe.source})`, 'i');
+      return text.match(re);
+    };
+
+    const latA = letterFirst(s, /[NS]/);
+    const lonA = letterFirst(s, /[EW]/);
+
+    const latB = latA || letterLast(s, /[NS]/);
+    const lonB = lonA || letterLast(s, /[EW]/);
+
+    if (latB && lonB) {
+      const latH = (latB[1] || latB[4] || '').toString();
+      const latDeg = parseFloat(latB[2]);
+      const latMin = latB[3] ? parseFloat(latB[3]) : undefined;
+      const latSec = latB[4] ? parseFloat(latB[4]) : undefined;
+
+      const lonH = (lonB[1] || lonB[4] || '').toString();
+      const lonDeg = parseFloat(lonB[2]);
+      const lonMin = lonB[3] ? parseFloat(lonB[3]) : undefined;
+      const lonSec = lonB[4] ? parseFloat(lonB[4]) : undefined;
+
+      if (isFinite(latDeg) && isFinite(lonDeg)) {
+        const latitude = dmsToDec(latDeg, latMin, latSec, latH);
+        const longitude = dmsToDec(lonDeg, lonMin, lonSec, lonH);
+        if (isFinite(latitude) && isFinite(longitude) && Math.abs(latitude) <= 90 && Math.abs(longitude) <= 180) {
+          return { latitude, longitude };
+        }
+      }
+    }
+
+    // Try simple space-separated decimals as a last resort
+    const parts = s.split(/\s+/);
+    if (parts.length === 2) {
+      const lat = parseFloat(parts[0]);
+      const lon = parseFloat(parts[1]);
+      if (isFinite(lat) && isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180) {
+        return { latitude: lat, longitude: lon };
+      }
+    }
+
+    return null;
+  };
+
+  const formatCoordinates = (raw?: string | null) => {
+    const parsed = parseCoordinates(raw);
+    return parsed ? `${parsed.latitude.toFixed(6)}, ${parsed.longitude.toFixed(6)}` : "—";
+  };
 
   return (
     <Layout>
@@ -194,7 +271,6 @@ export default function DiarioBordo() {
                                 if (!confirm(`Excluir aeronave ${ac.registration}?`)) return;
                                 const { error } = await supabase.from('aircraft').delete().eq('id', ac.id);
                                 if (error) {
-                                  // eslint-disable-next-line no-alert
                                   alert(error.message);
                                 } else {
                                   queryClient.invalidateQueries({ queryKey: ['aircraft'] });
@@ -236,10 +312,7 @@ export default function DiarioBordo() {
                   </TableHeader>
                   <TableBody>
                     {aerodromes?.map((a) => {
-                      const coords = (airports ?? []).find((ap) => (ap.icao_code ?? '').toUpperCase() === (a.icao_code ?? '').toUpperCase());
-                    coordenadas
-                        ? `${coords.latitude.toFixed(6)}, ${coords.longitude.toFixed(6)}`
-                        : "-";
+                      const coordText = formatCoordinates((a as any).coordenadas);
                       return (
                         <TableRow key={a.id}>
                           <TableCell className="font-medium">{a.icao_code}</TableCell>
