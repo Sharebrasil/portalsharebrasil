@@ -1,188 +1,171 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import type { Tables } from "@/integrations/supabase/types";
+import { Plane } from "lucide-react";
 
-interface AgendamentoDialogProps {
+interface FlightScheduleDialogProps {
   open: boolean;
-  onClose: () => void;
-  agendamento?: Tables<'flight_schedules'>;
+  onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
 }
 
-interface AgendamentoFormData {
-  aircraft_id: string;
-  crew_member_id: string;
-  client_id: string;
-  flight_date: string;
-  flight_time: string;
-  origin: string;
-  destination: string;
-  estimated_duration: string;
-  passengers: number;
-  flight_type: string;
-  contact: string;
-  observations: string;
-  status: string;
-}
-
-interface AircraftOption {
+interface Aircraft {
   id: string;
   registration: string;
-  model: string | null;
+  model: string;
 }
 
-interface CrewMemberOption {
+interface CrewMember {
   id: string;
-  full_name: string | null;
+  full_name: string;
 }
 
-interface ClientOption {
+interface Client {
   id: string;
-  company_name: string | null;
+  company_name: string;
 }
 
-export function AgendamentoDialog({ open, onClose, agendamento }: AgendamentoDialogProps) {
-  const [aircraft, setAircraft] = useState<AircraftOption[]>([]);
-  const [crewMembers, setCrewMembers] = useState<CrewMemberOption[]>([]);
-  const [clients, setClients] = useState<ClientOption[]>([]);
-  const [formData, setFormData] = useState<AgendamentoFormData>({
+export function FlightScheduleDialog({ open, onOpenChange, onSuccess }: FlightScheduleDialogProps) {
+  const [aircraft, setAircraft] = useState<Aircraft[]>([]);
+  const [crewMembers, setCrewMembers] = useState<CrewMember[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [loading, setLoading] = useState(false);
+  
+  const [formData, setFormData] = useState({
     aircraft_id: "",
-    crew_member_id: "",
-    client_id: "",
     flight_date: "",
     flight_time: "",
+    estimated_duration: "",
+    client_id: "",
+    contact: "",
+    passengers: "1",
+    flight_type: "executivo",
     origin: "",
     destination: "",
-    estimated_duration: "",
-    passengers: 1,
-    flight_type: "executivo",
-    contact: "",
-    observations: "",
+    crew_member_id: "",
     status: "pendente",
+    observations: "",
   });
 
   useEffect(() => {
-    if (!open) {
-      return;
+    if (open) {
+      loadData();
     }
+  }, [open]);
 
-    void fetchData();
-
-    if (agendamento) {
-      setFormData({
-        aircraft_id: agendamento.aircraft_id || "",
-        crew_member_id: agendamento.crew_member_id || "",
-        client_id: agendamento.client_id || "",
-        flight_date: agendamento.flight_date || "",
-        flight_time: agendamento.flight_time || "",
-        origin: agendamento.origin || "",
-        destination: agendamento.destination || "",
-        estimated_duration: agendamento.estimated_duration || "",
-        passengers: agendamento.passengers || 1,
-        flight_type: agendamento.flight_type || "executivo",
-        contact: agendamento.contact || "",
-        observations: agendamento.observations || "",
-        status: agendamento.status || "pendente",
-      });
-    } else {
-      resetForm();
-    }
-  }, [open, agendamento]);
-
-  const fetchData = async () => {
+  const loadData = async () => {
+    setLoading(true);
     try {
       const [aircraftRes, crewRes, clientsRes] = await Promise.all([
-        supabase.from("aircraft").select("id, registration, model").eq("status", "Ativa"),
+        supabase.from("aircraft").select("id, registration, model"),
         supabase.from("crew_members").select("id, full_name").eq("status", "active"),
         supabase.from("clients").select("id, company_name"),
       ]);
 
-      setAircraft(aircraftRes.data ?? []);
-      setCrewMembers(crewRes.data ?? []);
-      setClients(clientsRes.data ?? []);
+      if (aircraftRes.error) throw aircraftRes.error;
+      if (crewRes.error) throw crewRes.error;
+      if (clientsRes.error) throw clientsRes.error;
+
+      setAircraft(aircraftRes.data || []);
+      setCrewMembers(crewRes.data || []);
+      setClients(clientsRes.data || []);
     } catch (error) {
-      console.error("Erro ao buscar dados:", error);
+      console.error("Error loading data:", error);
+      toast.error("Erro ao carregar dados");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!formData.aircraft_id || !formData.flight_date || !formData.flight_time || 
+        !formData.origin || !formData.destination) {
+      toast.error("Preencha todos os campos obrigatórios");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const { error } = await supabase.from("flight_schedules").insert({
+        aircraft_id: formData.aircraft_id,
+        flight_date: formData.flight_date,
+        flight_time: formData.flight_time,
+        estimated_duration: formData.estimated_duration || null,
+        client_id: formData.client_id || null,
+        contact: formData.contact || null,
+        passengers: parseInt(formData.passengers),
+        flight_type: formData.flight_type,
+        origin: formData.origin,
+        destination: formData.destination,
+        crew_member_id: formData.crew_member_id || null,
+        status: formData.status,
+        observations: formData.observations || null,
+      });
+
+      if (error) throw error;
+
+      toast.success("Agendamento criado com sucesso!");
+      resetForm();
+      onOpenChange(false);
+      if (onSuccess) onSuccess();
+    } catch (error) {
+      console.error("Error creating schedule:", error);
+      toast.error("Erro ao criar agendamento");
+    } finally {
+      setLoading(false);
     }
   };
 
   const resetForm = () => {
     setFormData({
       aircraft_id: "",
-      crew_member_id: "",
-      client_id: "",
       flight_date: "",
       flight_time: "",
+      estimated_duration: "",
+      client_id: "",
+      contact: "",
+      passengers: "1",
+      flight_type: "executivo",
       origin: "",
       destination: "",
-      estimated_duration: "",
-      passengers: 1,
-      flight_type: "executivo",
-      contact: "",
-      observations: "",
+      crew_member_id: "",
       status: "pendente",
+      observations: "",
     });
   };
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    try {
-      if (agendamento) {
-        const { error } = await supabase
-          .from("flight_schedules")
-          .update(formData)
-          .eq("id", agendamento.id);
-
-        if (error) {
-          throw error;
-        }
-
-        toast.success("Agendamento atualizado com sucesso");
-      } else {
-        const { error } = await supabase.from("flight_schedules").insert([formData]);
-
-        if (error) {
-          throw error;
-        }
-
-        toast.success("Agendamento criado com sucesso");
-      }
-
-      onClose();
-    } catch (error) {
-      console.error("Erro ao salvar agendamento:", error);
-      toast.error("Erro ao salvar agendamento");
-    }
-  };
-
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{agendamento ? "Editar Agendamento" : "Novo Agendamento"}</DialogTitle>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-card">
+        <DialogHeader className="bg-primary text-primary-foreground -m-6 mb-6 p-6 rounded-t-lg">
+          <DialogTitle className="flex items-center gap-2 text-xl">
+            <Plane className="h-5 w-5" />
+            Novo Agendamento
+          </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="space-y-6">
+          {/* Basic Flight Info */}
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="aircraft_id">Aeronave *</Label>
+              <Label htmlFor="aircraft">Aeronave *</Label>
               <Select
                 value={formData.aircraft_id}
-                onValueChange={(value) => setFormData({ ...formData, aircraft_id: value })}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, aircraft_id: value }))}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione a aeronave" />
+                <SelectTrigger className="bg-secondary">
+                  <SelectValue placeholder="Selecione a aeronave..." />
                 </SelectTrigger>
-                <SelectContent>
-                  {aircraft.map((item) => (
-                    <SelectItem key={item.id} value={item.id}>
-                      {item.registration} - {item.model}
+                <SelectContent className="bg-popover">
+                  {aircraft.map((ac) => (
+                    <SelectItem key={ac.id} value={ac.id}>
+                      {ac.registration} - {ac.model}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -192,166 +175,196 @@ export function AgendamentoDialog({ open, onClose, agendamento }: AgendamentoDia
             <div className="space-y-2">
               <Label htmlFor="flight_date">Data do Voo *</Label>
               <Input
+                id="flight_date"
                 type="date"
+                className="bg-secondary"
                 value={formData.flight_date}
-                onChange={(event) => setFormData({ ...formData, flight_date: event.target.value })}
-                required
+                onChange={(e) => setFormData(prev => ({ ...prev, flight_date: e.target.value }))}
               />
             </div>
+          </div>
 
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="flight_time">Horário</Label>
+              <Label htmlFor="flight_time">Horário *</Label>
               <Input
+                id="flight_time"
                 type="time"
+                className="bg-secondary"
                 value={formData.flight_time}
-                onChange={(event) => setFormData({ ...formData, flight_time: event.target.value })}
+                onChange={(e) => setFormData(prev => ({ ...prev, flight_time: e.target.value }))}
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="estimated_duration">Duração Estimada</Label>
               <Input
+                id="estimated_duration"
                 placeholder="Ex: 2h 30min"
+                className="bg-secondary"
                 value={formData.estimated_duration}
-                onChange={(event) => setFormData({ ...formData, estimated_duration: event.target.value })}
+                onChange={(e) => setFormData(prev => ({ ...prev, estimated_duration: e.target.value }))}
               />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="origin">Origem *</Label>
-              <Input
-                placeholder="Ex: SBGL (Guarulhos)"
-                value={formData.origin}
-                onChange={(event) => setFormData({ ...formData, origin: event.target.value })}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="destination">Destino</Label>
-              <Input
-                placeholder="Ex: SBRJ (Santos Dumont)"
-                value={formData.destination}
-                onChange={(event) => setFormData({ ...formData, destination: event.target.value })}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="crew_member_id">Tripulante *</Label>
-              <Select
-                value={formData.crew_member_id}
-                onValueChange={(value) => setFormData({ ...formData, crew_member_id: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o tripulante" />
-                </SelectTrigger>
-                <SelectContent>
-                  {crewMembers.map((member) => (
-                    <SelectItem key={member.id} value={member.id}>
-                      {member.full_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="client_id">Cliente / Cotista *</Label>
-              <Select
-                value={formData.client_id}
-                onValueChange={(value) => setFormData({ ...formData, client_id: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o cliente" />
-                </SelectTrigger>
-                <SelectContent>
-                  {clients.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {client.company_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="passengers">Número de Passageiros</Label>
-              <Input
-                type="number"
-                min="1"
-                value={formData.passengers}
-                onChange={(event) =>
-                  setFormData({
-                    ...formData,
-                    passengers: Number.parseInt(event.target.value, 10) || 1,
-                  })
-                }
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="flight_type">Tipo de Voo</Label>
-              <Select
-                value={formData.flight_type}
-                onValueChange={(value) => setFormData({ ...formData, flight_type: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="executivo">Executivo</SelectItem>
-                  <SelectItem value="charter">Charter</SelectItem>
-                  <SelectItem value="treinamento">Treinamento</SelectItem>
-                  <SelectItem value="manutencao">Manutenção</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="contact">Contato</Label>
-              <Input
-                placeholder="Telefone ou email"
-                value={formData.contact}
-                onChange={(event) => setFormData({ ...formData, contact: event.target.value })}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <Select
-                value={formData.status}
-                onValueChange={(value) => setFormData({ ...formData, status: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pendente">Pendente</SelectItem>
-                  <SelectItem value="agendado">Agendado</SelectItem>
-                  <SelectItem value="confirmado">Confirmado</SelectItem>
-                  <SelectItem value="cancelado">Cancelado</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="observations">Observações</Label>
-            <Textarea
-              placeholder="Grupo executivo, necessário catering especial..."
-              value={formData.observations}
-              onChange={(event) => setFormData({ ...formData, observations: event.target.value })}
-              rows={3}
-            />
+          {/* Client Information */}
+          <div className="space-y-4">
+            <h3 className="font-semibold text-foreground">Informações do Cliente</h3>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="client">Nome do Cliente *</Label>
+                <Select
+                  value={formData.client_id}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, client_id: value }))}
+                >
+                  <SelectTrigger className="bg-secondary">
+                    <SelectValue placeholder="Nome completo do cliente" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover">
+                    {clients.map((client) => (
+                      <SelectItem key={client.id} value={client.id}>
+                        {client.company_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="contact">Contato</Label>
+                <Input
+                  id="contact"
+                  placeholder="Telefone ou email"
+                  className="bg-secondary"
+                  value={formData.contact}
+                  onChange={(e) => setFormData(prev => ({ ...prev, contact: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="passengers">Número de Passageiros *</Label>
+                <Input
+                  id="passengers"
+                  type="number"
+                  min="1"
+                  className="bg-secondary"
+                  value={formData.passengers}
+                  onChange={(e) => setFormData(prev => ({ ...prev, passengers: e.target.value }))}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="flight_type">Tipo de Voo</Label>
+                <Select
+                  value={formData.flight_type}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, flight_type: value }))}
+                >
+                  <SelectTrigger className="bg-secondary">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover">
+                    <SelectItem value="executivo">✈️ Executivo</SelectItem>
+                    <SelectItem value="treinamento">📚 Treinamento</SelectItem>
+                    <SelectItem value="manutencao">🔧 Manutenção</SelectItem>
+                    <SelectItem value="particular">👤 Particular</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
 
-          <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>
+          {/* Flight Information */}
+          <div className="space-y-4">
+            <h3 className="font-semibold text-foreground">Informações do Voo</h3>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="origin">Origem</Label>
+                <Input
+                  id="origin"
+                  placeholder="Aeroporto/cidade de origem"
+                  className="bg-secondary"
+                  value={formData.origin}
+                  onChange={(e) => setFormData(prev => ({ ...prev, origin: e.target.value.toUpperCase() }))}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="destination">Destino *</Label>
+                <Input
+                  id="destination"
+                  placeholder="Aeroporto/cidade de destino"
+                  className="bg-secondary"
+                  value={formData.destination}
+                  onChange={(e) => setFormData(prev => ({ ...prev, destination: e.target.value.toUpperCase() }))}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="crew">Tripulação</Label>
+                <Select
+                  value={formData.crew_member_id}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, crew_member_id: value }))}
+                >
+                  <SelectTrigger className="bg-secondary">
+                    <SelectValue placeholder="Nome do comandante/tripulação" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover">
+                    {crewMembers.map((crew) => (
+                      <SelectItem key={crew.id} value={crew.id}>
+                        {crew.full_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="status">Status</Label>
+                <Select
+                  value={formData.status}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}
+                >
+                  <SelectTrigger className="bg-secondary">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover">
+                    <SelectItem value="pendente">🟡 Pendente</SelectItem>
+                    <SelectItem value="confirmado">🟢 Confirmado</SelectItem>
+                    <SelectItem value="cancelado">🔴 Cancelado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="observations">Observações</Label>
+              <Textarea
+                id="observations"
+                placeholder="Observações adicionais sobre o voo..."
+                className="bg-secondary min-h-[80px]"
+                value={formData.observations}
+                onChange={(e) => setFormData(prev => ({ ...prev, observations: e.target.value }))}
+              />
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex justify-end gap-3 pt-4 border-t">
+            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
               Cancelar
             </Button>
-            <Button type="submit">{agendamento ? "Atualizar" : "Criar"} Agendamento</Button>
+            <Button onClick={handleSubmit} disabled={loading} className="min-w-[120px]">
+              {loading ? "Salvando..." : "Salvar Agendamento"}
+            </Button>
           </div>
-        </form>
+        </div>
       </DialogContent>
     </Dialog>
   );
