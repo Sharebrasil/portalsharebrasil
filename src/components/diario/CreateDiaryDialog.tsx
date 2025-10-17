@@ -27,7 +27,7 @@ export function CreateDiaryDialog({ open, onOpenChange, onCreate }: CreateDiaryD
 
   const now = new Date();
   const [aircraftId, setAircraftId] = useState<string>("");
-  const [month, setMonth] = useState<string>(now.getMonth().toString());
+  const [month] = useState<string>(now.getMonth().toString());
   const [year, setYear] = useState<string>(now.getFullYear().toString());
 
   useEffect(() => {
@@ -71,20 +71,7 @@ export function CreateDiaryDialog({ open, onOpenChange, onCreate }: CreateDiaryD
               </SelectContent>
             </Select>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Mês</Label>
-              <Select value={month} onValueChange={setMonth}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {months.map((m, i) => (
-                    <SelectItem key={m} value={i.toString()}>{m}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="grid grid-cols-1 gap-4">
             <div className="space-y-2">
               <Label>Ano</Label>
               <Select value={year} onValueChange={setYear}>
