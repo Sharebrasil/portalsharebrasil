@@ -179,6 +179,24 @@ export default function DiarioBordoDetalhes() {
           </div>
         </div>
 
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
+          {months.map((m, idx) => {
+            const closed = (yearClosures ?? []).some((c: any) => c.month === idx + 1);
+            const isActive = parseInt(selectedMonth) === idx;
+            return (
+              <Button
+                key={m}
+                variant={isActive ? 'default' : closed ? 'secondary' : 'outline'}
+                size="sm"
+                className="justify-center"
+                onClick={() => setSelectedMonth(idx.toString())}
+              >
+                {m} {closed ? '🔒' : ''}
+              </Button>
+            );
+          })}
+        </div>
+
         {isMonthClosed && hasEntries && monthClosure && (
           <Alert>
             <Lock className="h-4 w-4" />
