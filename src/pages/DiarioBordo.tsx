@@ -162,13 +162,42 @@ export default function DiarioBordo() {
                 <TabsTrigger value="nova">Criar Nova Aeronave</TabsTrigger>
                 <TabsTrigger value="aerodromos">Gerenciar Aeródromo</TabsTrigger>
               </TabsList>
-              <TabsContent value="nova" className="pt-4">
+              <TabsContent value="nova" className="pt-4 space-y-4">
                 <div className="flex items-center gap-3">
                   <Button onClick={() => setAddDialogOpen(true)} className="gap-2">
                     <Plus className="h-4 w-4" />
                     Nova Aeronave
                   </Button>
                 </div>
+
+                <div className="text-sm text-muted-foreground">Aeronaves cadastradas</div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Matrícula</TableHead>
+                      <TableHead>Modelo</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Consumo (L/H)</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {aircraft?.map((ac) => (
+                      <TableRow key={ac.id} className="cursor-pointer" onClick={() => navigate(`/diario-bordo/${ac.id}`)}>
+                        <TableCell className="font-medium">{ac.registration}</TableCell>
+                        <TableCell>{ac.model}</TableCell>
+                        <TableCell>{ac.status}</TableCell>
+                        <TableCell>{ac.fuel_consumption ?? '-'}</TableCell>
+                      </TableRow>
+                    ))}
+                    {(!aircraft || aircraft.length === 0) && (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center text-muted-foreground">
+                          Nenhuma aeronave cadastrada.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
               </TabsContent>
               <TabsContent value="aerodromos" className="pt-4">
                 <div className="flex items-center justify-between mb-4">
@@ -183,18 +212,26 @@ export default function DiarioBordo() {
                     <TableRow>
                       <TableHead>Código ICAO</TableHead>
                       <TableHead>Nome</TableHead>
+                      <TableHead>Coordenadas</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {aerodromes?.map((a) => (
-                      <TableRow key={a.id}>
-                        <TableCell className="font-medium">{a.icao_code}</TableCell>
-                        <TableCell>{a.name}</TableCell>
-                      </TableRow>
-                    ))}
+                    {aerodromes?.map((a) => {
+                      const coords = (airports ?? []).find((ap) => (ap.icao_code ?? '').toUpperCase() === (a.icao_code ?? '').toUpperCase());
+                      const coordText = coords && coords.latitude != null && coords.longitude != null
+                        ? `${coords.latitude.toFixed(6)}, ${coords.longitude.toFixed(6)}`
+                        : "-";
+                      return (
+                        <TableRow key={a.id}>
+                          <TableCell className="font-medium">{a.icao_code}</TableCell>
+                          <TableCell>{a.name}</TableCell>
+                          <TableCell>{coordText}</TableCell>
+                        </TableRow>
+                      );
+                    })}
                     {(!aerodromes || aerodromes.length === 0) && (
                       <TableRow>
-                        <TableCell colSpan={2} className="text-center text-muted-foreground">
+                        <TableCell colSpan={3} className="text-center text-muted-foreground">
                           Nenhum aeródromo cadastrado.
                         </TableCell>
                       </TableRow>
