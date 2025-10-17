@@ -682,14 +682,15 @@ export default function DiarioBordoDetalhes() {
                       className="h-7 text-xs w-20"
                     />
                   </td>
-                  <td className="border border-gray-300 p-1">
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={entry.diarias}
-                      onChange={(e) => updateEntry(index, 'diarias', e.target.value)}
+                  <td className="border border-gray-300 p-1 text-center">
+                    <input
+                      type="checkbox"
+                      checked={Number(entry.diarias) === 1}
+                      onChange={(e) => updateEntry(index, 'diarias', e.target.checked ? '1' : '0')}
                       disabled={isClosed}
-                      className="h-7 text-xs w-16"
+                      className="h-4 w-4"
+                      aria-label="Diária PIC"
+                      title="Marque para contabilizar 1 diária para o PIC"
                     />
                   </td>
                   <td className="border border-gray-300 p-1">
