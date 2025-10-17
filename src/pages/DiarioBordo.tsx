@@ -179,6 +179,7 @@ export default function DiarioBordo() {
                       <TableHead>Modelo</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Consumo (L/H)</TableHead>
+                      <TableHead className="w-[1%]">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
