@@ -312,7 +312,7 @@ export default function DiarioBordo() {
                   </TableHeader>
                   <TableBody>
                     {aerodromes?.map((a) => {
-                      const coordText = formatCoordinates((a as any).coordenadas);
+                      const coordText = formatCoordinates(a.coordenadas);
                       return (
                         <TableRow key={a.id}>
                           <TableCell className="font-medium">{a.icao_code}</TableCell>
