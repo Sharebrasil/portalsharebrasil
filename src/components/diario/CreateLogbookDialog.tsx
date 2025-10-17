@@ -44,10 +44,12 @@ export function CreateLogbookDialog({ open, onOpenChange, aircraft }: CreateLogb
         is_closed: false,
       }));
 
-      const { error } = await supabase.from("logbook_months").insert(months);
+      const { error } = await supabase
+        .from('logbook_months')
+        .insert(months);
 
       if (error) {
-        if ((error as any).code === "23505") {
+        if (error.code === '23505') {
           toast.error("Diário de bordo já existe para este ano e aeronave");
         } else {
           throw error;
@@ -57,7 +59,7 @@ export function CreateLogbookDialog({ open, onOpenChange, aircraft }: CreateLogb
 
       toast.success("Diário de bordo criado com sucesso!");
 
-      const aircraftData = aircraft.find((a) => a.id === selectedAircraft);
+      const aircraftData = aircraft.find(a => a.id === selectedAircraft);
       if (aircraftData) {
         navigate(`/diario-bordo/${selectedAircraft}?year=${selectedYear}&month=1`);
       }
@@ -114,11 +116,16 @@ export function CreateLogbookDialog({ open, onOpenChange, aircraft }: CreateLogb
           </div>
 
           <div className="flex justify-end gap-3 mt-6">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={loading}
+            >
               Cancelar
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? "Criando..." : "Criar Diário"}
+              {loading ? 'Criando...' : 'Criar Diário'}
             </Button>
           </div>
         </form>
