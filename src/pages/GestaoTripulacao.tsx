@@ -136,7 +136,7 @@ export default function GestaoTripulacao() {
                 </TableHeader>
                 <TableBody>
                   {filteredCrewMembers.map((m) => (
-                    <TableRow key={m.id}>
+                    <TableRow key={m.id} className="cursor-pointer group" onClick={() => navigate(`/tripulacao/${m.id}`)}>
                       <TableCell>{m.canac}</TableCell>
                       <TableCell>{m.full_name}</TableCell>
                       <TableCell>{m.email ?? ""}</TableCell>
@@ -145,8 +145,8 @@ export default function GestaoTripulacao() {
                         {m.status ?? ""}
                       </TableCell>
                       <TableCell>{m.updated_at ? new Date(m.updated_at).toLocaleDateString() : ""}</TableCell>
-                      <TableCell>
-                        <Button size="sm" variant="outline" onClick={() => handleEdit(m)} className="flex items-center gap-1">
+                      <TableCell onClick={(e)=>e.stopPropagation()}>
+                        <Button size="sm" variant="outline" onClick={() => handleEdit(m)} className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <Edit className="h-4 w-4" /> Editar
                         </Button>
                       </TableCell>
