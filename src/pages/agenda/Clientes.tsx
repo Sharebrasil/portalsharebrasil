@@ -95,6 +95,7 @@ export default function Clientes() {
 
   useEffect(() => {
     loadClientes();
+    loadAircraftOptions();
   }, []);
 
   const loadClientes = async () => {
