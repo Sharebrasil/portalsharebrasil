@@ -1,194 +1,197 @@
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Card, CardContent } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { useLocation, useNavigate } from "react-router-dom";
-import { Mail, Phone, Calendar, MapPin, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Calendar, ArrowLeft, UploadCloud, Trash2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+
 export default function TripulanteDetalhes() {
-  const location = useLocation();
+  const { id } = useParams();
   const navigate = useNavigate();
-  const tripulante = (location.state as any)?.tripulante;
-  if (!tripulante) {
-    return <Layout>
+
+  const { data: member, isLoading, refetch } = useQuery({
+    queryKey: ["crew_member", id],
+    enabled: !!id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("crew_members")
+        .select("id, full_name, canac, birth_date, email, phone, photo_url, status")
+        .eq("id", id)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const ageText = useMemo(() => {
+    if (!member?.birth_date) return null;
+    const d = new Date(member.birth_date);
+    const diff = Date.now() - d.getTime();
+    const years = Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
+    return `${d.toLocaleDateString("pt-BR")} (${years} anos)`;
+  }, [member?.birth_date]);
+
+  const [uploading, setUploading] = useState(false);
+  const [docs, setDocs] = useState<{ name: string; url: string }[]>([]);
+
+  const loadDocs = async () => {
+    if (!id) return;
+    const { data, error } = await supabase.storage.from("crew-docs").list(id, { limit: 100 });
+    if (error) return setDocs([]);
+    const items = await Promise.all(
+      (data ?? []).map(async (f) => {
+        const { data: pub } = await supabase.storage.from("crew-docs").getPublicUrl(`${id}/${f.name}`);
+        return { name: f.name, url: pub.publicUrl };
+      })
+    );
+    setDocs(items);
+  };
+
+  useEffect(() => {
+    void loadDocs();
+  }, [id]);
+
+  const handleUpload = async (file: File) => {
+    if (!id) return;
+    setUploading(true);
+    try {
+      const path = `${id}/${Date.now()}-${file.name}`;
+      const { error } = await supabase.storage.from("crew-docs").upload(path, file, { upsert: false });
+      if (error) throw error;
+      await loadDocs();
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDelete = async (name: string) => {
+    if (!id) return;
+    const { error } = await supabase.storage.from("crew-docs").remove([`${id}/${name}`]);
+    if (!error) await loadDocs();
+  };
+
+  if (isLoading || !member) {
+    return (
+      <Layout>
         <div className="p-6">
-          <Card>
-            <CardContent className="p-6 text-center">
-              <p className="text-muted-foreground">Nenhum tripulante selecionado.</p>
-              <div className="mt-4">
-                <Button onClick={() => navigate('/tripulacao')}>Voltar à lista</Button>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="text-center text-muted-foreground">Carregando...</div>
         </div>
-      </Layout>;
+      </Layout>
+    );
   }
-  const formatDate = (d: string) => new Date(d).toLocaleDateString('pt-BR');
-  return <Layout>
+
+  return (
+    <Layout>
       <div className="p-6 space-y-6">
-        {/* Header Card */}
-        <Card className="bg-gradient-to-r from-primary to-primary/80">
-          <CardContent className="p-6 bg-[#86c1d8]">
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-6">
-                <Avatar className="h-24 w-24 border-4 border-background">
-                  <AvatarImage src={tripulante.foto} />
-                  <AvatarFallback className="bg-background text-primary text-xl">
-                    {tripulante.nome.split(' ').map((n: string) => n[0]).slice(0, 2).join('')}
+        <Card className="border-0 shadow-none">
+          <CardContent className="p-0">
+            <div className="flex items-start justify-between rounded-xl bg-[#0E2138] text-white p-6">
+              <div className="flex items-center gap-4">
+                <Avatar className="h-20 w-20 border-4 border-white/10">
+                  <AvatarImage src={member.photo_url || undefined} />
+                  <AvatarFallback className="bg-white text-primary">
+                    {(member.full_name || "?")
+                      .split(" ")
+                      .map((n) => n[0])
+                      .slice(0, 2)
+                      .join("")}
                   </AvatarFallback>
                 </Avatar>
-                <div className="text-primary-foreground">
-                  <h1 className="text-3xl font-bold">{tripulante.nome}</h1>
-                  <div className="flex items-center gap-2 mt-2">
-                    <Badge variant="secondary" className="text-sm bg-[#059936]">
-                      Código ANAC: {tripulante.canac || 'N/A'}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center gap-2 mt-3 text-sm">
-                    <Calendar className="h-4 w-4" />
-                    <span>Nascimento: {tripulante.data_nascimento ? formatDate(tripulante.data_nascimento) : 'N/A'}</span>
+                <div>
+                  <h1 className="text-2xl font-bold leading-tight">{member.full_name}</h1>
+                  <div className="mt-2 flex flex-wrap items-center gap-3 text-sm">
+                    <Badge className="bg-[#059936]">Código ANAC: {member.canac || "N/A"}</Badge>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      <span>Nascimento: {ageText || "N/A"}</span>
+                    </div>
                   </div>
                 </div>
               </div>
-              <Button variant="secondary" onClick={() => navigate('/tripulacao')} className="bg-[#00050a]/[0.21] text-slate-950 px-[8px] py-[16px] my-0 mx-0">
-                Voltar
+              <Button variant="secondary" onClick={() => navigate("/tripulacao")} className="bg-white text-[#0E2138]">
+                <ArrowLeft className="h-4 w-4 mr-2" /> Voltar para Funcionários
               </Button>
             </div>
           </CardContent>
         </Card>
 
-        {/* Tabs Card */}
         <Card>
           <CardContent className="p-6">
             <Tabs defaultValue="dados" className="w-full">
               <TabsList className="grid w-full max-w-md grid-cols-2">
-                <TabsTrigger value="dados">
-                  <User className="h-4 w-4 mr-2" />
-                  Dados Principais
-                </TabsTrigger>
-                <TabsTrigger value="anexos">
-                  <Calendar className="h-4 w-4 mr-2" />
-                  Anexos
-                </TabsTrigger>
+                <TabsTrigger value="dados">Dados Principais</TabsTrigger>
+                <TabsTrigger value="anexos">Anexos</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="dados" className="space-y-8 mt-6">
-                {/* Informações Pessoais */}
+              <TabsContent value="dados" className="mt-6 space-y-6">
                 <div>
-                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <User className="h-5 w-5" />
-                    Informações Pessoais
-                  </h3>
+                  <h3 className="text-lg font-semibold mb-4">Informações Pessoais</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label className="text-muted-foreground">Nome Completo</Label>
-                      <Input value={tripulante.nome} readOnly className="bg-muted/50" />
+                      <Label>Nome Completo</Label>
+                      <Input value={member.full_name || "—"} readOnly className="bg-muted/50" />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-muted-foreground">Data de Nascimento</Label>
-                      <Input value={tripulante.data_nascimento || '—'} readOnly className="bg-muted/50" />
+                      <Label>Data de Nascimento</Label>
+                      <Input value={member.birth_date ? new Date(member.birth_date).toLocaleDateString("pt-BR") : "—"} readOnly className="bg-muted/50" />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-muted-foreground">Email</Label>
-                      <Input value={tripulante.email} readOnly className="bg-muted/50" />
+                      <Label>Email</Label>
+                      <Input value={member.email || "—"} readOnly className="bg-muted/50" />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-muted-foreground">Telefone</Label>
-                      <Input value={tripulante.telefone} readOnly className="bg-muted/50" />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Habilitações CHT */}
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">Habilitações CHT</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {/* MNTE */}
-                    <Card className="border-2">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-sm font-medium">MNTE</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-2">
-                        <div className="space-y-1">
-                          <Label className="text-xs text-muted-foreground">Vencimento</Label>
-                          <Input type="date" defaultValue={tripulante.cht?.mnte_vencimento || ''} className="h-9" />
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    {/* MLTE */}
-                    <Card className="border-2">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-sm font-medium">MLTE</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-2">
-                        <div className="space-y-1">
-                          <Label className="text-xs text-muted-foreground">Vencimento</Label>
-                          <Input type="date" defaultValue={tripulante.cht?.mlte_vencimento || ''} className="h-9" />
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    {/* IFR */}
-                    <Card className="border-2">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-sm font-medium">IFR</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-2">
-                        <div className="space-y-1">
-                          <Label className="text-xs text-muted-foreground">Vencimento</Label>
-                          <Input type="date" defaultValue={tripulante.cht?.ifr_vencimento || ''} className="h-9" />
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    {/* Tipo */}
-                    <Card className="border-2">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-sm font-medium">Tipo</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-2">
-                        <div className="space-y-1">
-                          <Label className="text-xs text-muted-foreground">Tipo de Aeronave</Label>
-                          <Input placeholder="Ex: CE-525" defaultValue={tripulante.cht?.tipo || ''} className="h-9" />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs text-muted-foreground">Vencimento</Label>
-                          <Input type="date" defaultValue={tripulante.cht?.tipo_vencimento || ''} className="h-9" />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </div>
-
-                {/* CMA */}
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">CMA - Certificado Médico Aeronáutico</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-muted-foreground">Número</Label>
-                      <Input value={tripulante.cma?.numero || '—'} readOnly className="bg-muted/50" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-muted-foreground">Vencimento</Label>
-                      <Input type="date" defaultValue={tripulante.cma?.vencimento || ''} className="bg-muted/50" />
+                      <Label>Telefone</Label>
+                      <Input value={member.phone || "—"} readOnly className="bg-muted/50" />
                     </div>
                   </div>
                 </div>
               </TabsContent>
 
-              <TabsContent value="anexos" className="mt-6">
-                <div className="text-center py-12 text-muted-foreground">
-                  <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Funcionalidade de anexos em desenvolvimento</p>
+              <TabsContent value="anexos" className="mt-6 space-y-4">
+                <div className="flex items-center gap-3">
+                  <input
+                    id="doc-file"
+                    type="file"
+                    accept="application/pdf,image/*"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) void handleUpload(f);
+                    }}
+                  />
+                  <Button disabled={uploading} onClick={() => document.getElementById("doc-file")?.click()}>
+                    <UploadCloud className="h-4 w-4 mr-2" /> {uploading ? "Enviando..." : "Enviar Documento"}
+                  </Button>
+                </div>
+                <div className="space-y-2">
+                  {docs.length === 0 ? (
+                    <div className="text-sm text-muted-foreground">Nenhum documento enviado.</div>
+                  ) : (
+                    <ul className="divide-y rounded-md border">
+                      {docs.map((d) => (
+                        <li key={d.name} className="flex items-center justify-between p-3">
+                          <a href={d.url} target="_blank" rel="noreferrer" className="text-primary hover:underline">
+                            {d.name}
+                          </a>
+                          <Button variant="destructive" size="icon" onClick={() => void handleDelete(d.name)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               </TabsContent>
             </Tabs>
           </CardContent>
         </Card>
       </div>
-    </Layout>;
+    </Layout>
+  );
 }
