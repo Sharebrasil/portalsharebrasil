@@ -29,7 +29,7 @@ export async function fetchFlightSchedulesWithDetails(
   const { status, includeFlightPlans = false } = options;
 
   let selectString =
-    "*, aircraft(id, registration, model), clients(id, company_name)";
+    "*, aircraft:aircraft_id(id, registration, model), clients:client_id(id, company_name)";
 
   if (includeFlightPlans) {
     selectString += ", flight_plans(id)";
