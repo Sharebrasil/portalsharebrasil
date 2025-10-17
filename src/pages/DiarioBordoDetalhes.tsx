@@ -121,6 +121,20 @@ export default function DiarioBordoDetalhes() {
     },
   });
 
+  const { data: company } = useQuery({
+    queryKey: ['company-settings-latest'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('company_settings')
+        .select('logo_url, name')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
   useEffect(() => {
     setSearchParams({ month: selectedMonth, year: selectedYear });
   }, [selectedMonth, selectedYear, setSearchParams]);
@@ -361,6 +375,10 @@ export default function DiarioBordoDetalhes() {
 
   const monthName = MONTHS[parseInt(selectedMonth) - 1];
   const isClosed = logbookMonth?.is_closed;
+  const cellStart = logbookMonth?.cell_hours_start || 0;
+  const cellEnd = logbookMonth?.cell_hours_end || 0;
+  const cellPrev = Math.ceil(cellEnd / 10) * 10;
+  const cellDisp = Math.max(0, Number((cellPrev - cellEnd).toFixed(2)));
 
   return (
     <Layout>
@@ -370,6 +388,9 @@ export default function DiarioBordoDetalhes() {
             <Button variant="ghost" size="icon" onClick={() => navigate('/diario-bordo')}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
+            {company?.logo_url && (
+              <img src={company.logo_url} alt={company.name || 'Logo'} className="h-8 w-auto" />
+            )}
             <h1 className="text-2xl font-bold">
               DIÁRIO {monthName} {selectedYear} {aircraft?.registration}
             </h1>
@@ -413,18 +434,19 @@ export default function DiarioBordoDetalhes() {
           </div>
         </div>
 
-        <Card className="bg-green-100 p-4">
+        <Card className="p-4 bg-[rgba(10,19,50,1)] border border-gray-700 rounded-xl">
           <div className="grid grid-cols-4 gap-4 text-sm font-medium">
             <div>
               <div>AERONAVE: {aircraft?.registration}</div>
               <div>MODELO: {aircraft?.model}</div>
-              <div>CONS. MÉD: {aircraft?.fuel_consumption}</div>
+              <div>CONS. MÉD: {aircraft?.fuel_consumption} L/H</div>
             </div>
             <div>
               <div className="font-bold">CÉLULA</div>
-              <div>ANTER: {logbookMonth.cell_hours_start || 0} H</div>
-              <div>ATUAL: {logbookMonth.cell_hours_end || 0} H</div>
-              <div>PRÓX.: {(logbookMonth.cell_hours_end || 0) + 100} H</div>
+              <div>ANTER.: {cellStart} H</div>
+              <div>ATUAL.: {cellEnd} H</div>
+              <div>P.REV.: {cellPrev} H</div>
+              <div>DISP.: <span className="text-destructive font-semibold">{cellDisp} H</span></div>
             </div>
             <div>
               <div className="font-bold">HORÍMETRO</div>
@@ -437,25 +459,25 @@ export default function DiarioBordoDetalhes() {
 
         <div className="overflow-x-auto">
           <table className="w-full border-collapse border border-gray-300 text-xs">
-            <thead className="bg-yellow-100">
+            <thead>
               <tr>
-                <th className="border border-gray-300 p-1">DATA</th>
-                <th className="border border-gray-300 p-1">DE</th>
-                <th className="border border-gray-300 p-1">PARA</th>
-                <th className="border border-gray-300 p-1">AC</th>
-                <th className="border border-gray-300 p-1">DEP</th>
-                <th className="border border-gray-300 p-1">POU</th>
-                <th className="border border-gray-300 p-1">COR</th>
-                <th className="border border-gray-300 p-1">T VOO</th>
-                <th className="border border-gray-300 p-1">T DIA</th>
-                <th className="border border-gray-300 p-1">T NOIT</th>
-                <th className="border border-gray-300 p-1">TOTAL</th>
-                <th className="border border-gray-300 p-1">IFR</th>
-                <th className="border border-gray-300 p-1">POUSOS</th>
-                <th className="border border-gray-300 p-1">ABAST</th>
-                <th className="border border-gray-300 p-1">FUEL</th>
-                <th className="border border-gray-300 p-1 bg-yellow-200" colSpan={3}>CÉLULA</th>
-                <th className="border border-gray-300 p-1 bg-blue-100" colSpan={2}>CONTROLE COTISTA</th>
+                <th className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">DATA</th>
+                <th className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">DE</th>
+                <th className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">PARA</th>
+                <th className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">AC</th>
+                <th className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">DEP</th>
+                <th className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">POU</th>
+                <th className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">COR</th>
+                <th className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">T VOO</th>
+                <th className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">T DIA</th>
+                <th className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">T NOIT</th>
+                <th className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">TOTAL</th>
+                <th className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">IFR</th>
+                <th className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">POUSOS</th>
+                <th className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">ABAST</th>
+                <th className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">FUEL</th>
+                <th className="border border-gray-300 p-1 bg-[rgba(2,54,34,1)]" colSpan={3}>CÉLULA</th>
+                <th className="border border-gray-300 p-1 bg-[rgba(2,54,34,1)]" colSpan={2}>CONTROLE COTISTA</th>
                 <th className="border border-gray-300 p-1">PIC</th>
                 <th className="border border-gray-300 p-1">SIC</th>
                 <th className="border border-gray-300 p-1">DIÁRIAS</th>
@@ -463,13 +485,13 @@ export default function DiarioBordoDetalhes() {
                 <th className="border border-gray-300 p-1">VOO PARA</th>
                 <th className="border border-gray-300 p-1">CONF</th>
               </tr>
-              <tr className="bg-yellow-50">
-                <th className="border border-gray-300 p-1" colSpan={15}></th>
-                <th className="border border-gray-300 p-1 text-[10px]">ANT</th>
-                <th className="border border-gray-300 p-1 text-[10px]">POST</th>
-                <th className="border border-gray-300 p-1 text-[10px]">DISP</th>
-                <th className="border border-gray-300 p-1 text-[10px]">EXTRAS</th>
-                <th className="border border-gray-300 p-1 text-[10px]">VOO PARA</th>
+              <tr>
+                <th className="border border-gray-300 p-1 bg-[rgba(3,72,129,1)]" colSpan={15}></th>
+                <th className="border border-gray-300 p-1 text-[10px] bg-[rgba(4,56,88,1)]">ANT</th>
+                <th className="border border-gray-300 p-1 text-[10px] bg-[rgba(4,56,88,1)]">POST</th>
+                <th className="border border-gray-300 p-1 text-[10px] bg-[rgba(4,56,88,1)]">DISP</th>
+                <th className="border border-gray-300 p-1 text-[10px] bg-[rgba(4,56,88,1)]">EXTRAS</th>
+                <th className="border border-gray-300 p-1 text-[10px] bg-[rgba(4,56,88,1)]">VOO PARA</th>
                 <th className="border border-gray-300 p-1" colSpan={6}></th>
               </tr>
             </thead>

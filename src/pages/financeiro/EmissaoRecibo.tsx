@@ -310,44 +310,90 @@ export default function EmissaoRecibo() {
 
     const emitterAddress = company ? [company.address].filter(Boolean).join("") : "";
     const emitterCityState = company ? [company.city, company.state].filter(Boolean).join(" - ") : "";
-    const payerAddress = pagadorEndereco || "";
+    // const payerAddress = pagadorEndereco || ""; // Não usado na visualização do cabeçalho
 
     const pdfDoc = await PDFDocument.create();
+    // Aumentei a altura da página ligeiramente para garantir espaço no topo se for necessário ajustar a escala
     const page = pdfDoc.addPage([420, 595]);
     const { width, height } = page.getSize();
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
+    // --- VARIÁVEIS DE POSIÇÃO ---
+    const MARGIN_X = 30;
+    const TOP_Y_START = height - 50; // Linha de partida para os elementos do topo (Logo, Título, Valor)
+
+    // Altura da linha de texto e espaçamento
+    const LINE_HEIGHT_SM = 11;
+    const LINE_HEIGHT_XS = 9;
+
+    // --- 1. LOGOTIPO E TÍTULO ---
     try {
       const logoBytes = await fetch(company?.logo_url || LOGO_FALLBACK).then(r => r.arrayBuffer());
       const png = await pdfDoc.embedPng(logoBytes);
-      page.drawImage(png, { x: 30, y: height - 70, width: 60, height: 40 });
-    } catch {}
-
-    page.drawText("RECIBO DE PAGAMENTO", { x: width / 2 - 80, y: height - 50, size: 14, font: bold });
-
-    page.drawRectangle({ x: width - 140, y: height - 80, width: 110, height: 50, borderColor: rgb(0.7,0.7,0.7), borderWidth: 1 });
-    page.drawText(formatBRL(amountNum), { x: width - 130, y: height - 52, size: 10, font: bold });
-    page.drawText(`Número do recibo:`, { x: width - 130, y: height - 65, size: 7, font });
-    page.drawText(recNumber, { x: width - 130, y: height - 74, size: 7, font });
-
-    let y = height - 110;
-    page.drawText("Emissor", { x: 30, y, size: 9, font: bold });
-    y -= 13; page.drawText(company?.name || "", { x: 30, y, size: 9, font: bold });
-    y -= 12; page.drawText(`CNPJ: ${company?.cnpj || ""}`, { x: 30, y, size: 8, font });
-    if (company?.phone) {
-      y -= 11; page.drawText(`/ (${company.phone.substring(0, 2)}) ${company.phone.substring(2)}`, { x: 30, y, size: 8, font });
-    }
-    if (emitterAddress) {
-      y -= 11; page.drawText(emitterAddress, { x: 30, y, size: 8, font });
-    }
-    if (emitterCityState) {
-      y -= 11; page.drawText(emitterCityState, { x: 30, y, size: 8, font });
+      // Ajuste no Y para alinhar com o topo
+      page.drawImage(png, { x: MARGIN_X, y: TOP_Y_START - 20, width: 60, height: 40 });
+    } catch {
+      // Fallback de texto para o logo/nome do emissor (SHARE BRASIL SERVIÇOS ADMINISTRATIVOS)
+      page.drawText(company?.name || "EMISSOR", { x: MARGIN_X, y: TOP_Y_START - 20, size: 9, font: bold });
     }
 
-    y = height - 110;
-    page.drawText("Pagador", { x: 220, y, size: 9, font: bold });
-    y -= 13;
+    // Título Centralizado: RECIBO DE PAGAMENTO
+    page.drawText("RECIBO DE PAGAMENTO", {
+      x: width / 2 - (bold.widthOfTextAtSize("RECIBO DE PAGAMENTO", 14) / 2),
+      y: TOP_Y_START + 5, // Posição mais alta, centralizada no topo
+      size: 14,
+      font: bold
+    });
+
+    // --- 2. BLOCO DE VALOR (CANTO SUPERIOR DIREITO) ---
+    const BOX_WIDTH = 110;
+    const BOX_HEIGHT = 50;
+    const BOX_X = width - MARGIN_X - BOX_WIDTH; // Alinha à direita
+    const BOX_Y_BOTTOM = TOP_Y_START - BOX_HEIGHT; // Alinha o topo da caixa com a linha de partida (TOP_Y_START)
+
+    // Caixa (Retângulo)
+    page.drawRectangle({
+      x: BOX_X,
+      y: BOX_Y_BOTTOM,
+      width: BOX_WIDTH,
+      height: BOX_HEIGHT,
+      borderColor: rgb(0.7, 0.7, 0.7),
+      borderWidth: 1,
+      color: rgb(0.95, 0.95, 0.95) // Cor de fundo sutil para destaque
+    });
+
+    // Valor (dentro da caixa, ajustado para o topo da caixa)
+    page.drawText(formatBRL(amountNum), {
+      x: BOX_X + 10,
+      y: TOP_Y_START - 10, // Posição do texto do valor
+      size: 10,
+      font: bold
+    });
+
+    // Rótulo do recibo
+    page.drawText(`Número do recibo:`, {
+      x: BOX_X + 10,
+      y: TOP_Y_START - 23,
+      size: 7,
+      font
+    });
+
+    // Número do recibo
+    page.drawText(recNumber, {
+      x: BOX_X + 10,
+      y: TOP_Y_START - 32,
+      size: 7,
+      font
+    });
+
+    // --- 3. BLOCO DE INFORMAÇÕES (EMISSOR E PAGADOR) ---
+    // Começa abaixo dos elementos do topo (Ex: abaixo da caixa de valor, com um espaçamento)
+    let y = BOX_Y_BOTTOM - 20;
+    const X_EMISSOR = MARGIN_X;
+    const X_PAGADOR = 220; // Ponto central da página para a 2ª coluna
+
+    // Função auxiliar para quebrar texto (mantida do seu código)
     const wrapText = (text: string, maxWidth: number, fontRef: any, size: number): string[] => {
       const words = text.split(/\s+/);
       const lines: string[] = [];
@@ -366,52 +412,86 @@ export default function EmissaoRecibo() {
       return lines;
     };
 
+    // --- COLUNA DO EMISSOR (ESQUERDA) ---
+    let yEmissor = y;
+    page.drawText("Emissor", { x: X_EMISSOR, y: yEmissor, size: 9, font: bold });
+    yEmissor -= LINE_HEIGHT_SM;
+
+    page.drawText(company?.name || "", { x: X_EMISSOR, y: yEmissor, size: 9, font: bold });
+    yEmissor -= LINE_HEIGHT_XS;
+
+    page.drawText(`CNPJ: ${company?.cnpj || ""}`, { x: X_EMISSOR, y: yEmissor, size: 8, font });
+
+    if (company?.phone) {
+      yEmissor -= LINE_HEIGHT_XS;
+      // Adaptação para o formato (xx) xxxxx-xxxx com base no seu código
+      page.drawText(`/ (${company.phone.substring(0, 2)}) ${company.phone.substring(2)}`, { x: X_EMISSOR, y: yEmissor, size: 8, font });
+    }
+    if (emitterAddress) {
+      yEmissor -= LINE_HEIGHT_XS;
+      page.drawText(emitterAddress, { x: X_EMISSOR, y: yEmissor, size: 8, font });
+    }
+    if (emitterCityState) {
+      yEmissor -= LINE_HEIGHT_XS;
+      page.drawText(emitterCityState, { x: X_EMISSOR, y: yEmissor, size: 8, font });
+    }
+
+    // --- COLUNA DO PAGADOR (DIREITA) ---
+    let yPagador = y;
+    page.drawText("Pagador", { x: X_PAGADOR, y: yPagador, size: 9, font: bold });
+    yPagador -= LINE_HEIGHT_SM;
+
     const payerNameLines = wrapText(pagadorNome.toUpperCase(), 170, bold, 9);
     payerNameLines.forEach((line, idx) => {
-      page.drawText(line, { x: 220, y: y - (idx * 11), size: 9, font: bold });
+      page.drawText(line, { x: X_PAGADOR, y: yPagador - (idx * LINE_HEIGHT_SM), size: 9, font: bold });
     });
-    y -= (payerNameLines.length * 11);
+    yPagador -= (payerNameLines.length * LINE_HEIGHT_SM);
 
-    y -= 1;
-    page.drawText(`CNPJ: ${pagadorDocumento}`, { x: 220, y, size: 8, font });
+    yPagador -= 1;
+    page.drawText(`CNPJ: ${pagadorDocumento}`, { x: X_PAGADOR, y: yPagador, size: 8, font });
 
-    let tableY = height - 210;
-    page.drawLine({ start: { x: 30, y: tableY }, end: { x: width - 30, y: tableY }, thickness: 1 });
+    // Define o ponto de início para o corpo do recibo (tabela) como o mais baixo entre Emissor e Pagador
+    let tableY = Math.min(yEmissor, yPagador) - 20;
+
+    // --- CORPO DO RECIBO (TABELA E TOTAL) ---
+
+    page.drawLine({ start: { x: MARGIN_X, y: tableY }, end: { x: width - MARGIN_X, y: tableY }, thickness: 1 });
     tableY -= 14;
-    page.drawText("DESCRIÇÃO", { x: 35, y: tableY, size: 9, font: bold });
-    page.drawText("TOTAL", { x: 350, y: tableY, size: 9, font: bold });
+    page.drawText("DESCRIÇÃO", { x: MARGIN_X + 5, y: tableY, size: 9, font: bold });
+    page.drawText("TOTAL", { x: width - MARGIN_X - 40, y: tableY, size: 9, font: bold });
     tableY -= 2;
-    page.drawLine({ start: { x: 30, y: tableY }, end: { x: width - 30, y: tableY }, thickness: 0.5 });
+    page.drawLine({ start: { x: MARGIN_X, y: tableY }, end: { x: width - MARGIN_X, y: tableY }, thickness: 0.5 });
     tableY -= 14;
 
     const descMaxWidth = 300;
     const descLines = wrapText(servico, descMaxWidth, font, 9);
     descLines.forEach((ln, idx) => {
-      const yLine = tableY - (idx * 11);
-      page.drawText(ln, { x: 35, y: yLine, size: 9, font });
+      const yLine = tableY - (idx * LINE_HEIGHT_SM);
+      page.drawText(ln, { x: MARGIN_X + 5, y: yLine, size: 9, font });
       if (idx === 0) {
-        page.drawText(formatBRL(amountNum), { x: 345, y: yLine, size: 9, font });
+        page.drawText(formatBRL(amountNum), { x: width - MARGIN_X - 45, y: yLine, size: 9, font });
       }
     });
-    tableY -= (descLines.length * 11) + 10;
+    tableY -= (descLines.length * LINE_HEIGHT_SM) + 10;
 
-    page.drawLine({ start: { x: 30, y: tableY }, end: { x: width - 30, y: tableY }, thickness: 0.5 });
+    page.drawLine({ start: { x: MARGIN_X, y: tableY }, end: { x: width - MARGIN_X, y: tableY }, thickness: 0.5 });
     tableY -= 16;
-    page.drawText("Subtotal:", { x: 280, y: tableY, size: 9, font });
-    page.drawText(formatBRL(amountNum), { x: 345, y: tableY, size: 9, font });
+    page.drawText("Subtotal:", { x: width - MARGIN_X - 100, y: tableY, size: 9, font });
+    page.drawText(formatBRL(amountNum), { x: width - MARGIN_X - 45, y: tableY, size: 9, font });
     tableY -= 12;
-    page.drawText("Desconto:", { x: 280, y: tableY, size: 9, font });
-    page.drawText("R$ 0,00", { x: 345, y: tableY, size: 9, font });
+    page.drawText("Desconto:", { x: width - MARGIN_X - 100, y: tableY, size: 9, font });
+    page.drawText("R$ 0,00", { x: width - MARGIN_X - 45, y: tableY, size: 9, font });
     tableY -= 12;
-    page.drawText("Total:", { x: 280, y: tableY, size: 9, font: bold });
-    page.drawText(formatBRL(amountNum), { x: 345, y: tableY, size: 9, font: bold });
+    page.drawText("Total:", { x: width - MARGIN_X - 100, y: tableY, size: 9, font: bold });
+    page.drawText(formatBRL(amountNum), { x: width - MARGIN_X - 45, y: tableY, size: 9, font: bold });
 
+    // --- OUTROS DETALHES (OBSERVAÇÕES, DECLARAÇÃO E DATA) ---
     tableY -= 25;
 
     if (observacoes && observacoes.trim()) {
       const obsLines = wrapText(`Observação: ${observacoes}`, width - 60, font, 8);
       obsLines.forEach((line, idx) => {
-        page.drawText(line, { x: 30, y: tableY - (idx * 10), size: 8, font });
+        page.drawText(line, { x: MARGIN_X, y: tableY - (idx * 10), size: 8, font });
       });
       tableY -= (obsLines.length * 10) + 10;
     } else {
@@ -420,7 +500,7 @@ export default function EmissaoRecibo() {
 
     if (prazoMaximoQuitacao) {
       const prazoFormatted = new Date(prazoMaximoQuitacao).toLocaleDateString("pt-BR");
-      page.drawText(`PRAZO MÁXIMO DE QUITAÇÃO ${prazoFormatted}`, { x: 30, y: tableY, size: 8, font });
+      page.drawText(`PRAZO MÁXIMO DE QUITAÇÃO ${prazoFormatted}`, { x: MARGIN_X, y: tableY, size: 8, font });
       tableY -= 15;
     }
 
@@ -428,7 +508,7 @@ export default function EmissaoRecibo() {
     const declaracaoText = `Declaração: Recebemos de ${pagadorNome.toUpperCase()}, a importância de ${valorExtensoText.toLowerCase()}, referente aos itens listados acima. Para maior clareza, firmo o presente recibo para que produza seus efeitos, dando plena, geral e irrevogável quitação pelo valor recebido.`;
     const declLines = wrapText(declaracaoText, width - 60, font, 7);
     declLines.forEach((line, idx) => {
-      page.drawText(line, { x: 30, y: tableY - (idx * 9), size: 7, font });
+      page.drawText(line, { x: MARGIN_X, y: tableY - (idx * 9), size: 7, font });
     });
     tableY -= (declLines.length * 9) + 15;
 
@@ -436,56 +516,51 @@ export default function EmissaoRecibo() {
     const issueDateFormatted = new Date(issueDate).toLocaleDateString("pt-BR");
     const cityText = company?.city || pagadorCidade || "";
     const dataCidadeText = `${cityText}, ${issueDateFormatted}`;
-    page.drawText(dataCidadeText, { x: 30, y: tableY, size: 8, font });
+    page.drawText(dataCidadeText, { x: MARGIN_X, y: tableY, size: 8, font });
+
+    // Linha de assinatura
+    const signatureY = tableY - 60;
+    page.drawLine({ start: { x: width / 2 - 80, y: signatureY }, end: { x: width / 2 + 80, y: signatureY }, thickness: 0.5 });
+    page.drawText(company?.name || "Assinatura do Emissor", {
+      x: width / 2 - (font.widthOfTextAtSize(company?.name || "Assinatura do Emissor", 8) / 2),
+      y: signatureY - 10,
+      size: 8,
+      font
+    });
+
 
     const bytes = await pdfDoc.save();
     return bytes;
   };
 
-  const uploadPdfAndGetUrl = async (bytes: Uint8Array, recNumber: string) => {
-    if (!user?.id) throw new Error("Sem usuário");
-    const path = `${user.id}/recibo-${recNumber}.pdf`;
-    const { error } = await supabase.storage.from("recibos").upload(path, new Blob([bytes], { type: "application/pdf" }), { upsert: true });
-    if (error) throw error;
-    const { data, error: signErr } = await supabase.storage.from("recibos").createSignedUrl(path, 60 * 60);
-    if (signErr) throw signErr;
-    return data.signedUrl as string;
-  };
-
   const onVisualizar = async () => {
-    await maybeSaveFavorite();
-    const rec = await ensureNumero();
     try {
-      const bytes = await drawPdf(rec);
+      const recNumber = await ensureNumero();
+      const bytes = await drawPdf(recNumber);
       const blob = new Blob([bytes], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
       setPreviewUrl(url);
       setIsPreviewOpen(true);
-      toast({ title: "Pré-visualização pronta" });
     } catch (e: any) {
-      toast({ title: "Erro ao gerar PDF", description: String(e?.message || e) });
+      toast({ title: "Erro ao gerar preview", description: e?.message || "" });
     }
   };
 
   const onGerarPDF = async () => {
-    await maybeSaveFavorite();
-    const rec = await saveReceipt();
-    if (!rec) return;
     try {
-      const bytes = await drawPdf(rec);
+      const recNumber = await saveReceipt();
+      if (!recNumber) return;
+      const bytes = await drawPdf(recNumber);
       const blob = new Blob([bytes], { type: "application/pdf" });
-      const url = URL.createObjectURL(blob);
-
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `recibo-${rec}.pdf`;
-      link.click();
-      URL.revokeObjectURL(url);
-
-      await uploadPdfAndGetUrl(bytes, rec);
+      const file = new File([blob], `recibo-${recNumber}.pdf`, { type: "application/pdf" });
+      const path = `${user?.id}/recibo-${recNumber}.pdf`;
+      await supabase.storage.from("recibos").upload(path, file, { upsert: true });
+      setPreviewUrl(URL.createObjectURL(blob));
+      setIsPreviewOpen(true);
+      toast({ title: "Recibo gerado", description: recNumber });
       await loadReceipts();
     } catch (e: any) {
-      toast({ title: "Erro ao gerar PDF", description: String(e?.message || e) });
+      toast({ title: "Erro ao gerar PDF", description: e?.message || "" });
     }
   };
 
@@ -773,7 +848,7 @@ export default function EmissaoRecibo() {
         </Card>
       </div>
 
-      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+      <Dialog open={isPreviewOpen} onOpenChange={(open)=>{ setIsPreviewOpen(open); if(!open && previewUrl){ URL.revokeObjectURL(previewUrl); setPreviewUrl(null); } }}>
         <DialogContent className="max-w-4xl h-[80vh]">
           <DialogHeader>
             <DialogTitle>Pré-visualização do Recibo</DialogTitle>
