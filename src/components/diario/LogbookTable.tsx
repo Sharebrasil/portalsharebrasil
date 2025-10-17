@@ -9,6 +9,7 @@ import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { Plus } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { formatDecimalHoursToHHMM } from "@/lib/utils";
 
 interface LogbookEntry {
   id: string;
@@ -163,7 +164,7 @@ export function LogbookTable({ entries, isLoading, aircraft, isReadOnly = false,
                     {entry.night_time_hours}:{entry.night_time_minutes.toString().padStart(2, "0")}
                   </TableCell>
                   <TableCell className="font-medium">
-                    {entry.total_time.toFixed(2)}
+                    {formatDecimalHoursToHHMM(entry.total_time)}
                   </TableCell>
                   <TableCell>{entry.ifr_count || 0}</TableCell>
                   <TableCell>{entry.landings}</TableCell>
@@ -202,7 +203,7 @@ export function LogbookTable({ entries, isLoading, aircraft, isReadOnly = false,
             ))}
             <TableRow className="bg-primary/5 font-bold">
               <TableCell colSpan={9}>TOTAL DO MÊS</TableCell>
-              <TableCell>{totalHours.toFixed(2)}H</TableCell>
+              <TableCell>{formatDecimalHoursToHHMM(totalHours)}H</TableCell>
               <TableCell colSpan={1}></TableCell>
               <TableCell>{totalLandings}</TableCell>
               <TableCell>{totalFuelAdded.toFixed(1)}L</TableCell>
