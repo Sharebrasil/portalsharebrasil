@@ -5,10 +5,11 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useState, useEffect } from "react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Calendar, Plus, Trash2 } from "lucide-react";
+import { Calendar, Plus, Trash2, Upload, X } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
 type CrewMember = Database['public']['Tables']['crew_members']['Row'];
@@ -43,6 +44,9 @@ export function TripulanteFormDialog({ open, onOpenChange, crewMember }: Props) 
   });
 
   const [licenses, setLicenses] = useState<Partial<LicenseInsert>[]>([]);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string>('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (crewMember) {
@@ -55,6 +59,8 @@ export function TripulanteFormDialog({ open, onOpenChange, crewMember }: Props) 
         photo_url: crewMember.photo_url || '',
       });
       setLicenses(crewMember.licenses || []);
+      setPhotoPreview(crewMember.photo_url || '');
+      setPhotoFile(null);
     } else {
       resetForm();
     }
@@ -70,7 +76,30 @@ export function TripulanteFormDialog({ open, onOpenChange, crewMember }: Props) 
       photo_url: '',
     });
     setLicenses([]);
+    setPhotoFile(null);
+    setPhotoPreview('');
     setActiveTab("dados");
+  };
+
+  const uploadPhoto = async (file: File): Promise<string> => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+    const filePath = `${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('crew-photos')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (uploadError) throw uploadError;
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('crew-photos')
+      .getPublicUrl(filePath);
+
+    return publicUrl;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -78,11 +107,18 @@ export function TripulanteFormDialog({ open, onOpenChange, crewMember }: Props) 
     setLoading(true);
 
     try {
+      let photoUrl = formData.photo_url;
+
+      if (photoFile) {
+        photoUrl = await uploadPhoto(photoFile);
+      }
+
+      const dataToSave = { ...formData, photo_url: photoUrl };
+
       if (crewMember) {
-        // Update existing crew member
         const { error: memberError } = await supabase
           .from('crew_members')
-          .update(formData)
+          .update(dataToSave)
           .eq('id', crewMember.id);
 
         if (memberError) throw memberError;
@@ -111,10 +147,9 @@ export function TripulanteFormDialog({ open, onOpenChange, crewMember }: Props) 
           description: "Os dados foram atualizados com sucesso.",
         });
       } else {
-        // Create new crew member
         const { data: newMember, error: memberError } = await supabase
           .from('crew_members')
-          .insert([formData])
+          .insert([dataToSave])
           .select()
           .single();
 
@@ -181,6 +216,44 @@ export function TripulanteFormDialog({ open, onOpenChange, crewMember }: Props) 
     if (daysUntilExpiry < 0) return { label: 'Vencida', variant: 'destructive' as const };
     if (daysUntilExpiry <= 60) return { label: 'A Vencer', variant: 'secondary' as const };
     return { label: 'Válida', variant: 'default' as const };
+  };
+
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5242880) {
+      toast({
+        title: "Arquivo muito grande",
+        description: "A foto deve ter no máximo 5MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(file.type)) {
+      toast({
+        title: "Formato inválido",
+        description: "Apenas imagens JPG, PNG ou WEBP são permitidas.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setPhotoFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPhotoPreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const clearPhoto = () => {
+    setPhotoFile(null);
+    setPhotoPreview(crewMember?.photo_url || '');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   return (
@@ -259,13 +332,46 @@ export function TripulanteFormDialog({ open, onOpenChange, crewMember }: Props) 
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="photo_url">URL da Foto</Label>
-                <Input
-                  id="photo_url"
-                  value={formData.photo_url}
-                  onChange={(e) => setFormData({ ...formData, photo_url: e.target.value })}
-                  placeholder="https://..."
-                />
+                <Label>Foto do Perfil</Label>
+                <div className="flex items-center gap-4">
+                  <Avatar className="h-24 w-24">
+                    <AvatarImage src={photoPreview || formData.photo_url} />
+                    <AvatarFallback>
+                      {formData.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col gap-2">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/jpeg,image/jpg,image/png,image/webp"
+                      onChange={handlePhotoSelect}
+                      className="hidden"
+                      id="photo-upload"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Escolher Foto
+                    </Button>
+                    {(photoFile || photoPreview) && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={clearPhoto}
+                      >
+                        <X className="h-4 w-4 mr-2" />
+                        Remover
+                      </Button>
+                    )}
+                    <p className="text-xs text-muted-foreground">JPG, PNG ou WEBP (máx. 5MB)</p>
+                  </div>
+                </div>
               </div>
             </TabsContent>
 
