@@ -16,6 +16,7 @@ export type Database = {
           id: string
           name: string
           updated_at: string | null
+          coordenadas: string | null
         }
         Insert: {
           created_at?: string | null
@@ -23,6 +24,7 @@ export type Database = {
           id?: string
           name: string
           updated_at?: string | null
+          coordenadas?: string | null
         }
         Update: {
           created_at?: string | null
@@ -30,6 +32,7 @@ export type Database = {
           id?: string
           name?: string
           updated_at?: string | null
+          coordenadas?: string | null
         }
         Relationships: []
       }
@@ -39,7 +42,7 @@ export type Database = {
           cell_hours_current: number | null
           cell_hours_prev: number | null
           created_at: string | null
-          fuel_consumption: number | null
+          fuel_consumption: string | null
           horimeter_active: number | null
           horimeter_end: number | null
           horimeter_start: number | null
@@ -52,13 +55,14 @@ export type Database = {
           status: string | null
           total_hours: number | null
           updated_at: string | null
+          year: string | null
         }
         Insert: {
           cell_hours_before?: number | null
           cell_hours_current?: number | null
           cell_hours_prev?: number | null
           created_at?: string | null
-          fuel_consumption?: number | null
+          fuel_consumption?: string | null
           horimeter_active?: number | null
           horimeter_end?: number | null
           horimeter_start?: number | null
@@ -71,13 +75,14 @@ export type Database = {
           status?: string | null
           total_hours?: number | null
           updated_at?: string | null
+          year?: string | null
         }
         Update: {
           cell_hours_before?: number | null
           cell_hours_current?: number | null
           cell_hours_prev?: number | null
           created_at?: string | null
-          fuel_consumption?: number | null
+          fuel_consumption?: string | null
           horimeter_active?: number | null
           horimeter_end?: number | null
           horimeter_start?: number | null
@@ -89,6 +94,7 @@ export type Database = {
           serial_number?: string | null
           status?: string | null
           total_hours?: number | null
+          year?: string | null
           updated_at?: string | null
         }
         Relationships: []

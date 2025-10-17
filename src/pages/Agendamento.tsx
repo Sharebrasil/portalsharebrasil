@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 export default function Agendamentos() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedAircraft, setSelectedAircraft] = useState("all");
+  const [statusTab, setStatusTab] = useState<"pendentes" | "todos">("pendentes");
 
   const { data: schedules, isLoading, refetch } = useQuery({
     queryKey: ["flight-schedules", selectedAircraft],
@@ -161,7 +162,7 @@ export default function Agendamentos() {
 
         {/* Filter */}
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-4 space-y-3">
             <div className="flex items-center gap-3">
               <span className="text-sm font-medium text-muted-foreground">Filtrar por aeronave:</span>
               <Select value={selectedAircraft} onValueChange={setSelectedAircraft}>
@@ -178,6 +179,12 @@ export default function Agendamentos() {
                 </SelectContent>
               </Select>
             </div>
+            <Tabs value={statusTab} onValueChange={(v)=>setStatusTab(v as any)}>
+              <TabsList>
+                <TabsTrigger value="pendentes">Pendentes</TabsTrigger>
+                <TabsTrigger value="todos">Todos</TabsTrigger>
+              </TabsList>
+            </Tabs>
           </CardContent>
         </Card>
 
@@ -186,7 +193,7 @@ export default function Agendamentos() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Plane className="h-5 w-5" />
-              Lista de Agendamentos ({stats.total})
+              Lista de Agendamentos ({(schedules || []).filter((s: any) => statusTab === 'pendentes' ? s.status !== 'confirmado' : true).length})
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -196,7 +203,9 @@ export default function Agendamentos() {
               </div>
             ) : schedules && schedules.length > 0 ? (
               <div className="space-y-4">
-                {schedules.map((schedule: any) => (
+                {(schedules || [])
+                  .filter((s: any) => statusTab === 'pendentes' ? s.status !== 'confirmado' : true)
+                  .map((schedule: any) => (
                   <Card key={schedule.id} className="hover:shadow-primary transition-shadow">
                     <CardContent className="p-6">
                       <div className="flex items-start justify-between">

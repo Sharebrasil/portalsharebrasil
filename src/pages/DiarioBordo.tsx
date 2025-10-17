@@ -18,6 +18,11 @@ export default function DiarioBordo() {
   const [addAerodromeOpen, setAddAerodromeOpen] = useState(false);
   const [createDiaryOpen, setCreateDiaryOpen] = useState(false);
   const [editingAircraft, setEditingAircraft] = useState<any | null>(null);
+  const [editingAerodrome, setEditingAerodrome] = useState<any | null>(null);
+
+  const nToFixed = (n: number, d: number) => {
+    try { return n.toFixed(d); } catch { return String(n); }
+  };
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -46,7 +51,84 @@ export default function DiarioBordo() {
     },
   });
 
+  type ParsedCoords = { latitude: number; longitude: number };
 
+  const parseCoordinates = (raw?: string | null): ParsedCoords | null => {
+    if (!raw) return null;
+    const s = raw.trim();
+
+    // Try decimal with comma or semicolon separator
+    const dec = s.match(/^\s*([+-]?\d+(?:\.\d+)?)\s*[;,]\s*([+-]?\d+(?:\.\d+)?)\s*$/);
+    if (dec) {
+      const lat = parseFloat(dec[1]);
+      const lon = parseFloat(dec[2]);
+      if (isFinite(lat) && isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180) {
+        return { latitude: lat, longitude: lon };
+      }
+    }
+
+    const dmsToDec = (deg: number, min?: number, sec?: number, hemi?: string) => {
+      let d = Math.abs(deg);
+      if (typeof min === 'number') d += min / 60;
+      if (typeof sec === 'number') d += sec / 3600;
+      if (hemi && /[SW]/i.test(hemi)) d = -d;
+      if (hemi && /[NE]/i.test(hemi)) d = +d;
+      return d;
+    };
+
+    const letterFirst = (text: string, hemiRe: RegExp) => {
+      const re = new RegExp(`(${hemiRe.source})\\s*(\\d{1,3})(?:\\D+(\\d{1,2}(?:\\.\\d+)?))?(?:\\D+(\\d{1,2}(?:\\.\\d+)?))?`, 'i');
+      return text.match(re);
+    };
+
+    const letterLast = (text: string, hemiRe: RegExp) => {
+      const re = new RegExp(`(\\d{1,3})(?:\\D+(\\d{1,2}(?:\\.\\d+)?))?(?:\\D+(\\d{1,2}(?:\\.\\d+)?))?\\D*(${hemiRe.source})`, 'i');
+      return text.match(re);
+    };
+
+    const latA = letterFirst(s, /[NS]/);
+    const lonA = letterFirst(s, /[EW]/);
+
+    const latB = latA || letterLast(s, /[NS]/);
+    const lonB = lonA || letterLast(s, /[EW]/);
+
+    if (latB && lonB) {
+      const latH = (latB[1] || latB[4] || '').toString();
+      const latDeg = parseFloat(latB[2]);
+      const latMin = latB[3] ? parseFloat(latB[3]) : undefined;
+      const latSec = latB[4] ? parseFloat(latB[4]) : undefined;
+
+      const lonH = (lonB[1] || lonB[4] || '').toString();
+      const lonDeg = parseFloat(lonB[2]);
+      const lonMin = lonB[3] ? parseFloat(lonB[3]) : undefined;
+      const lonSec = lonB[4] ? parseFloat(lonB[4]) : undefined;
+
+      if (isFinite(latDeg) && isFinite(lonDeg)) {
+        const latitude = dmsToDec(latDeg, latMin, latSec, latH);
+        const longitude = dmsToDec(lonDeg, lonMin, lonSec, lonH);
+        if (isFinite(latitude) && isFinite(longitude) && Math.abs(latitude) <= 90 && Math.abs(longitude) <= 180) {
+          return { latitude, longitude };
+        }
+      }
+    }
+
+    // Try simple space-separated decimals as a last resort
+    const parts = s.split(/\s+/);
+    if (parts.length === 2) {
+      const lat = parseFloat(parts[0]);
+      const lon = parseFloat(parts[1]);
+      if (isFinite(lat) && isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180) {
+        return { latitude: lat, longitude: lon };
+      }
+    }
+
+    return null;
+  };
+
+  const formatCoordinates = (raw?: string | null) => {
+    const parsed = parseCoordinates(raw);
+    return parsed ? `${parsed.latitude.toFixed(6)}, ${parsed.longitude.toFixed(6)}` : "—";
+  };
 
   return (
     <Layout>
@@ -175,39 +257,45 @@ export default function DiarioBordo() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {aircraft?.map((ac) => (
-                      <TableRow key={ac.id} className="cursor-pointer" onClick={() => navigate(`/diario-bordo/${ac.id}`)}>
-                        <TableCell className="font-medium">{ac.registration}</TableCell>
-                        <TableCell>{ac.model}</TableCell>
-                        <TableCell>{ac.status ?? '—'}</TableCell>
-                        <TableCell>{ac.fuel_consumption != null ? Number(ac.fuel_consumption).toFixed(1) : '—'}</TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button variant="outline" size="icon" onClick={(e) => { e.stopPropagation(); setEditingAircraft(ac); setAddDialogOpen(true); }} aria-label="Editar">
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              size="icon"
-                              onClick={async (e) => {
-                                e.stopPropagation();
-                                if (!confirm(`Excluir aeronave ${ac.registration}?`)) return;
-                                const { error } = await supabase.from('aircraft').delete().eq('id', ac.id);
-                                if (error) {
-                                  // eslint-disable-next-line no-alert
-                                  alert(error.message);
-                                } else {
-                                  queryClient.invalidateQueries({ queryKey: ['aircraft'] });
-                                }
-                              }}
-                              aria-label="Excluir"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {aircraft?.map((ac) => {
+                      const parsed = (() => {
+                        const n = parseFloat(String((ac as any).fuel_consumption ?? ''));
+                        return Number.isFinite(n) ? n : null;
+                      })();
+                      const consumoText = parsed != null ? nToFixed(parsed, 1) : ((ac as any).fuel_consumption ? String((ac as any).fuel_consumption) : '—');
+                      return (
+                        <TableRow key={ac.id} className="cursor-pointer group" onClick={() => navigate(`/diario-bordo/${ac.id}`)}>
+                          <TableCell className="font-medium">{ac.registration}</TableCell>
+                          <TableCell>{ac.model}</TableCell>
+                          <TableCell>{ac.status && ac.status !== '' ? ac.status : '—'}</TableCell>
+                          <TableCell>{consumoText}</TableCell>
+                          <TableCell>
+                            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button variant="outline" size="icon" onClick={(e) => { e.stopPropagation(); setEditingAircraft(ac); setAddDialogOpen(true); }} aria-label="Editar">
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                size="icon"
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  if (!confirm(`Excluir aeronave ${ac.registration}?`)) return;
+                                  const { error } = await supabase.from('aircraft').delete().eq('id', ac.id);
+                                  if (error) {
+                                    alert(error.message);
+                                  } else {
+                                    queryClient.invalidateQueries({ queryKey: ['aircraft'] });
+                                  }
+                                }}
+                                aria-label="Excluir"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                     {(!aircraft || aircraft.length === 0) && (
                       <TableRow>
                         <TableCell colSpan={4} className="text-center text-muted-foreground">
@@ -221,7 +309,7 @@ export default function DiarioBordo() {
               <TabsContent value="aerodromos" className="pt-4">
                 <div className="flex items-center justify-between mb-4">
                   <div className="text-sm text-muted-foreground">Aeródromos salvos</div>
-                  <Button onClick={() => setAddAerodromeOpen(true)} variant="outline" className="gap-2">
+                  <Button onClick={() => { setEditingAerodrome(null); setAddAerodromeOpen(true); }} variant="outline" className="gap-2">
                     <MapPin className="h-4 w-4" />
                     Adicionar Aeródromo
                   </Button>
@@ -232,25 +320,46 @@ export default function DiarioBordo() {
                       <TableHead>DESIGNATIVO</TableHead>
                       <TableHead>Nome</TableHead>
                       <TableHead>Coordenadas</TableHead>
+                      <TableHead className="w-[1%]">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {aerodromes?.map((a) => {
-                      const coords = (airports ?? []).find((ap) => (ap.icao_code ?? '').toUpperCase() === (a.icao_code ?? '').toUpperCase());
-                    coordenadas
-                        ? `${coords.latitude.toFixed(6)}, ${coords.longitude.toFixed(6)}`
-                        : "-";
+                      const coordText = formatCoordinates((a as any).coordenadas);
                       return (
-                        <TableRow key={a.id}>
+                        <TableRow key={a.id} className="group">
                           <TableCell className="font-medium">{a.icao_code}</TableCell>
                           <TableCell>{a.name}</TableCell>
                           <TableCell>{coordText}</TableCell>
+                          <TableCell>
+                            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button variant="outline" size="icon" onClick={() => { setEditingAerodrome(a as any); setAddAerodromeOpen(true); }} aria-label="Editar">
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                size="icon"
+                                onClick={async () => {
+                                  if (!confirm(`Excluir aeródromo ${a.icao_code}?`)) return;
+                                  const { error } = await supabase.from('aerodromes').delete().eq('id', a.id);
+                                  if (error) {
+                                    alert(error.message);
+                                  } else {
+                                    queryClient.invalidateQueries({ queryKey: ['aerodromes'] });
+                                  }
+                                }}
+                                aria-label="Excluir"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
                         </TableRow>
                       );
                     })}
                     {(!aerodromes || aerodromes.length === 0) && (
                       <TableRow>
-                        <TableCell colSpan={3} className="text-center text-muted-foreground">
+                        <TableCell colSpan={4} className="text-center text-muted-foreground">
                           Nenhum aeródromo cadastrado.
                         </TableCell>
                       </TableRow>
@@ -263,7 +372,7 @@ export default function DiarioBordo() {
         </Card>
 
         <AddAircraftDialog open={addDialogOpen} onOpenChange={(o)=>{ setAddDialogOpen(o); if(!o) setEditingAircraft(null); }} aircraft={editingAircraft} />
-        <AddAerodromeDialog open={addAerodromeOpen} onOpenChange={setAddAerodromeOpen} />
+        <AddAerodromeDialog open={addAerodromeOpen} onOpenChange={(o)=>{ setAddAerodromeOpen(o); if(!o) setEditingAerodrome(null); }} aerodrome={editingAerodrome} />
         <CreateDiaryDialog
           open={createDiaryOpen}
           onOpenChange={setCreateDiaryOpen}
