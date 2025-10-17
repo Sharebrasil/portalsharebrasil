@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -15,6 +15,9 @@ import { supabase } from "@/integrations/supabase/client";
 export default function TripulanteDetalhes() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialTab = (searchParams.get("tab") === "anexos" ? "anexos" : "dados") as "dados" | "anexos";
+  const [activeTab, setActiveTab] = useState<"dados" | "anexos">(initialTab);
 
   const { data: member, isLoading, refetch } = useQuery({
     queryKey: ["crew_member", id],
@@ -57,6 +60,12 @@ export default function TripulanteDetalhes() {
   useEffect(() => {
     void loadDocs();
   }, [id]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams);
+    params.set("tab", activeTab);
+    setSearchParams(params);
+  }, [activeTab]);
 
   const handleUpload = async (file: File) => {
     if (!id) return;
@@ -124,7 +133,7 @@ export default function TripulanteDetalhes() {
 
         <Card>
           <CardContent className="p-6">
-            <Tabs defaultValue="dados" className="w-full">
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "dados" | "anexos")} className="w-full">
               <TabsList className="grid w-full max-w-md grid-cols-2">
                 <TabsTrigger value="dados">Dados Principais</TabsTrigger>
                 <TabsTrigger value="anexos">Anexos</TabsTrigger>
