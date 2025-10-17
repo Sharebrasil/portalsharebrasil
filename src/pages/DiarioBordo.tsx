@@ -268,7 +268,7 @@ export default function DiarioBordo() {
           </CardContent>
         </Card>
 
-        <AddAircraftDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} />
+        <AddAircraftDialog open={addDialogOpen} onOpenChange={(o)=>{ setAddDialogOpen(o); if(!o) setEditingAircraft(null); }} aircraft={editingAircraft} />
         <AddAerodromeDialog open={addAerodromeOpen} onOpenChange={setAddAerodromeOpen} />
         <CreateDiaryDialog
           open={createDiaryOpen}
