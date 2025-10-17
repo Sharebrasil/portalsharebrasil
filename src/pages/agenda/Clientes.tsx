@@ -93,6 +93,7 @@ export default function Clientes() {
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [documentFiles, setDocumentFiles] = useState<File[]>([]);
   const [uploadingFiles, setUploadingFiles] = useState(false);
+  const [previewDoc, setPreviewDoc] = useState<ClientDocument | null>(null);
 
   useEffect(() => {
     loadClientes();
@@ -521,13 +522,18 @@ export default function Clientes() {
               {viewingCliente.documents && viewingCliente.documents.length > 0 ? (
                 <div className="space-y-2">
                   {viewingCliente.documents.map((doc, index) => (
-                    <a key={index} href={doc.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 border rounded-lg hover:bg-accent transition-colors">
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => setPreviewDoc(doc)}
+                      className="w-full text-left flex items-center gap-3 p-3 border rounded-lg hover:bg-accent transition-colors"
+                    >
                       <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium truncate">{doc.name}</p>
                         <p className="text-xs text-muted-foreground">{new Date(doc.uploaded_at).toLocaleDateString('pt-BR')}</p>
                       </div>
-                    </a>
+                    </button>
                   ))}
                 </div>
               ) : (
@@ -537,6 +543,26 @@ export default function Clientes() {
           </Card>
         </div>
       )}
+
+      {/* Visualizador de Documento */}
+      <Dialog open={!!previewDoc} onOpenChange={(open) => { if (!open) setPreviewDoc(null); }}>
+        <DialogContent className="max-w-5xl w-[95vw] h-[85vh] p-0 overflow-hidden">
+          <div className="h-full w-full">
+            {previewDoc && (previewDoc.type?.includes("pdf") || previewDoc.name.toLowerCase().endsWith(".pdf")) ? (
+              <iframe
+                src={`${previewDoc.url}#toolbar=1&navpanes=0`}
+                className="w-full h-full"
+                title={previewDoc.name}
+              />
+            ) : (
+              <div className="p-6 space-y-3">
+                <p className="text-sm text-muted-foreground">Visualização não suportada. Faça o download abaixo.</p>
+                <a href={previewDoc?.url} target="_blank" rel="noopener noreferrer" className="underline">Baixar arquivo</a>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Dialog de Cadastro/Edição */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
