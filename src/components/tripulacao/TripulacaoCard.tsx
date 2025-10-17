@@ -43,11 +43,10 @@ export function TripulacaoCard({ member }: TripulacaoCardProps) {
   return (
     <Card
       className="h-full cursor-pointer transition hover:shadow-lg"
-      onClick={() =>
-        navigate(`/tripulacao/${member.id}`, {
-          state: { member },
-        })
-      }
+      onClick={() => {
+        navigate(`/tripulacao/${member.id}`, { state: { member } });
+        window.open(`${window.location.origin}${window.location.pathname}#/tripulacao/${member.id}?tab=anexos`, "_blank", "noopener");
+      }}
     >
       <div className="space-y-4 p-4">
         <div className="flex items-start gap-3">
