@@ -529,6 +529,57 @@ export type Database = {
           },
         ]
       }
+      favorite_routes: {
+        Row: {
+          arrival_airport: string
+          created_at: string | null
+          departure_airport: string
+          id: string
+          name: string
+          route: string
+          updated_at: string | null
+        }
+        Insert: {
+          arrival_airport: string
+          created_at?: string | null
+          departure_airport: string
+          id?: string
+          name: string
+          route: string
+          updated_at?: string | null
+        }
+        Update: {
+          arrival_airport?: string
+          created_at?: string | null
+          departure_airport?: string
+          id?: string
+          name?: string
+          route?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      favorite_services: {
+        Row: {
+          created_at: string | null
+          description: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       flight_checklists: {
         Row: {
           checklist_type: string
