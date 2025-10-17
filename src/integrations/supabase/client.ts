@@ -2,25 +2,13 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+const SUPABASE_URL = "https://yelanwtucirrxbskwjxc.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InllbGFud3R1Y2lycnhic2t3anhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc0NDcyNjAsImV4cCI6MjA3MzAyMzI2MH0.uyrfsLjgZfW4uWAZ7XO_nfMwhgChx1ehzvWgdA4Q7h8";
 
-const keyCandidates = [
-  import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined,
-  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined,
-  import.meta.env.VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY as string | undefined,
-];
+// Import the supabase client like this:
+// import { supabase } from "@/integrations/supabase/client";
 
-const SUPABASE_KEY = keyCandidates.find((k): k is string => typeof k === 'string' && k.length > 0);
-
-if (!SUPABASE_URL) {
-  throw new Error('VITE_SUPABASE_URL is required.');
-}
-
-if (!SUPABASE_KEY) {
-  throw new Error('Supabase anon/publishable key is required. Set VITE_SUPABASE_ANON_KEY (preferred) or VITE_SUPABASE_PUBLISHABLE_KEY.');
-}
-
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_KEY, {
+export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
     storage: localStorage,
     persistSession: true,
