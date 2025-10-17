@@ -22,6 +22,7 @@ export function AddAerodromeDialog({ open, onOpenChange }: AddAerodromeDialogPro
   const [formData, setFormData] = useState({
     name: "",
     icao_code: "",
+    coordenadas: "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -32,6 +33,7 @@ export function AddAerodromeDialog({ open, onOpenChange }: AddAerodromeDialogPro
       const { error } = await supabase.from('aerodromes').insert([{
         name: formData.name,
         icao_code: formData.icao_code.toUpperCase(),
+        coordenadas: formData.coordenadas,
       }]);
 
       if (error) throw error;
@@ -43,7 +45,7 @@ export function AddAerodromeDialog({ open, onOpenChange }: AddAerodromeDialogPro
 
       queryClient.invalidateQueries({ queryKey: ['aerodromes'] });
       onOpenChange(false);
-      setFormData({ name: "", icao_code: "" });
+      setFormData({ name: "", icao_code: "" , coordenadas ""});
     } catch (error: any) {
       toast({
         title: "Erro",
@@ -71,7 +73,7 @@ export function AddAerodromeDialog({ open, onOpenChange }: AddAerodromeDialogPro
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="icao_code">Código ICAO *</Label>
+            <Label htmlFor="icao_code">DESIGNATIVO *</Label>
             <Input
               id="icao_code"
               value={formData.icao_code}
@@ -92,6 +94,16 @@ export function AddAerodromeDialog({ open, onOpenChange }: AddAerodromeDialogPro
               required
             />
           </div>
+          <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="coordenadas">COORDENADAS *</Label>
+            <Input
+              id="coordenadas"
+              value={formData.coordenadas}
+              onChange={(e) => setFormData({ ...formData, coordenadas: e.target.value.toUpperCase() })}
+              placeholder="SBSP"
+              maxLength={4}
+              required
 
           <div className="flex justify-end gap-3 pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
