@@ -532,6 +532,38 @@ export default function EmissaoRecibo() {
     const bytes = await pdfDoc.save();
     return bytes;
   };
+
+  const onVisualizar = async () => {
+    try {
+      const recNumber = await ensureNumero();
+      const bytes = await drawPdf(recNumber);
+      const blob = new Blob([bytes], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      setPreviewUrl(url);
+      setIsPreviewOpen(true);
+    } catch (e: any) {
+      toast({ title: "Erro ao gerar preview", description: e?.message || "" });
+    }
+  };
+
+  const onGerarPDF = async () => {
+    try {
+      const recNumber = await saveReceipt();
+      if (!recNumber) return;
+      const bytes = await drawPdf(recNumber);
+      const blob = new Blob([bytes], { type: "application/pdf" });
+      const file = new File([blob], `recibo-${recNumber}.pdf`, { type: "application/pdf" });
+      const path = `${user?.id}/recibo-${recNumber}.pdf`;
+      await supabase.storage.from("recibos").upload(path, file, { upsert: true });
+      setPreviewUrl(URL.createObjectURL(blob));
+      setIsPreviewOpen(true);
+      toast({ title: "Recibo gerado", description: recNumber });
+      await loadReceipts();
+    } catch (e: any) {
+      toast({ title: "Erro ao gerar PDF", description: e?.message || "" });
+    }
+  };
+
   return (
     <Layout>
       <div className="p-6 space-y-6">
