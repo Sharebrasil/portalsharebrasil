@@ -97,6 +97,20 @@ export default function DiarioBordoDetalhes() {
     enabled: !!aircraftId,
   });
 
+  const { data: yearClosures } = useQuery({
+    queryKey: ['year-closures', aircraftId, selectedYear],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('monthly_diary_closures')
+        .select('month')
+        .eq('aircraft_id', aircraftId)
+        .eq('year', parseInt(selectedYear));
+      if (error) throw error;
+      return data ?? [] as { month: number }[];
+    },
+    enabled: !!aircraftId,
+  });
+
   const months = [
     "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
     "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
