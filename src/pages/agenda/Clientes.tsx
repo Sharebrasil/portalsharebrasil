@@ -77,8 +77,9 @@ export default function Clientes() {
     email: "",
     financial_contact: "",
     observations: "",
-    aircraft: "",
+    aircraft_id: "",
   });
+  const [aircraftOptions, setAircraftOptions] = useState<AircraftOption[]>([]);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [documentFiles, setDocumentFiles] = useState<File[]>([]);
@@ -149,7 +150,7 @@ export default function Clientes() {
         email: "",
         financial_contact: "",
         observations: "",
-        aircraft: "",
+        aircraft_id: "",
       });
       setLogoPreview(null);
     }
@@ -667,15 +668,19 @@ export default function Clientes() {
               </div>
 
               <div>
-                <Label htmlFor="aircraft">Aeronave</Label>
-                <Input
-                  id="aircraft"
-                  value={formData.aircraft}
-                  onChange={(e) =>
-                    setFormData({ ...formData, aircraft: e.target.value })
-                  }
-                  placeholder="Modelo da aeronave"
-                />
+                <Label htmlFor="aircraft_id">Aeronave</Label>
+                <Select value={formData.aircraft_id} onValueChange={(v) => setFormData({ ...formData, aircraft_id: v })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a aeronave" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {aircraftOptions.map((a) => (
+                      <SelectItem key={a.id} value={a.id}>
+                        {a.registration} - {a.model}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="col-span-2">
