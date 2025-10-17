@@ -9,10 +9,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { AddAircraftDialog } from "@/components/diario/AddAircraftDialog";
 import { AddAerodromeDialog } from "@/components/diario/AddAerodromeDialog";
 import { useNavigate } from "react-router-dom";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { CreateDiaryDialog } from "@/components/diario/CreateDiaryDialog";
 
 export default function DiarioBordo() {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [addAerodromeOpen, setAddAerodromeOpen] = useState(false);
+  const [createDiaryOpen, setCreateDiaryOpen] = useState(false);
   const navigate = useNavigate();
 
   const { data: aircraft, isLoading } = useQuery({
@@ -23,6 +27,18 @@ export default function DiarioBordo() {
         .select('*')
         .order('registration');
       
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: aerodromes } = useQuery({
+    queryKey: ['aerodromes'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('aerodromes')
+        .select('*')
+        .order('icao_code');
       if (error) throw error;
       return data;
     },
@@ -39,9 +55,9 @@ export default function DiarioBordo() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button onClick={() => setAddDialogOpen(true)} className="gap-2">
+            <Button onClick={() => setCreateDiaryOpen(true)} className="gap-2">
               <Plus className="h-4 w-4" />
-              Adicionar Aeronave
+              Criar Diário
             </Button>
             <Button onClick={() => setAddAerodromeOpen(true)} variant="outline" className="gap-2">
               <MapPin className="h-4 w-4" />
@@ -119,18 +135,79 @@ export default function DiarioBordo() {
                 Nenhuma aeronave cadastrada
               </h3>
               <p className="text-sm text-muted-foreground mb-4">
-                Comece adicionando sua primeira aeronave ao sistema.
+                Comece criando um diário e cadastrando sua primeira aeronave.
               </p>
-              <Button onClick={() => setAddDialogOpen(true)}>
+              <Button onClick={() => setCreateDiaryOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
-                Adicionar Aeronave
+                Criar Diário
               </Button>
             </CardContent>
           </Card>
         )}
 
+        <Card>
+          <CardHeader>
+            <CardTitle>Gerenciar Aeronave</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Tabs defaultValue="nova" className="w-full">
+              <TabsList>
+                <TabsTrigger value="nova">Criar Nova Aeronave</TabsTrigger>
+                <TabsTrigger value="aerodromos">Gerenciar Aeródromo</TabsTrigger>
+              </TabsList>
+              <TabsContent value="nova" className="pt-4">
+                <div className="flex items-center gap-3">
+                  <Button onClick={() => setAddDialogOpen(true)} className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    Nova Aeronave
+                  </Button>
+                </div>
+              </TabsContent>
+              <TabsContent value="aerodromos" className="pt-4">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="text-sm text-muted-foreground">Aeródromos salvos</div>
+                  <Button onClick={() => setAddAerodromeOpen(true)} variant="outline" className="gap-2">
+                    <MapPin className="h-4 w-4" />
+                    Adicionar Aeródromo
+                  </Button>
+                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Código ICAO</TableHead>
+                      <TableHead>Nome</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {aerodromes?.map((a) => (
+                      <TableRow key={a.id}>
+                        <TableCell className="font-medium">{a.icao_code}</TableCell>
+                        <TableCell>{a.name}</TableCell>
+                      </TableRow>
+                    ))}
+                    {(!aerodromes || aerodromes.length === 0) && (
+                      <TableRow>
+                        <TableCell colSpan={2} className="text-center text-muted-foreground">
+                          Nenhum aeródromo cadastrado.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+
         <AddAircraftDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} />
         <AddAerodromeDialog open={addAerodromeOpen} onOpenChange={setAddAerodromeOpen} />
+        <CreateDiaryDialog
+          open={createDiaryOpen}
+          onOpenChange={setCreateDiaryOpen}
+          onCreate={({ aircraftId, month, year }) => {
+            navigate(`/diario-bordo/${aircraftId}?month=${month}&year=${year}`);
+          }}
+        />
       </div>
     </Layout>
   );
