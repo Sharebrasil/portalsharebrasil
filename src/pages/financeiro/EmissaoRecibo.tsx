@@ -161,7 +161,7 @@ export default function EmissaoRecibo() {
       setPagadorDocumento(s.value.document ?? "");
       setPagadorEndereco(s.value.address ?? "");
       setPagadorCidade(s.value.city ?? "");
-      setPagadorUF(s.value.state ?? "");
+      setPagadorUF(s.value.uf ?? "");
     } else {
       setPagadorNome(s.value.company_name ?? "");
       setPagadorDocumento(s.value.cnpj ?? "");
@@ -326,10 +326,10 @@ export default function EmissaoRecibo() {
 
     page.drawText("RECIBO DE PAGAMENTO", { x: width / 2 - 80, y: height - 50, size: 14, font: bold });
 
-    page.drawRectangle({ x: width - 160, y: height - 85, width: 130, height: 55, borderColor: rgb(0.7,0.7,0.7), borderWidth: 1 });
-    page.drawText(formatBRL(amountNum), { x: width - 150, y: height - 55, size: 11, font: bold });
-    page.drawText(`Número do recibo:`, { x: width - 150, y: height - 70, size: 8, font });
-    page.drawText(recNumber, { x: width - 150, y: height - 80, size: 8, font });
+    page.drawRectangle({ x: width - 140, y: height - 80, width: 110, height: 50, borderColor: rgb(0.7,0.7,0.7), borderWidth: 1 });
+    page.drawText(formatBRL(amountNum), { x: width - 130, y: height - 52, size: 10, font: bold });
+    page.drawText(`Número do recibo:`, { x: width - 130, y: height - 65, size: 7, font });
+    page.drawText(recNumber, { x: width - 130, y: height - 74, size: 7, font });
 
     let y = height - 110;
     page.drawText("Emissor", { x: 30, y, size: 9, font: bold });
@@ -379,21 +379,17 @@ export default function EmissaoRecibo() {
     page.drawLine({ start: { x: 30, y: tableY }, end: { x: width - 30, y: tableY }, thickness: 1 });
     tableY -= 14;
     page.drawText("DESCRIÇÃO", { x: 35, y: tableY, size: 9, font: bold });
-    page.drawText("QUANT.", { x: 230, y: tableY, size: 9, font: bold });
-    page.drawText("PREÇO", { x: 290, y: tableY, size: 9, font: bold });
     page.drawText("TOTAL", { x: 350, y: tableY, size: 9, font: bold });
     tableY -= 2;
     page.drawLine({ start: { x: 30, y: tableY }, end: { x: width - 30, y: tableY }, thickness: 0.5 });
     tableY -= 14;
 
-    const descMaxWidth = 185;
+    const descMaxWidth = 300;
     const descLines = wrapText(servico, descMaxWidth, font, 9);
     descLines.forEach((ln, idx) => {
       const yLine = tableY - (idx * 11);
       page.drawText(ln, { x: 35, y: yLine, size: 9, font });
       if (idx === 0) {
-        page.drawText("1", { x: 245, y: yLine, size: 9, font });
-        page.drawText(formatBRL(amountNum), { x: 285, y: yLine, size: 9, font });
         page.drawText(formatBRL(amountNum), { x: 345, y: yLine, size: 9, font });
       }
     });
@@ -434,6 +430,13 @@ export default function EmissaoRecibo() {
     declLines.forEach((line, idx) => {
       page.drawText(line, { x: 30, y: tableY - (idx * 9), size: 7, font });
     });
+    tableY -= (declLines.length * 9) + 15;
+
+    const issueDate = (dataEmissao && dataEmissao.length >= 10) ? dataEmissao : new Date().toISOString().slice(0, 10);
+    const issueDateFormatted = new Date(issueDate).toLocaleDateString("pt-BR");
+    const cityText = company?.city || pagadorCidade || "";
+    const dataCidadeText = `${cityText}, ${issueDateFormatted}`;
+    page.drawText(dataCidadeText, { x: 30, y: tableY, size: 8, font });
 
     const bytes = await pdfDoc.save();
     return bytes;
