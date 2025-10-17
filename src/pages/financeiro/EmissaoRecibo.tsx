@@ -160,7 +160,7 @@ export default function EmissaoRecibo() {
       setPagadorDocumento(s.value.document ?? "");
       setPagadorEndereco(s.value.address ?? "");
       setPagadorCidade(s.value.city ?? "");
-      setPagadorUF(s.value.uf ?? "");
+      setPagadorUF(s.value.state ?? "");
     } else {
       setPagadorNome(s.value.company_name ?? "");
       setPagadorDocumento(s.value.cnpj ?? "");
