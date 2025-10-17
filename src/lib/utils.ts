@@ -5,6 +5,42 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+export function formatMinutesToHHMM(totalMinutes: number): string {
+  if (!isFinite(totalMinutes) || totalMinutes < 0) totalMinutes = 0
+  const hours = Math.floor(totalMinutes / 60)
+  const minutes = Math.round(totalMinutes % 60)
+  const adjHours = (minutes === 60) ? hours + 1 : hours
+  const adjMinutes = (minutes === 60) ? 0 : minutes
+  return `${String(adjHours).padStart(2, "0")}:${String(adjMinutes).padStart(2, "0")}`
+}
+
+export function formatDecimalHoursToHHMM(value?: number | string | null): string {
+  if (value == null || value === "") return "00:00"
+  if (typeof value === "string" && value.includes(":")) {
+    const [h, m] = value.split(":")
+    const hh = Math.max(0, parseInt(h || "0", 10))
+    const mm = Math.max(0, Math.min(59, parseInt(m || "0", 10)))
+    return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`
+  }
+  const num = typeof value === "string" ? parseFloat(value) : value
+  if (!isFinite(num as number)) return "00:00"
+  const minutes = Math.round((num as number) * 60)
+  return formatMinutesToHHMM(minutes)
+}
+
+export function parseHHMMToDecimal(value: string): number {
+  if (!value) return 0
+  if (!value.includes(":")) {
+    const n = parseFloat(value)
+    if (!isFinite(n)) return 0
+    return Math.max(0, n)
+  }
+  const [h, m] = value.split(":")
+  const hours = Math.max(0, parseInt(h || "0", 10))
+  const minutes = Math.max(0, Math.min(59, parseInt(m || "0", 10)))
+  return hours + minutes / 60
+}
+
 const UNITS = ["zero","um","dois","três","quatro","cinco","seis","sete","oito","nove","dez","onze","doze","treze","quatorze","quinze","dezesseis","dezessete","dezoito","dezenove"] as const
 const TENS = ["","","vinte","trinta","quarenta","cinquenta","sessenta","setenta","oitenta","noventa"] as const
 const HUNDREDS = ["","cento","duzentos","trezentos","quatrocentos","quinhentos","seiscentos","setecentos","oitocentos","novecentos"] as const
