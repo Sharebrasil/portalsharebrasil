@@ -256,7 +256,17 @@ export default function Clientes() {
       }
 
       const updatedData = {
-        ...formData,
+        company_name: formData.company_name,
+        cnpj: formData.cnpj,
+        inscricao_estadual: formData.inscricao_estadual,
+        address: formData.address,
+        city: formData.city,
+        uf: formData.uf,
+        phone: formData.phone,
+        email: formData.email,
+        financial_contact: formData.financial_contact,
+        observations: formData.observations,
+        aircraft_id: formData.aircraft_id || null,
         logo_url: logoUrl,
         documents: [...existingDocs, ...newDocs],
       };
@@ -725,7 +735,7 @@ export default function Clientes() {
                   <div>
                     <Label>Logo da Empresa</Label>
                     <p className="text-sm text-muted-foreground mb-2">
-                      Faça upload da logo da empresa (formatos: PNG, JPG, SVG)
+                      Fa��a upload da logo da empresa (formatos: PNG, JPG, SVG)
                     </p>
                   </div>
 
@@ -839,7 +849,7 @@ export default function Clientes() {
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir Cliente</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir este cliente? Esta ação não pode ser desfeita.
+              Tem certeza que deseja excluir este cliente? Esta ação n��o pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
