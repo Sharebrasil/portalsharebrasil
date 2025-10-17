@@ -44,7 +44,7 @@ export default function DiarioBordo() {
         </div>
 
         <div className="flex flex-row gap-2">
-          <Button onClick={() => setAddAerodromeOpen(true)} variant="outline" className="gap-2 bg-background border-border">
+          <Button onClick={() => navigate('/aerodromos')} variant="outline" className="gap-2 bg-background border-border">
             <MapPin className="h-4 w-4 text-foreground" />
             <span className="capitalize">gerenciar aerodromos</span>
           </Button>
@@ -53,7 +53,7 @@ export default function DiarioBordo() {
             Criar Diário de Bordo
           </Button>
         </div>
-        <Button onClick={() => setAddDialogOpen(true)} variant="outline" className="gap-2 mt-2 bg-background border-border">
+        <Button onClick={() => navigate('/aeronaves')} variant="outline" className="gap-2 mt-2 bg-background border-border">
           <Plus className="h-4 w-4 text-foreground" />
           <span className="capitalize">gerenciar aeronaves</span>
         </Button>
