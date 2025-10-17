@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { ClienteCard } from "@/components/clientes/ClienteCard";
-import { Plus, Search, Building, Upload, FileText, X, Image, ChevronLeft, Edit } from "lucide-react";
+import { Plus, Search, Building, Upload, FileText, X, Image, ChevronLeft, Edit, Phone, Mail, MapPin } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -421,160 +422,117 @@ export default function Clientes() {
         </Card>
       </div>
 
-      {/* Side Panel de Visualização */}
+      {/* Perfil do Cliente - renderizado dentro do projeto */}
       {viewingCliente && (
-        <div className="fixed inset-0 z-50 flex">
-          <div
-            className="absolute inset-0 bg-black/50"
-            onClick={handleCloseView}
-          />
-          <div className="relative ml-auto bg-background shadow-lg w-full max-w-2xl flex flex-col max-h-screen">
-            {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b sticky top-0 bg-background z-10">
+        <div className="p-6 space-y-6">
+          <Button variant="ghost" onClick={handleCloseView} className="flex items-center gap-2 w-fit">
+            <ChevronLeft className="h-4 w-4" />
+            Voltar para Contatos
+          </Button>
+
+          <div className="rounded-xl border bg-gradient-subtle shadow-card">
+            <div className="p-6 flex items-center justify-between">
               <div className="flex items-center gap-4">
-                {viewingCliente.logo_url ? (
-                  <Avatar className="h-12 w-12">
+                <Avatar className="h-14 w-14">
+                  {viewingCliente.logo_url && (
                     <AvatarImage src={viewingCliente.logo_url} alt={viewingCliente.company_name} />
-                    <AvatarFallback className="bg-primary/10">
-                      <Building className="h-6 w-6 text-primary" />
-                    </AvatarFallback>
-                  </Avatar>
-                ) : (
-                  <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <Building className="h-6 w-6 text-primary" />
-                  </div>
-                )}
+                  )}
+                  <AvatarFallback className="bg-secondary text-lg font-semibold">
+                    {viewingCliente.company_name
+                      .split(' ')
+                      .map((p) => p[0])
+                      .filter(Boolean)
+                      .slice(0, 2)
+                      .join('')
+                      .toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
                 <div>
-                  <h2 className="text-2xl font-bold text-foreground">
-                    {viewingCliente.company_name}
-                  </h2>
-                  <p className="text-sm text-muted-foreground">CNPJ: {viewingCliente.cnpj}</p>
+                  <h2 className="text-2xl font-bold leading-tight">{viewingCliente.company_name}</h2>
+                  <div className="flex items-center gap-2 mt-2 flex-wrap">
+                    <Badge variant="secondary">Cliente</Badge>
+                    <Badge variant="outline">{viewingCliente.cnpj}</Badge>
+                  </div>
                 </div>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleCloseView}
-                className="h-8 w-8"
-              >
-                <ChevronLeft className="h-6 w-6" />
-              </Button>
-            </div>
-
-            {/* Content */}
-            <ScrollArea className="flex-1">
-              <div className="p-6">
-                <Tabs defaultValue="info" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2 mb-6">
-                    <TabsTrigger value="info">Informações</TabsTrigger>
-                    <TabsTrigger value="documents">Documentos</TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="info" className="space-y-6 mt-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label className="text-xs text-muted-foreground uppercase">Nome da Empresa</Label>
-                        <p className="text-sm font-medium mt-1">{viewingCliente.company_name}</p>
-                      </div>
-                      <div>
-                        <Label className="text-xs text-muted-foreground uppercase">CNPJ</Label>
-                        <p className="text-sm font-medium mt-1">{viewingCliente.cnpj}</p>
-                      </div>
-                      {viewingCliente.inscricao_estadual && (
-                        <div>
-                          <Label className="text-xs text-muted-foreground uppercase">Inscrição Estadual</Label>
-                          <p className="text-sm font-medium mt-1">{viewingCliente.inscricao_estadual}</p>
-                        </div>
-                      )}
-                      {viewingCliente.aircraft && (
-                        <div>
-                          <Label className="text-xs text-muted-foreground uppercase">Aeronave</Label>
-                          <p className="text-sm font-medium mt-1">{viewingCliente.aircraft}</p>
-                        </div>
-                      )}
-                      {viewingCliente.address && (
-                        <div className="col-span-2">
-                          <Label className="text-xs text-muted-foreground uppercase">Endereço</Label>
-                          <p className="text-sm font-medium mt-1">{viewingCliente.address}</p>
-                        </div>
-                      )}
-                      {viewingCliente.phone && (
-                        <div>
-                          <Label className="text-xs text-muted-foreground uppercase">Telefone</Label>
-                          <p className="text-sm font-medium mt-1">{viewingCliente.phone}</p>
-                        </div>
-                      )}
-                      {viewingCliente.email && (
-                        <div>
-                          <Label className="text-xs text-muted-foreground uppercase">E-mail</Label>
-                          <p className="text-sm font-medium mt-1 break-all">{viewingCliente.email}</p>
-                        </div>
-                      )}
-                      {viewingCliente.financial_contact && (
-                        <div className="col-span-2">
-                          <Label className="text-xs text-muted-foreground uppercase">Contato Financeiro</Label>
-                          <p className="text-sm font-medium mt-1">{viewingCliente.financial_contact}</p>
-                        </div>
-                      )}
-                      {viewingCliente.observations && (
-                        <div className="col-span-2">
-                          <Label className="text-xs text-muted-foreground uppercase">Observações</Label>
-                          <p className="text-sm font-medium mt-1 whitespace-pre-wrap">{viewingCliente.observations}</p>
-                        </div>
-                      )}
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="documents" className="space-y-4 mt-4">
-                    {viewingCliente.documents && viewingCliente.documents.length > 0 ? (
-                      <div className="space-y-2">
-                        {viewingCliente.documents.map((doc, index) => (
-                          <a
-                            key={index}
-                            href={doc.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-3 p-3 border rounded-lg hover:bg-accent transition-colors"
-                          >
-                            <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-                            <div className="min-w-0 flex-1">
-                              <p className="text-sm font-medium truncate">{doc.name}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {new Date(doc.uploaded_at).toLocaleDateString('pt-BR')}
-                              </p>
-                            </div>
-                          </a>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center justify-center py-8 text-center">
-                        <FileText className="h-12 w-12 text-muted-foreground mb-2 opacity-50" />
-                        <p className="text-sm text-muted-foreground">Nenhum documento anexado</p>
-                      </div>
-                    )}
-                  </TabsContent>
-                </Tabs>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => handleOpenDialog(viewingCliente)}>
+                  <Edit className="h-4 w-4 mr-2" /> Editar
+                </Button>
               </div>
-            </ScrollArea>
-
-            {/* Footer */}
-            <div className="flex gap-2 p-6 border-t bg-background sticky bottom-0">
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={handleCloseView}
-              >
-                Fechar
-              </Button>
-              <Button
-                className="flex-1"
-                onClick={() => handleOpenDialog(viewingCliente)}
-              >
-                <Edit className="h-4 w-4 mr-2" />
-                Editar
-              </Button>
             </div>
           </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Informações de Contato</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                {viewingCliente.phone && (
+                  <div className="flex items-center gap-2"><Phone className="h-4 w-4 text-muted-foreground" /><span>{viewingCliente.phone}</span></div>
+                )}
+                {viewingCliente.email && (
+                  <div className="flex items-center gap-2 break-all"><Mail className="h-4 w-4 text-muted-foreground" /><span>{viewingCliente.email}</span></div>
+                )}
+                {(viewingCliente.address || viewingCliente.city || viewingCliente.uf) && (
+                  <div className="flex items-center gap-2"><MapPin className="h-4 w-4 text-muted-foreground" /><span>{[viewingCliente.address, [viewingCliente.city, viewingCliente.uf].filter(Boolean).join(' - ')].filter(Boolean).join(' | ')}</span></div>
+                )}
+                {viewingCliente.financial_contact && (
+                  <div className="flex items-center gap-2"><Building className="h-4 w-4 text-muted-foreground" /><span>Contato Financeiro: {viewingCliente.financial_contact}</span></div>
+                )}
+                {!viewingCliente.phone && !viewingCliente.email && !viewingCliente.address && !viewingCliente.city && !viewingCliente.uf && !viewingCliente.financial_contact && (
+                  <p className="text-muted-foreground">Nenhuma informação de contato.</p>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Outras Informações</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                {viewingCliente.inscricao_estadual && (
+                  <div><span className="text-muted-foreground">Inscrição Estadual:</span> {viewingCliente.inscricao_estadual}</div>
+                )}
+                {viewingCliente.aircraft && (
+                  <div><span className="text-muted-foreground">Aeronave:</span> {viewingCliente.aircraft}</div>
+                )}
+                {viewingCliente.observations && (
+                  <div>
+                    <span className="text-muted-foreground">Observações:</span>
+                    <p className="mt-1 whitespace-pre-wrap">{viewingCliente.observations}</p>
+                  </div>
+                )}
+                {!viewingCliente.inscricao_estadual && !viewingCliente.aircraft && !viewingCliente.observations && (
+                  <p className="text-muted-foreground">Nenhuma informação adicional.</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Documentos</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {viewingCliente.documents && viewingCliente.documents.length > 0 ? (
+                <div className="space-y-2">
+                  {viewingCliente.documents.map((doc, index) => (
+                    <a key={index} href={doc.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 border rounded-lg hover:bg-accent transition-colors">
+                      <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium truncate">{doc.name}</p>
+                        <p className="text-xs text-muted-foreground">{new Date(doc.uploaded_at).toLocaleDateString('pt-BR')}</p>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Nenhum documento anexado.</p>
+              )}
+            </CardContent>
+          </Card>
         </div>
       )}
 
