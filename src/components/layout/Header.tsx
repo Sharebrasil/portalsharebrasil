@@ -16,6 +16,7 @@ import { UserFormDialog, type UserFormSubmitValues } from "@/components/admin/Us
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { createManagedUser } from "@/services/adminUsers";
 import type { AppRole } from "@/lib/roles"; // Import AppRole
@@ -45,6 +46,8 @@ export function Header() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, roles } = useAuth();
+  const { isAdmin, isFinanceiroMaster } = useUserRole();
+  const canAccessSalaryManagement = isAdmin || isFinanceiroMaster;
   const { profile } = useUserProfile(user);
 
   const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
@@ -196,9 +199,17 @@ export function Header() {
             <DropdownMenuItem className="text-foreground hover:bg-accent cursor-pointer">
               Dados Bancários
             </DropdownMenuItem>
-            <DropdownMenuItem className="text-foreground hover:bg-accent cursor-pointer">
-              Gestão de Salário
-            </DropdownMenuItem>
+            {canAccessSalaryManagement && (
+              <DropdownMenuItem
+                className="text-foreground hover:bg-accent cursor-pointer"
+                onSelect={(event) => {
+                  event.preventDefault();
+                  navigate("/gestao-salarios");
+                }}
+              >
+                Gestão de Salário
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem className="text-foreground hover:bg-accent cursor-pointer">
               Férias
             </DropdownMenuItem>
