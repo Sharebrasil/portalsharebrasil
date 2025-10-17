@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plane, Plus, Calendar, Clock, MapPin, Pencil, Trash2 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AddAircraftDialog } from "@/components/diario/AddAircraftDialog";
 import { AddAerodromeDialog } from "@/components/diario/AddAerodromeDialog";
@@ -19,6 +19,7 @@ export default function DiarioBordo() {
   const [createDiaryOpen, setCreateDiaryOpen] = useState(false);
   const [editingAircraft, setEditingAircraft] = useState<any | null>(null);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const { data: aircraft, isLoading } = useQuery({
     queryKey: ['aircraft'],
@@ -205,9 +206,7 @@ export default function DiarioBordo() {
                                   // eslint-disable-next-line no-alert
                                   alert(error.message);
                                 } else {
-                                  // reload query cache by simple location reload or better, invalidate via query client in dialog context
-                                  // Fallback: force a small refresh by navigating
-                                  window.location.hash = window.location.hash;
+                                  queryClient.invalidateQueries({ queryKey: ['aircraft'] });
                                 }
                               }}
                               aria-label="Excluir"
