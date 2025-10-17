@@ -45,7 +45,6 @@ export function TripulacaoCard({ member }: TripulacaoCardProps) {
       className="h-full cursor-pointer transition hover:shadow-lg"
       onClick={() => {
         navigate(`/tripulacao/${member.id}`, { state: { member } });
-        window.open(`${window.location.origin}${window.location.pathname}#/tripulacao/${member.id}?tab=anexos`, "_blank", "noopener");
       }}
     >
       <div className="space-y-4 p-4">
