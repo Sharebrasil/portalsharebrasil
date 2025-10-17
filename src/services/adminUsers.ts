@@ -194,7 +194,7 @@ export const updateManagedUser = async (input: UpdateManagedUserInput) => {
 };
 
 export const deleteManagedUser = async (userId: string) => {
-  const { error } = await supabase.functions.invoke("admin-delete-user", {
+  const { error } = await supabase.functions.invoke("delete-user", {
     body: { userId },
   });
 
