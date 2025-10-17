@@ -46,16 +46,7 @@ export default function DiarioBordo() {
     },
   });
 
-  const { data: airports } = useQuery({
-    queryKey: ['airports'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('airports')
-        .select('icao_code, latitude, longitude');
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
+
 
   return (
     <Layout>
@@ -238,7 +229,7 @@ export default function DiarioBordo() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Código ICAO</TableHead>
+                      <TableHead>DESIGNATIVO</TableHead>
                       <TableHead>Nome</TableHead>
                       <TableHead>Coordenadas</TableHead>
                     </TableRow>
@@ -246,7 +237,7 @@ export default function DiarioBordo() {
                   <TableBody>
                     {aerodromes?.map((a) => {
                       const coords = (airports ?? []).find((ap) => (ap.icao_code ?? '').toUpperCase() === (a.icao_code ?? '').toUpperCase());
-                      const coordText = coords && coords.latitude != null && coords.longitude != null
+                    coordenadas
                         ? `${coords.latitude.toFixed(6)}, ${coords.longitude.toFixed(6)}`
                         : "-";
                       return (
