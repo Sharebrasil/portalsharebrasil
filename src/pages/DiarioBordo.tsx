@@ -185,8 +185,8 @@ export default function DiarioBordo() {
                       <TableRow key={ac.id} className="cursor-pointer" onClick={() => navigate(`/diario-bordo/${ac.id}`)}>
                         <TableCell className="font-medium">{ac.registration}</TableCell>
                         <TableCell>{ac.model}</TableCell>
-                        <TableCell>{ac.status}</TableCell>
-                        <TableCell>{ac.fuel_consumption ?? '-'}</TableCell>
+                        <TableCell>{ac.status ?? '—'}</TableCell>
+                        <TableCell>{ac.fuel_consumption != null ? Number(ac.fuel_consumption).toFixed(1) : '—'}</TableCell>
                       </TableRow>
                     ))}
                     {(!aircraft || aircraft.length === 0) && (
