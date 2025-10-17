@@ -138,7 +138,7 @@ export default function EmissaoRecibo() {
         const clients: ClientSuggestion[] = clientsRes.data ?? [];
         clients.forEach((c) =>
           results.push({
-            type: "clients",
+            type: "client",
             id: c.id,
             label: c.company_name ?? "Sem nome",
             sublabel: c.cnpj ?? undefined,
