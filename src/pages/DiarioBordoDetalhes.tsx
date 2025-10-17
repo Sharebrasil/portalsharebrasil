@@ -165,7 +165,7 @@ export default function DiarioBordoDetalhes() {
           </div>
         </div>
 
-        {isMonthClosed && monthClosure && (
+        {isMonthClosed && hasEntries && monthClosure && (
           <Alert>
             <Lock className="h-4 w-4" />
             <AlertDescription>
