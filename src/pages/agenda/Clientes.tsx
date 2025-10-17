@@ -348,6 +348,7 @@ export default function Clientes() {
 
   return (
     <Layout>
+      {!viewingCliente && (
       <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
@@ -421,6 +422,7 @@ export default function Clientes() {
           </CardContent>
         </Card>
       </div>
+      )}
 
       {/* Perfil do Cliente - renderizado dentro do projeto */}
       {viewingCliente && (
