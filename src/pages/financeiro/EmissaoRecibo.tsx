@@ -349,7 +349,7 @@ export default function EmissaoRecibo() {
     return lines;
   }
 
-  export const generateReceiptPDF = async (
+  const generateReceiptPDF = async (
     receipt: ReceiptData,
     company: CompanyData
   ): Promise<Uint8Array> => {
