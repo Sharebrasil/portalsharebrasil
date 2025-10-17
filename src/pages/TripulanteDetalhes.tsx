@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar, ArrowLeft, UploadCloud, Trash2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import FlightHoursCard from "@/components/tripulacao/FlightHoursCard";
 
 export default function TripulanteDetalhes() {
   const { id } = useParams();
@@ -161,6 +162,9 @@ export default function TripulanteDetalhes() {
                     </div>
                   </div>
                 </div>
+
+                {/* Card de Horas de Voo PIC/SIC e Totais por Aeronave */}
+                <FlightHoursCard canac={member.canac || ''} />
               </TabsContent>
 
               <TabsContent value="anexos" className="mt-6 space-y-4">

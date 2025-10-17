@@ -461,38 +461,35 @@ export default function DiarioBordoDetalhes() {
           <table className="w-full border-collapse border border-gray-300 text-xs">
             <thead>
               <tr>
-                <th className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">DATA</th>
-                <th className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">DE</th>
-                <th className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">PARA</th>
-                <th className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">AC</th>
-                <th className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">DEP</th>
-                <th className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">POU</th>
-                <th className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">COR</th>
-                <th className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">T VOO</th>
-                <th className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">T DIA</th>
-                <th className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">T NOIT</th>
-                <th className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">TOTAL</th>
-                <th className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">IFR</th>
-                <th className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">POUSOS</th>
-                <th className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">ABAST</th>
-                <th className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">FUEL</th>
-                <th className="border border-gray-300 p-1 bg-[rgba(2,54,34,1)]" colSpan={3}>CÉLULA</th>
-                <th className="border border-gray-300 p-1 bg-[rgba(2,54,34,1)]" colSpan={2}>CONTROLE COTISTA</th>
-                <th className="border border-gray-300 p-1">PIC</th>
-                <th className="border border-gray-300 p-1">SIC</th>
-                <th className="border border-gray-300 p-1">DIÁRIAS</th>
-                <th className="border border-gray-300 p-1">EXTRAS</th>
-                <th className="border border-gray-300 p-1">VOO PARA</th>
-                <th className="border border-gray-300 p-1">CONF</th>
+                <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">DATA</th>
+                <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">DE</th>
+                <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">PARA</th>
+                <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">AC</th>
+                <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">DEP</th>
+                <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">POU</th>
+                <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">COR</th>
+                <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">T VOO</th>
+                <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">T DIA</th>
+                <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">T NOITE</th>
+                <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">TOTAL</th>
+                <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">IFR</th>
+                <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">POUSOS</th>
+                <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">ABAST</th>
+                <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">FUEL</th>
+                <th className="border border-gray-300 p-1 bg-[rgba(2,54,34,1)]" colSpan={3}>CTM</th>
+                <th className="border border-gray-300 p-1 bg-[rgba(2,54,34,1)]" colSpan={2}>CANAC</th>
+                <th rowSpan={2} className="border border-gray-300 p-1">DIÁRIAS</th>
+                <th className="border border-gray-300 p-1 bg-[rgba(2,54,34,1)]" colSpan={3}>CONTROLE COTISTA</th>
               </tr>
               <tr>
-                <th className="border border-gray-300 p-1 bg-[rgba(3,72,129,1)]" colSpan={15}></th>
                 <th className="border border-gray-300 p-1 text-[10px] bg-[rgba(4,56,88,1)]">ANT</th>
                 <th className="border border-gray-300 p-1 text-[10px] bg-[rgba(4,56,88,1)]">POST</th>
                 <th className="border border-gray-300 p-1 text-[10px] bg-[rgba(4,56,88,1)]">DISP</th>
+                <th className="border border-gray-300 p-1">PIC</th>
+                <th className="border border-gray-300 p-1">SIC</th>
                 <th className="border border-gray-300 p-1 text-[10px] bg-[rgba(4,56,88,1)]">EXTRAS</th>
                 <th className="border border-gray-300 p-1 text-[10px] bg-[rgba(4,56,88,1)]">VOO PARA</th>
-                <th className="border border-gray-300 p-1" colSpan={6}></th>
+                <th className="border border-gray-300 p-1 text-[10px] bg-[rgba(4,56,88,1)]">CONF</th>
               </tr>
             </thead>
             <tbody>
@@ -667,6 +664,37 @@ export default function DiarioBordoDetalhes() {
                   </td>
                   <td className="border border-gray-300 p-1">
                     <Input
+                      value={entry.pic}
+                      onChange={(e) => updateEntry(index, 'pic', e.target.value)}
+                      disabled={isClosed}
+                      list="crew-canac-list"
+                      placeholder="CANAC"
+                      className="h-7 text-xs w-20"
+                    />
+                  </td>
+                  <td className="border border-gray-300 p-1">
+                    <Input
+                      value={entry.sic}
+                      onChange={(e) => updateEntry(index, 'sic', e.target.value)}
+                      disabled={isClosed}
+                      list="crew-canac-list"
+                      placeholder="CANAC"
+                      className="h-7 text-xs w-20"
+                    />
+                  </td>
+                  <td className="border border-gray-300 p-1 text-center">
+                    <input
+                      type="checkbox"
+                      checked={Number(entry.diarias) === 1}
+                      onChange={(e) => updateEntry(index, 'diarias', e.target.checked ? '1' : '0')}
+                      disabled={isClosed}
+                      className="h-4 w-4"
+                      aria-label="Diária PIC"
+                      title="Marque para contabilizar 1 diária para o PIC"
+                    />
+                  </td>
+                  <td className="border border-gray-300 p-1">
+                    <Input
                       value={entry.extras}
                       onChange={(e) => updateEntry(index, 'extras', e.target.value)}
                       disabled={isClosed}
@@ -685,58 +713,6 @@ export default function DiarioBordoDetalhes() {
                         <option key={client.id} value={client.id}>{client.company_name}</option>
                       ))}
                     </select>
-                  </td>
-                  <td className="border border-gray-300 p-1">
-                    <select
-                      value={entry.pic}
-                      onChange={(e) => updateEntry(index, 'pic', e.target.value)}
-                      disabled={isClosed}
-                      className="h-7 text-xs w-20 border rounded px-1"
-                    >
-                      <option value="">-</option>
-                      {crewMembers?.map(crew => (
-                        <option key={crew.canac} value={crew.canac}>{crew.canac}</option>
-                      ))}
-                    </select>
-                  </td>
-                  <td className="border border-gray-300 p-1">
-                    <select
-                      value={entry.sic}
-                      onChange={(e) => updateEntry(index, 'sic', e.target.value)}
-                      disabled={isClosed}
-                      className="h-7 text-xs w-20 border rounded px-1"
-                    >
-                      <option value="">-</option>
-                      {crewMembers?.map(crew => (
-                        <option key={crew.canac} value={crew.canac}>{crew.canac}</option>
-                      ))}
-                    </select>
-                  </td>
-                  <td className="border border-gray-300 p-1">
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={entry.diarias}
-                      onChange={(e) => updateEntry(index, 'diarias', e.target.value)}
-                      disabled={isClosed}
-                      className="h-7 text-xs w-16"
-                    />
-                  </td>
-                  <td className="border border-gray-300 p-1">
-                    <Input
-                      value={entry.extras}
-                      onChange={(e) => updateEntry(index, 'extras', e.target.value)}
-                      disabled={isClosed}
-                      className="h-7 text-xs w-20"
-                    />
-                  </td>
-                  <td className="border border-gray-300 p-1">
-                    <Input
-                      value={entry.voo_para}
-                      onChange={(e) => updateEntry(index, 'voo_para', e.target.value)}
-                      disabled={isClosed}
-                      className="h-7 text-xs w-24"
-                    />
                   </td>
                   <td className="border border-gray-300 p-1 text-center">
                     {newRowIndex === index ? (
@@ -763,6 +739,11 @@ export default function DiarioBordoDetalhes() {
               ))}
             </tbody>
           </table>
+          <datalist id="crew-canac-list">
+            {crewMembers?.map(crew => (
+              <option key={crew.canac} value={crew.canac}>{crew.full_name} - {crew.canac}</option>
+            ))}
+          </datalist>
         </div>
       </div>
     </Layout>
