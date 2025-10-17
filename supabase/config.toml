@@ -1,1 +1,13 @@
 project_id = "yelanwtucirrxbskwjxc"
+
+[functions.create-user]
+verify_jwt = true
+
+[functions.update-user]
+verify_jwt = true
+
+[functions.delete-user]
+verify_jwt = true
+
+[functions.list-users]
+verify_jwt = true
