@@ -106,3 +106,20 @@ export function numberToCurrencyWordsPtBr(value: number): string {
   if (reais === 0) return centavosText
   return `${reaisText} e ${centavosText}`
 }
+
+export function formatBRL(value: number | string): string {
+  const n = typeof value === 'string' ? parseBRL(value) : (isFinite(value as number) ? (value as number) : 0)
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(n)
+}
+
+export function parseBRL(value: string): number {
+  if (!value) return 0
+  // Remove currency symbols and spaces
+  const raw = value.replace(/[^\d,.-]/g, '')
+  if (!raw) return 0
+  // If there are both comma and dot, assume Brazilian format (dot as thousand, comma as decimal)
+  const hasComma = raw.includes(',')
+  const normalized = hasComma ? raw.replace(/\./g, '').replace(',', '.') : raw
+  const num = parseFloat(normalized)
+  return isFinite(num) ? num : 0
+}
