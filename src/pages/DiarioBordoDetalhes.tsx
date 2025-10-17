@@ -16,11 +16,19 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 export default function DiarioBordoDetalhes() {
   const { aircraftId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const monthParam = params.get('month');
+  const yearParam = params.get('year');
   const [addEntryOpen, setAddEntryOpen] = useState(false);
   const [closeMonthOpen, setCloseMonthOpen] = useState(false);
   const [prefilledDate, setPrefilledDate] = useState<Date | undefined>(undefined);
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth().toString());
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
+  const [selectedMonth, setSelectedMonth] = useState(
+    monthParam !== null && !Number.isNaN(parseInt(monthParam)) ? parseInt(monthParam).toString() : new Date().getMonth().toString()
+  );
+  const [selectedYear, setSelectedYear] = useState(
+    yearParam !== null && !Number.isNaN(parseInt(yearParam)) ? parseInt(yearParam).toString() : new Date().getFullYear().toString()
+  );
 
   const { data: aircraft } = useQuery({
     queryKey: ['aircraft', aircraftId],
