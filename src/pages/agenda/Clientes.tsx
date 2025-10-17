@@ -155,7 +155,7 @@ export default function Clientes() {
         email: cliente.email || "",
         financial_contact: cliente.financial_contact || "",
         observations: cliente.observations || "",
-        aircraft: cliente.aircraft || "",
+        aircraft_id: cliente.aircraft_id || "",
       });
       setLogoPreview(cliente.logo_url || null);
     } else {
