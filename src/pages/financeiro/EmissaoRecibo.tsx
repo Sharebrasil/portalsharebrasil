@@ -13,6 +13,7 @@ import { Receipt, Download, Eye, Plus, Star, Users, Trash2, FolderPlus, FileText
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { numberToCurrencyWordsPtBr } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface FavoritePayer {
   id: string;
@@ -20,7 +21,7 @@ interface FavoritePayer {
   document: string;
   address: string | null;
   city: string | null;
-  state: string | null;
+  uf: string | null;
   user_id: string;
   created_at: string | null;
 }
@@ -30,6 +31,8 @@ interface ClientSuggestion {
   company_name: string | null;
   cnpj: string | null;
   address: string | null;
+  city: string | null;
+  uf: string | null;
 }
 
 type SuggestionItem =
@@ -47,6 +50,8 @@ export default function EmissaoRecibo() {
   const [valor, setValor] = useState<string>("");
   const [valorExtenso, setValorExtenso] = useState<string>("");
   const [servico, setServico] = useState("");
+  const [numeroDoc, setNumeroDoc] = useState("");
+  const [prazoMaximoQuitacao, setPrazoMaximoQuitacao] = useState<string>("");
 
   const [pagadorNome, setPagadorNome] = useState("");
   const [pagadorDocumento, setPagadorDocumento] = useState("");
@@ -64,6 +69,8 @@ export default function EmissaoRecibo() {
   const [newFavoriteDescription, setNewFavoriteDescription] = useState("");
   const [recentReceipts, setRecentReceipts] = useState<{ id: string; receipt_number: string; issue_date: string; amount: number }[]>([]);
   const [favoritePayers, setFavoritePayers] = useState<FavoritePayer[]>([]);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const canSaveFavorite = useMemo(() => !!(pagadorNome && pagadorDocumento && user?.id), [pagadorNome, pagadorDocumento, user?.id]);
 
@@ -102,7 +109,7 @@ export default function EmissaoRecibo() {
         if (user?.id) {
           const favRes = await supabase
             .from("favorite_payers" as any)
-            .select("id, name, document, address, city, state, user_id, created_at")
+            .select("id, name, document, address, city, uf, user_id, created_at")
             .eq("user_id", user.id)
             .ilike("name", `%${term}%`)
             .limit(5);
@@ -125,7 +132,7 @@ export default function EmissaoRecibo() {
       try {
         const clientsRes = await supabase
           .from("clients")
-          .select("id, company_name, cnpj, address")
+          .select("id, company_name, cnpj, address, city, uf")
           .ilike("company_name", `%${term}%`)
           .limit(5);
         const clients: ClientSuggestion[] = clientsRes.data ?? [];
@@ -158,6 +165,8 @@ export default function EmissaoRecibo() {
       setPagadorNome(s.value.company_name ?? "");
       setPagadorDocumento(s.value.cnpj ?? "");
       setPagadorEndereco(s.value.address ?? "");
+      setPagadorCidade(s.value.city ?? "");
+      setPagadorUF(s.value.uf ?? "");
     }
     setShowSuggestions(false);
   };
@@ -174,7 +183,7 @@ export default function EmissaoRecibo() {
         document: pagadorDocumento,
         address: pagadorEndereco || null,
         city: pagadorCidade || null,
-        state: pagadorUF || null,
+        uf: pagadorUF || null,
         user_id: user?.id,
       });
       if (error) throw error;
@@ -234,7 +243,7 @@ export default function EmissaoRecibo() {
 
   const loadFavoritePayers = async () => {
     if (!user?.id) return;
-    const { data } = await supabase.from("favorite_payers" as any).select("id, name, document, address, city, state, user_id, created_at").eq("user_id", user.id).order("created_at", { ascending: false });
+    const { data } = await supabase.from("favorite_payers" as any).select("id, name, document, address, city, uf, user_id, created_at").eq("user_id", user.id).order("created_at", { ascending: false });
     setFavoritePayers((data as any) ?? []);
   };
 
@@ -265,11 +274,13 @@ export default function EmissaoRecibo() {
       amount: amountNum,
       amount_text: valorExtenso,
       service_description: servico,
+      number_doc: numeroDoc || null,
+      payoff_number: prazoMaximoQuitacao || null,
       payer_name: pagadorNome,
       payer_document: pagadorDocumento,
       payer_address: pagadorEndereco || null,
       payer_city: pagadorCidade || null,
-      payer_state: pagadorUF || null,
+      payer_uf: pagadorUF || null,
       user_id: user.id,
     });
 
@@ -285,7 +296,7 @@ export default function EmissaoRecibo() {
   const fetchCompanySettings = async () => {
     const { data } = await supabase
       .from("company_settings")
-      .select("name, cnpj, address, city, state, logo_url")
+      .select("name, cnpj, address, city, uf, logo_url")
       .order("created_at", { ascending: false })
       .limit(1);
     return data && data.length > 0 ? data[0] : null;
@@ -295,7 +306,7 @@ export default function EmissaoRecibo() {
     const company = await fetchCompanySettings();
     const amountNum = parseFloat(valor || "0");
 
-    const emitterAddress = company ? [company.address, company.city, company.state].filter(Boolean).join(", ") : "";
+    const emitterAddress = company ? [company.address, company.city, company.uf].filter(Boolean).join(", ") : "";
     const payerAddress = [pagadorEndereco, pagadorCidade, pagadorUF].filter(Boolean).join(", ");
 
     const pdfDoc = await PDFDocument.create();
@@ -337,17 +348,48 @@ export default function EmissaoRecibo() {
     page.drawText("TOTAL", { x: width - 80, y: tableY, size: 10, font: bold });
     tableY -= 12; page.drawLine({ start: { x: 30, y: tableY+6 }, end: { x: width - 30, y: tableY+6 }, thickness: 0.5 });
 
-    page.drawText(servico, { x: 35, y: tableY, size: 10, font });
-    page.drawText("1", { x: width - 200, y: tableY, size: 10, font });
-    page.drawText(formatBRL(amountNum), { x: width - 140, y: tableY, size: 10, font });
-    page.drawText(formatBRL(amountNum), { x: width - 80, y: tableY, size: 10, font });
+    const wrapText = (text: string, maxWidth: number, fontRef: any, size: number): string[] => {
+      const words = text.split(/\s+/);
+      const lines: string[] = [];
+      let line = "";
+      for (const w of words) {
+        const test = line ? `${line} ${w}` : w;
+        const wpx = fontRef.widthOfTextAtSize(test, size);
+        if (wpx > maxWidth && line) {
+          lines.push(line);
+          line = w;
+        } else {
+          line = test;
+        }
+      }
+      if (line) lines.push(line);
+      return lines;
+    };
+
+    const descLinha = numeroDoc ? `${servico} - NºDOC ${numeroDoc}` : servico;
+    const descMaxWidth = (width - 210) - 35; // from 35 to before QUANT column
+    const descLines = wrapText(descLinha, descMaxWidth, font, 10);
+    descLines.forEach((ln, idx) => {
+      const yLine = tableY - idx * 12;
+      page.drawText(ln, { x: 35, y: yLine, size: 10, font });
+      if (idx === 0) {
+        page.drawText("1", { x: width - 200, y: yLine, size: 10, font });
+        page.drawText(formatBRL(amountNum), { x: width - 140, y: yLine, size: 10, font });
+        page.drawText(formatBRL(amountNum), { x: width - 80, y: yLine, size: 10, font });
+      }
+    });
+    tableY -= (descLines.length - 1) * 12;
 
     page.drawText("Total:", { x: width - 140, y: tableY - 20, size: 10, font: bold });
     page.drawText(formatBRL(amountNum), { x: width - 80, y: tableY - 20, size: 10, font });
 
-    page.drawText("Observação:", { x: 30, y: 110, size: 10, font: bold });
-    page.drawText("Valor por extenso:", { x: 30, y: 90, size: 10, font: bold });
-    page.drawText(valorExtenso, { x: 30, y: 76, size: 10, font });
+    const prazoLabel = "PRAZO MÁXIMO DE QUITAÇÃO:";
+    const prazoValor = prazoMaximoQuitacao ? new Date(prazoMaximoQuitacao).toLocaleDateString("pt-BR") : "";
+    page.drawText(`${prazoLabel} ${prazoValor}`.trim(), { x: 30, y: 110, size: 10, font });
+
+    page.drawText("Observação:", { x: 30, y: 95, size: 10, font: bold });
+    page.drawText("Valor por extenso:", { x: 30, y: 80, size: 10, font: bold });
+    page.drawText(valorExtenso, { x: 30, y: 66, size: 10, font });
 
     const bytes = await pdfDoc.save();
     return bytes;
@@ -370,7 +412,8 @@ export default function EmissaoRecibo() {
       const bytes = await drawPdf(rec);
       const blob = new Blob([bytes], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
-      window.open(url, "_blank", "noopener,noreferrer");
+      setPreviewUrl(url);
+      setIsPreviewOpen(true);
       toast({ title: "Pré-visualização pronta" });
     } catch (e: any) {
       toast({ title: "Erro ao gerar PDF", description: String(e?.message || e) });
@@ -537,6 +580,16 @@ export default function EmissaoRecibo() {
                 <Label htmlFor="servico">Descrição do Serviço</Label>
                 <Textarea id="servico" placeholder="Descreva os serviços prestados" rows={3} value={servico} onChange={(e) => setServico(e.target.value)} />
               </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="numero-doc"><p>Número Doc</p></Label>
+                  <Input id="numero-doc" placeholder="Ex.: 4004" value={numeroDoc} onChange={(e)=>setNumeroDoc(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="prazo">PRAZO MÁXIMO DE QUITAÇÃO</Label>
+                  <Input id="prazo" type="date" value={prazoMaximoQuitacao} onChange={(e)=>setPrazoMaximoQuitacao(e.target.value)} />
+                </div>
+              </div>
             </CardContent>
           </Card>
 
@@ -655,6 +708,17 @@ export default function EmissaoRecibo() {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContent className="max-w-4xl h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>Pré-visualização do Recibo</DialogTitle>
+          </DialogHeader>
+          <div className="w-full h-full">
+            {previewUrl && <iframe src={previewUrl} className="w-full h-full rounded" />}
+          </div>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }
