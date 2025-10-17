@@ -103,11 +103,15 @@ export default function Clientes() {
       setLoading(true);
       const { data, error } = await supabase
         .from("clients")
-        .select("*")
+        .select("*, aircraft:aircraft_id(id, registration, model)")
         .order("company_name");
 
       if (error) throw error;
-      setClientes(data || []);
+      const mapped: Cliente[] = ((data as any[]) || []).map((row: any) => ({
+        ...row,
+        aircraft: row.aircraft ? `${row.aircraft.registration} - ${row.aircraft.model}` : undefined,
+      }));
+      setClientes(mapped);
     } catch (error) {
       console.error("Erro ao carregar clientes:", error);
       toast({
