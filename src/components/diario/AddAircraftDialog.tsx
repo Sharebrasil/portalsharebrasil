@@ -128,7 +128,7 @@ export function AddAircraftDialog({ open, onOpenChange, aircraft }: AddAircraftD
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="manufacturer">Fabricante *</Label>
               <Input
@@ -152,8 +152,8 @@ export function AddAircraftDialog({ open, onOpenChange, aircraft }: AddAircraftD
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
-            <div className="space-y-2 col-span-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="serial_number">Número de Série *</Label>
               <Input
                 id="serial_number"
