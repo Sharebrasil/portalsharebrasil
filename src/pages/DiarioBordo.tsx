@@ -32,29 +32,31 @@ export default function DiarioBordo() {
 
   return (
     <Layout>
-      <div className="container mx-auto p-6 space-y-6">
-        <div className="flex justify-between items-center">
+      <div className="container mx-auto p-6 space-y-6 w-full">
+        <div className="flex justify-between items-center pb-[30px]">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Diários de Bordo</h1>
-            <p className="text-muted-foreground mt-1">
+            <h1 className="text-3xl font-bold text-foreground pb-[2px] mt-2 mr-[85px]">Diários de Bordo</h1>
+            <p className="text-muted-foreground mt-1 pb-[21px]">
               Gerencie os diários de bordo digitais das aeronaves.
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button onClick={() => setCreateLogbookOpen(true)} className="gap-2">
-              <BookOpen className="h-4 w-4" />
-              Criar Diário de Bordo
-            </Button>
-            <Button onClick={() => setAddDialogOpen(true)} variant="outline" className="gap-2">
-              <Plus className="h-4 w-4" />
-              Adicionar Aeronave
-            </Button>
-            <Button onClick={() => setAddAerodromeOpen(true)} variant="outline" className="gap-2">
-              <MapPin className="h-4 w-4" />
-              Adicionar Aeródromo
-            </Button>
-          </div>
+          <div className="flex gap-2"></div>
         </div>
+
+        <div className="flex flex-row gap-2">
+          <Button onClick={() => setAddAerodromeOpen(true)} variant="outline" className="gap-2 bg-background border-border">
+            <MapPin className="h-4 w-4 text-foreground" />
+            <span className="capitalize">gerenciar aerodromos</span>
+          </Button>
+          <Button onClick={() => setCreateLogbookOpen(true)} className="gap-2 bg-custom-cyan text-[#0F121A] shadow-[0_4px_15px_-4px_rgba(26,228,255,0.2)]">
+            <BookOpen className="h-4 w-4" />
+            Criar Diário de Bordo
+          </Button>
+        </div>
+        <Button onClick={() => setAddDialogOpen(true)} variant="outline" className="gap-2 mt-2 bg-background border-border">
+          <Plus className="h-4 w-4 text-foreground" />
+          <span className="capitalize">gerenciar aeronaves</span>
+        </Button>
 
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -131,10 +133,6 @@ export default function DiarioBordo() {
                 <Button onClick={() => setCreateLogbookOpen(true)}>
                   <BookOpen className="h-4 w-4 mr-2" />
                   Criar Diário de Bordo
-                </Button>
-                <Button onClick={() => setAddDialogOpen(true)} variant="outline">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Adicionar Aeronave
                 </Button>
               </div>
             </CardContent>
