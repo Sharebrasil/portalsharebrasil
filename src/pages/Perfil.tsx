@@ -150,15 +150,6 @@ export default function Perfil() {
     [formState.display_name, formState.full_name, profile?.full_name, user?.email]
   );
 
-  const primaryRole = useMemo(() => roles[0] ?? null, [roles]);
-
-  const roleLabel = useMemo(() => {
-    if (!primaryRole) {
-      return "Sem categoria";
-    }
-
-    return USER_ROLE_LABELS[primaryRole] ?? primaryRole.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
-  }, [primaryRole]);
 
   const avatarInitials = useMemo(() => getInitials(displayName), [displayName]);
   const accountUpdatedAt = useMemo(() => formatTimestamp(profile?.updated_at), [profile?.updated_at]);
