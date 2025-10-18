@@ -7,194 +7,194 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "13.0.5"
+  }
   public: {
     Tables: {
+      abastecimentos: {
+        Row: {
+          abastecedor: string
+          abastecimento_galoes: number | null
+          aircraft_id: string | null
+          ano: string | null
+          client_id: string | null
+          comanda: string
+          created_at: string | null
+          data: string
+          id: string
+          litros: number
+          local: string | null
+          nota_fiscal: string | null
+          observacoes: string | null
+          trecho: string | null
+          updated_at: string | null
+          valor_total: number
+          valor_unitario: number
+          vencimento: string | null
+        }
+        Insert: {
+          abastecedor: string
+          abastecimento_galoes?: number | null
+          aircraft_id?: string | null
+          ano?: string | null
+          client_id?: string | null
+          comanda: string
+          created_at?: string | null
+          data: string
+          id?: string
+          litros: number
+          local?: string | null
+          nota_fiscal?: string | null
+          observacoes?: string | null
+          trecho?: string | null
+          updated_at?: string | null
+          valor_total: number
+          valor_unitario: number
+          vencimento?: string | null
+        }
+        Update: {
+          abastecedor?: string
+          abastecimento_galoes?: number | null
+          aircraft_id?: string | null
+          ano?: string | null
+          client_id?: string | null
+          comanda?: string
+          created_at?: string | null
+          data?: string
+          id?: string
+          litros?: number
+          local?: string | null
+          nota_fiscal?: string | null
+          observacoes?: string | null
+          trecho?: string | null
+          updated_at?: string | null
+          valor_total?: number
+          valor_unitario?: number
+          vencimento?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "abastecimentos_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       aerodromes: {
         Row: {
+          coordenadas: string | null
           created_at: string | null
           icao_code: string
           id: string
           name: string
           updated_at: string | null
-          coordenadas: string | null
         }
         Insert: {
+          coordenadas?: string | null
           created_at?: string | null
           icao_code: string
           id?: string
           name: string
           updated_at?: string | null
-          coordenadas?: string | null
         }
         Update: {
+          coordenadas?: string | null
           created_at?: string | null
           icao_code?: string
           id?: string
           name?: string
           updated_at?: string | null
-          coordenadas?: string | null
         }
         Relationships: []
       }
       aircraft: {
         Row: {
-          cell_hours_before: number | null
-          cell_hours_current: number | null
-          cell_hours_prev: number | null
+          base: string | null
           created_at: string | null
-          fuel_consumption: string | null
-          horimeter_active: number | null
-          horimeter_end: number | null
-          horimeter_start: number | null
+          fuel_consumption: string
           id: string
-          manufacturer: string | null
+          manufacturer: string
           model: string
-          owner_name: string | null
+          owner_name: string
           registration: string
-          serial_number: string | null
+          serial_number: string
           status: string | null
-          total_hours: number | null
           updated_at: string | null
           year: string | null
-          base: string | null
         }
         Insert: {
-          cell_hours_before?: number | null
-          cell_hours_current?: number | null
-          cell_hours_prev?: number | null
+          base?: string | null
           created_at?: string | null
-          fuel_consumption?: string | null
-          horimeter_active?: number | null
-          horimeter_end?: number | null
-          horimeter_start?: number | null
+          fuel_consumption: string
           id?: string
-          manufacturer?: string | null
+          manufacturer: string
           model: string
-          owner_name?: string | null
+          owner_name: string
           registration: string
-          serial_number?: string | null
+          serial_number: string
           status?: string | null
-          total_hours?: number | null
           updated_at?: string | null
           year?: string | null
-          base?: string | null
         }
         Update: {
-          cell_hours_before?: number | null
-          cell_hours_current?: number | null
-          cell_hours_prev?: number | null
+          base?: string | null
           created_at?: string | null
-          fuel_consumption?: string | null
-          horimeter_active?: number | null
-          horimeter_end?: number | null
-          horimeter_start?: number | null
+          fuel_consumption?: string
           id?: string
-          manufacturer?: string | null
+          manufacturer?: string
           model?: string
-          owner_name?: string | null
+          owner_name?: string
           registration?: string
-          serial_number?: string | null
+          serial_number?: string
           status?: string | null
-          total_hours?: number | null
+          updated_at?: string | null
           year?: string | null
-          updated_at?: string | null
-          base?: string | null
         }
         Relationships: []
       }
-      airlines: {
+      aircraft_hourly_rates: {
         Row: {
-          active: boolean | null
-          code: string
-          country: string | null
+          aircraft_id: string
           created_at: string | null
-          iata_code: string | null
-          icao_code: string | null
+          hourly_rate: number
           id: string
-          logo_url: string | null
-          name: string
-          updated_at: string | null
-          website: string | null
-        }
-        Insert: {
-          active?: boolean | null
-          code: string
-          country?: string | null
-          created_at?: string | null
-          iata_code?: string | null
-          icao_code?: string | null
-          id?: string
-          logo_url?: string | null
-          name: string
-          updated_at?: string | null
-          website?: string | null
-        }
-        Update: {
-          active?: boolean | null
-          code?: string
-          country?: string | null
-          created_at?: string | null
-          iata_code?: string | null
-          icao_code?: string | null
-          id?: string
-          logo_url?: string | null
-          name?: string
-          updated_at?: string | null
-          website?: string | null
-        }
-        Relationships: []
-      }
-      airports: {
-        Row: {
-          active: boolean | null
-          city: string
-          country: string
-          created_at: string | null
-          elevation: number | null
-          iata_code: string
-          icao_code: string | null
-          id: string
-          latitude: number | null
-          longitude: number | null
-          name: string
-          timezone: string | null
+          status: string | null
           updated_at: string | null
         }
         Insert: {
-          active?: boolean | null
-          city: string
-          country: string
+          aircraft_id: string
           created_at?: string | null
-          elevation?: number | null
-          iata_code: string
-          icao_code?: string | null
+          hourly_rate?: number
           id?: string
-          latitude?: number | null
-          longitude?: number | null
-          name: string
-          timezone?: string | null
+          status?: string | null
           updated_at?: string | null
         }
         Update: {
-          active?: boolean | null
-          city?: string
-          country?: string
+          aircraft_id?: string
           created_at?: string | null
-          elevation?: number | null
-          iata_code?: string
-          icao_code?: string | null
+          hourly_rate?: number
           id?: string
-          latitude?: number | null
-          longitude?: number | null
-          name?: string
-          timezone?: string | null
+          status?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "aircraft_hourly_rates_aircraft_id_fkey"
+            columns: ["aircraft_id"]
+            isOneToOne: true
+            referencedRelation: "aircraft"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       birthdays: {
         Row: {
-          category: string | null
+          category: Database["public"]["Enums"]["contact_type"] | null
           created_at: string | null
           data_aniversario: string
           empresa: string | null
@@ -203,7 +203,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
-          category?: string | null
+          category?: Database["public"]["Enums"]["contact_type"] | null
           created_at?: string | null
           data_aniversario: string
           empresa?: string | null
@@ -212,7 +212,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
-          category?: string | null
+          category?: Database["public"]["Enums"]["contact_type"] | null
           created_at?: string | null
           data_aniversario?: string
           empresa?: string | null
@@ -222,56 +222,138 @@ export type Database = {
         }
         Relationships: []
       }
+      client_reconciliations: {
+        Row: {
+          aircraft_registration: string | null
+          amount: number
+          category: string | null
+          client_id: string | null
+          created_at: string | null
+          description: string
+          id: string
+          paid_date: string | null
+          sent_date: string | null
+          status: string
+          travel_report_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          aircraft_registration?: string | null
+          amount?: number
+          category?: string | null
+          client_id?: string | null
+          created_at?: string | null
+          description: string
+          id?: string
+          paid_date?: string | null
+          sent_date?: string | null
+          status?: string
+          travel_report_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          aircraft_registration?: string | null
+          amount?: number
+          category?: string | null
+          client_id?: string | null
+          created_at?: string | null
+          description?: string
+          id?: string
+          paid_date?: string | null
+          sent_date?: string | null
+          status?: string
+          travel_report_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_reconciliations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_reconciliations_travel_report_id_fkey"
+            columns: ["travel_report_id"]
+            isOneToOne: false
+            referencedRelation: "travel_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           address: string | null
-          aircraft: string | null
+          aircraft_id: string | null
+          city: string | null
           cnpj: string | null
           cnpj_card_url: string | null
           company_name: string | null
           contact_id: string | null
           created_at: string | null
+          documents: Json | null
           email: string | null
           financial_contact: string | null
           id: string
           inscricao_estadual: string | null
+          logo_url: string | null
           observations: string | null
           phone: string | null
+          share_percentage: number | null
+          uf: string | null
           updated_at: string | null
         }
         Insert: {
           address?: string | null
-          aircraft?: string | null
+          aircraft_id?: string | null
+          city?: string | null
           cnpj?: string | null
           cnpj_card_url?: string | null
           company_name?: string | null
           contact_id?: string | null
           created_at?: string | null
+          documents?: Json | null
           email?: string | null
           financial_contact?: string | null
           id?: string
           inscricao_estadual?: string | null
+          logo_url?: string | null
           observations?: string | null
           phone?: string | null
+          share_percentage?: number | null
+          uf?: string | null
           updated_at?: string | null
         }
         Update: {
           address?: string | null
-          aircraft?: string | null
+          aircraft_id?: string | null
+          city?: string | null
           cnpj?: string | null
           cnpj_card_url?: string | null
           company_name?: string | null
           contact_id?: string | null
           created_at?: string | null
+          documents?: Json | null
           email?: string | null
           financial_contact?: string | null
           id?: string
           inscricao_estadual?: string | null
+          logo_url?: string | null
           observations?: string | null
           phone?: string | null
+          share_percentage?: number | null
+          uf?: string | null
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "clients_aircraft_id_fkey"
+            columns: ["aircraft_id"]
+            isOneToOne: false
+            referencedRelation: "aircraft"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "clients_contact_id_fkey"
             columns: ["contact_id"]
@@ -283,56 +365,56 @@ export type Database = {
       }
       company_settings: {
         Row: {
-          id: string
-          name: string
-          name_fantasy: string | null
-          cnpj: string | null
           address: string | null
           city: string | null
-          state: string | null
-          zip_code: string | null
-          phone: string | null
-          email: string | null
-          logo_url: string | null
+          cnpj: string | null
           created_at: string | null
+          email: string | null
+          id: string
+          logo_url: string | null
+          name: string
+          name_fantasy: string | null
+          phone: string | null
+          state: string | null
           updated_at: string | null
+          zip_code: string | null
         }
         Insert: {
+          address?: string | null
+          city?: string | null
+          cnpj?: string | null
+          created_at?: string | null
+          email?: string | null
           id?: string
+          logo_url?: string | null
           name: string
           name_fantasy?: string | null
-          cnpj?: string | null
-          address?: string | null
-          city?: string | null
-          state?: string | null
-          zip_code?: string | null
           phone?: string | null
-          email?: string | null
-          logo_url?: string | null
-          created_at?: string | null
+          state?: string | null
           updated_at?: string | null
+          zip_code?: string | null
         }
         Update: {
-          id?: string
-          name?: string
-          name_fantasy?: string | null
-          cnpj?: string | null
           address?: string | null
           city?: string | null
-          state?: string | null
-          zip_code?: string | null
-          phone?: string | null
-          email?: string | null
-          logo_url?: string | null
+          cnpj?: string | null
           created_at?: string | null
+          email?: string | null
+          id?: string
+          logo_url?: string | null
+          name?: string
+          name_fantasy?: string | null
+          phone?: string | null
+          state?: string | null
           updated_at?: string | null
+          zip_code?: string | null
         }
         Relationships: []
       }
       contacts: {
         Row: {
           address: string | null
-          category: string | null
+          category: Database["public"]["Enums"]["contact_type"] | null
           city: string | null
           company_name: string | null
           created_at: string | null
@@ -342,12 +424,12 @@ export type Database = {
           notes: string | null
           phone: string | null
           position: string | null
-          type: string
+          type: Database["public"]["Enums"]["contact_type"]
           updated_at: string | null
         }
         Insert: {
           address?: string | null
-          category?: string | null
+          category?: Database["public"]["Enums"]["contact_type"] | null
           city?: string | null
           company_name?: string | null
           created_at?: string | null
@@ -357,12 +439,12 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           position?: string | null
-          type: string
+          type: Database["public"]["Enums"]["contact_type"]
           updated_at?: string | null
         }
         Update: {
           address?: string | null
-          category?: string | null
+          category?: Database["public"]["Enums"]["contact_type"] | null
           city?: string | null
           company_name?: string | null
           created_at?: string | null
@@ -372,39 +454,55 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           position?: string | null
-          type?: string
+          type?: Database["public"]["Enums"]["contact_type"]
           updated_at?: string | null
         }
         Relationships: []
       }
-      crew_licenses: {
+      crew_flight_hours: {
         Row: {
+          aircraft_id: string
+          created_at: string | null
           crew_member_id: string
-          expiry_date: string
           id: string
-          issue_date: string | null
-          license_number: string | null
-          license_type: string
+          total_hours: number
+          total_ifr_hours: number | null
+          total_pic_hours: number
+          total_sic_hours: number
+          updated_at: string | null
         }
         Insert: {
+          aircraft_id: string
+          created_at?: string | null
           crew_member_id: string
-          expiry_date: string
           id?: string
-          issue_date?: string | null
-          license_number?: string | null
-          license_type: string
+          total_hours?: number
+          total_ifr_hours?: number | null
+          total_pic_hours?: number
+          total_sic_hours?: number
+          updated_at?: string | null
         }
         Update: {
+          aircraft_id?: string
+          created_at?: string | null
           crew_member_id?: string
-          expiry_date?: string
           id?: string
-          issue_date?: string | null
-          license_number?: string | null
-          license_type?: string
+          total_hours?: number
+          total_ifr_hours?: number | null
+          total_pic_hours?: number
+          total_sic_hours?: number
+          updated_at?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "crew_licenses_crew_member_id_fkey"
+            foreignKeyName: "crew_flight_hours_aircraft_id_fkey"
+            columns: ["aircraft_id"]
+            isOneToOne: false
+            referencedRelation: "aircraft"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crew_flight_hours_crew_member_id_fkey"
             columns: ["crew_member_id"]
             isOneToOne: false
             referencedRelation: "crew_members"
@@ -414,7 +512,6 @@ export type Database = {
       }
       crew_members: {
         Row: {
-          avatar_url: string | null
           birth_date: string | null
           canac: string
           created_at: string | null
@@ -428,7 +525,6 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
-          avatar_url?: string | null
           birth_date?: string | null
           canac: string
           created_at?: string | null
@@ -442,7 +538,6 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
-          avatar_url?: string | null
           birth_date?: string | null
           canac?: string
           created_at?: string | null
@@ -455,12 +550,105 @@ export type Database = {
           updated_at?: string | null
           user_id?: string | null
         }
+        Relationships: []
+      }
+      crew_reconciliations: {
+        Row: {
+          aircraft_registration: string | null
+          amount: number
+          category: string | null
+          client_id: string | null
+          created_at: string | null
+          crew_member_name: string
+          description: string
+          id: string
+          paid_date: string | null
+          status: string
+          travel_report_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          aircraft_registration?: string | null
+          amount?: number
+          category?: string | null
+          client_id?: string | null
+          created_at?: string | null
+          crew_member_name: string
+          description: string
+          id?: string
+          paid_date?: string | null
+          status?: string
+          travel_report_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          aircraft_registration?: string | null
+          amount?: number
+          category?: string | null
+          client_id?: string | null
+          created_at?: string | null
+          crew_member_name?: string
+          description?: string
+          id?: string
+          paid_date?: string | null
+          status?: string
+          travel_report_id?: string | null
+          updated_at?: string | null
+        }
         Relationships: [
           {
-            foreignKeyName: "crew_members_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "crew_reconciliations_client_id_fkey"
+            columns: ["client_id"]
             isOneToOne: false
-            referencedRelation: "users"
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crew_reconciliations_travel_report_id_fkey"
+            columns: ["travel_report_id"]
+            isOneToOne: false
+            referencedRelation: "travel_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documentos: {
+        Row: {
+          aircraft_id: string | null
+          created_at: string | null
+          document_url: string | null
+          id: string
+          name: string
+          status: string | null
+          updated_at: string | null
+          valid_until: string
+        }
+        Insert: {
+          aircraft_id?: string | null
+          created_at?: string | null
+          document_url?: string | null
+          id?: string
+          name: string
+          status?: string | null
+          updated_at?: string | null
+          valid_until: string
+        }
+        Update: {
+          aircraft_id?: string | null
+          created_at?: string | null
+          document_url?: string | null
+          id?: string
+          name?: string
+          status?: string | null
+          updated_at?: string | null
+          valid_until?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documentos_aircraft_id_fkey"
+            columns: ["aircraft_id"]
+            isOneToOne: false
+            referencedRelation: "aircraft"
             referencedColumns: ["id"]
           },
         ]
@@ -537,6 +725,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      favorite_payers: {
+        Row: {
+          address: string | null
+          city: string | null
+          created_at: string | null
+          document: string
+          id: string
+          name: string
+          uf: string | null
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          created_at?: string | null
+          document: string
+          id?: string
+          name: string
+          uf?: string | null
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          created_at?: string | null
+          document?: string
+          id?: string
+          name?: string
+          uf?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       favorite_routes: {
         Row: {
@@ -736,6 +957,56 @@ export type Database = {
           },
         ]
       }
+      flight_payments: {
+        Row: {
+          calculated_amount: number
+          created_at: string | null
+          crew_member_id: string
+          final_amount: number
+          id: string
+          month: number
+          observations: string | null
+          paid_at: string | null
+          total_hours: number
+          updated_at: string | null
+          year: number
+        }
+        Insert: {
+          calculated_amount?: number
+          created_at?: string | null
+          crew_member_id: string
+          final_amount?: number
+          id?: string
+          month: number
+          observations?: string | null
+          paid_at?: string | null
+          total_hours?: number
+          updated_at?: string | null
+          year: number
+        }
+        Update: {
+          calculated_amount?: number
+          created_at?: string | null
+          crew_member_id?: string
+          final_amount?: number
+          id?: string
+          month?: number
+          observations?: string | null
+          paid_at?: string | null
+          total_hours?: number
+          updated_at?: string | null
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flight_payments_crew_member_id_fkey"
+            columns: ["crew_member_id"]
+            isOneToOne: false
+            referencedRelation: "crew_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       flight_plans: {
         Row: {
           aircraft_color: string | null
@@ -924,24 +1195,10 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "flight_schedules_aircraft_id_fkey"
-            columns: ["aircraft_id"]
-            isOneToOne: false
-            referencedRelation: "aircraft"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "flight_schedules_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "flight_schedules_crew_member_id_fkey"
-            columns: ["crew_member_id"]
-            isOneToOne: false
-            referencedRelation: "crew_members"
             referencedColumns: ["id"]
           },
         ]
@@ -1049,29 +1306,46 @@ export type Database = {
           updated_at?: string | null
           user_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "flights_airline_id_fkey"
-            columns: ["airline_id"]
-            isOneToOne: false
-            referencedRelation: "airlines"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "flights_arrival_airport_id_fkey"
-            columns: ["arrival_airport_id"]
-            isOneToOne: false
-            referencedRelation: "airports"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "flights_departure_airport_id_fkey"
-            columns: ["departure_airport_id"]
-            isOneToOne: false
-            referencedRelation: "airports"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
+      }
+      fuel_suppliers: {
+        Row: {
+          avgas_price: number | null
+          city_name: string
+          contact_person: string | null
+          created_at: string | null
+          icao_code: string
+          id: string
+          jet_price: number | null
+          phone: string | null
+          supplier_name: string
+          updated_at: string | null
+        }
+        Insert: {
+          avgas_price?: number | null
+          city_name: string
+          contact_person?: string | null
+          created_at?: string | null
+          icao_code: string
+          id?: string
+          jet_price?: number | null
+          phone?: string | null
+          supplier_name: string
+          updated_at?: string | null
+        }
+        Update: {
+          avgas_price?: number | null
+          city_name?: string
+          contact_person?: string | null
+          created_at?: string | null
+          icao_code?: string
+          id?: string
+          jet_price?: number | null
+          phone?: string | null
+          supplier_name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       hoteis: {
         Row: {
@@ -1108,91 +1382,97 @@ export type Database = {
       }
       logbook_entries: {
         Row: {
+          aircraft_commander: string | null
           aircraft_id: string
           arrival_airport: string
-          arrival_time: string
+          arrival_time: string | null
+          cell_after: number | null
+          cell_before: number | null
+          cell_disp: number | null
+          confirmed: boolean | null
           created_at: string | null
           daily_rate: number | null
+          day_time: number | null
           departure_airport: string
-          departure_time: string
+          departure_time: string | null
           entry_date: string
           extras: string | null
-          flight_time_hours: number
-          flight_time_minutes: number
-          flight_type: string | null
+          flight_number: string | null
+          flight_time_hours: number | null
+          flight_time_minutes: number | null
+          flight_type_code: string | null
           fuel_added: number | null
-          fuel_cell: number | null
           fuel_liters: number | null
           id: string
           ifr_count: number | null
-          isc: string | null
           landings: number | null
-          night_time_hours: number | null
-          night_time_minutes: number | null
-          pc: number | null
-          remarks: string | null
-          total_time: number
-          updated_at: string | null
-          verified_at: string | null
-          verified_by: string | null
+          logbook_month_id: string
+          night_hours: number | null
+          pic_canac: string | null
+          sic_canac: string | null
+          total_time: number | null
         }
         Insert: {
+          aircraft_commander?: string | null
           aircraft_id: string
           arrival_airport: string
-          arrival_time: string
+          arrival_time?: string | null
+          cell_after?: number | null
+          cell_before?: number | null
+          cell_disp?: number | null
+          confirmed?: boolean | null
           created_at?: string | null
           daily_rate?: number | null
+          day_time?: number | null
           departure_airport: string
-          departure_time: string
+          departure_time?: string | null
           entry_date: string
           extras?: string | null
-          flight_time_hours: number
-          flight_time_minutes: number
-          flight_type?: string | null
+          flight_number?: string | null
+          flight_time_hours?: number | null
+          flight_time_minutes?: number | null
+          flight_type_code?: string | null
           fuel_added?: number | null
-          fuel_cell?: number | null
           fuel_liters?: number | null
           id?: string
           ifr_count?: number | null
-          isc?: string | null
           landings?: number | null
-          night_time_hours?: number | null
-          night_time_minutes?: number | null
-          pc?: number | null
-          remarks?: string | null
-          total_time: number
-          updated_at?: string | null
-          verified_at?: string | null
-          verified_by?: string | null
+          logbook_month_id: string
+          night_hours?: number | null
+          pic_canac?: string | null
+          sic_canac?: string | null
+          total_time?: number | null
         }
         Update: {
+          aircraft_commander?: string | null
           aircraft_id?: string
           arrival_airport?: string
-          arrival_time?: string
+          arrival_time?: string | null
+          cell_after?: number | null
+          cell_before?: number | null
+          cell_disp?: number | null
+          confirmed?: boolean | null
           created_at?: string | null
           daily_rate?: number | null
+          day_time?: number | null
           departure_airport?: string
-          departure_time?: string
+          departure_time?: string | null
           entry_date?: string
           extras?: string | null
-          flight_time_hours?: number
-          flight_time_minutes?: number
-          flight_type?: string | null
+          flight_number?: string | null
+          flight_time_hours?: number | null
+          flight_time_minutes?: number | null
+          flight_type_code?: string | null
           fuel_added?: number | null
-          fuel_cell?: number | null
           fuel_liters?: number | null
           id?: string
           ifr_count?: number | null
-          isc?: string | null
           landings?: number | null
-          night_time_hours?: number | null
-          night_time_minutes?: number | null
-          pc?: number | null
-          remarks?: string | null
-          total_time?: number
-          updated_at?: string | null
-          verified_at?: string | null
-          verified_by?: string | null
+          logbook_month_id?: string
+          night_hours?: number | null
+          pic_canac?: string | null
+          sic_canac?: string | null
+          total_time?: number | null
         }
         Relationships: [
           {
@@ -1203,13 +1483,132 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "logbook_entries_verified_by_fkey"
-            columns: ["verified_by"]
+            foreignKeyName: "logbook_entries_flight_number_fkey"
+            columns: ["flight_number"]
             isOneToOne: false
-            referencedRelation: "user_profiles"
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "logbook_entries_logbook_month_id_fkey"
+            columns: ["logbook_month_id"]
+            isOneToOne: false
+            referencedRelation: "logbook_months"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "logbook_entries_pic_canac_fkey"
+            columns: ["pic_canac"]
+            isOneToOne: false
+            referencedRelation: "crew_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "logbook_entries_sic_canac_fkey"
+            columns: ["sic_canac"]
+            isOneToOne: false
+            referencedRelation: "crew_members"
             referencedColumns: ["id"]
           },
         ]
+      }
+      logbook_months: {
+        Row: {
+          aircraft_id: string
+          cell_hours_end: number | null
+          cell_hours_start: number | null
+          closed_at: string | null
+          closed_by: string | null
+          created_at: string | null
+          diarias: number | null
+          hobbs_hours_end: number | null
+          hobbs_hours_start: number | null
+          id: string
+          is_closed: boolean | null
+          month: number
+          year: number
+        }
+        Insert: {
+          aircraft_id: string
+          cell_hours_end?: number | null
+          cell_hours_start?: number | null
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string | null
+          diarias?: number | null
+          hobbs_hours_end?: number | null
+          hobbs_hours_start?: number | null
+          id?: string
+          is_closed?: boolean | null
+          month: number
+          year: number
+        }
+        Update: {
+          aircraft_id?: string
+          cell_hours_end?: number | null
+          cell_hours_start?: number | null
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string | null
+          diarias?: number | null
+          hobbs_hours_end?: number | null
+          hobbs_hours_start?: number | null
+          id?: string
+          is_closed?: boolean | null
+          month?: number
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "logbook_months_aircraft_id_fkey"
+            columns: ["aircraft_id"]
+            isOneToOne: false
+            referencedRelation: "aircraft"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      manutencoes: {
+        Row: {
+          aeronave_id: string | null
+          created_at: string | null
+          custo_estimado: number | null
+          data_programada: string
+          etapa: string
+          id: string
+          mecanico: string
+          observacoes: string | null
+          oficina: string | null
+          tipo: string
+          updated_at: string | null
+        }
+        Insert: {
+          aeronave_id?: string | null
+          created_at?: string | null
+          custo_estimado?: number | null
+          data_programada: string
+          etapa?: string
+          id?: string
+          mecanico: string
+          observacoes?: string | null
+          oficina?: string | null
+          tipo: string
+          updated_at?: string | null
+        }
+        Update: {
+          aeronave_id?: string | null
+          created_at?: string | null
+          custo_estimado?: number | null
+          data_programada?: string
+          etapa?: string
+          id?: string
+          mecanico?: string
+          observacoes?: string | null
+          oficina?: string | null
+          tipo?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       message_reads: {
         Row: {
@@ -1249,7 +1648,7 @@ export type Database = {
           created_at: string | null
           id: string
           is_pinned: boolean | null
-          target_roles: string[] | null
+          target_roles: Database["public"]["Enums"]["app_role"][] | null
           target_type: string
           target_user_id: string | null
           updated_at: string | null
@@ -1262,7 +1661,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_pinned?: boolean | null
-          target_roles?: string[] | null
+          target_roles?: Database["public"]["Enums"]["app_role"][] | null
           target_type: string
           target_user_id?: string | null
           updated_at?: string | null
@@ -1275,7 +1674,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_pinned?: boolean | null
-          target_roles?: string[] | null
+          target_roles?: Database["public"]["Enums"]["app_role"][] | null
           target_type?: string
           target_user_id?: string | null
           updated_at?: string | null
@@ -1332,6 +1731,282 @@ export type Database = {
           },
         ]
       }
+      pagamentos: {
+        Row: {
+          amount: number
+          category: string
+          clients_id: string | null
+          created_at: string | null
+          description: string
+          due_date: string
+          id: string
+          invoice_number: string | null
+          receipt_url: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          amount: number
+          category: string
+          clients_id?: string | null
+          created_at?: string | null
+          description: string
+          due_date: string
+          id?: string
+          invoice_number?: string | null
+          receipt_url?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number
+          category?: string
+          clients_id?: string | null
+          created_at?: string | null
+          description?: string
+          due_date?: string
+          id?: string
+          invoice_number?: string | null
+          receipt_url?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pagamentos_clients_id_fkey"
+            columns: ["clients_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payslips: {
+        Row: {
+          caption: string | null
+          created_at: string | null
+          file_name: string
+          file_url: string
+          id: string
+          month: number
+          updated_at: string | null
+          uploaded_by: string
+          user_id: string
+          year: number
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string | null
+          file_name: string
+          file_url: string
+          id?: string
+          month: number
+          updated_at?: string | null
+          uploaded_by: string
+          user_id: string
+          year: number
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string | null
+          file_name?: string
+          file_url?: string
+          id?: string
+          month?: number
+          updated_at?: string | null
+          uploaded_by?: string
+          user_id?: string
+          year?: number
+        }
+        Relationships: []
+      }
+      receipt_sequence: {
+        Row: {
+          id: string
+          last_number: number
+          user_id: string
+          year: number
+        }
+        Insert: {
+          id?: string
+          last_number?: number
+          user_id: string
+          year: number
+        }
+        Update: {
+          id?: string
+          last_number?: number
+          user_id?: string
+          year?: number
+        }
+        Relationships: []
+      }
+      receipts: {
+        Row: {
+          amount: number
+          amount_text: string
+          created_at: string | null
+          id: string
+          issue_date: string
+          number_doc: string | null
+          observacoes: string | null
+          payer_address: string | null
+          payer_city: string | null
+          payer_document: string
+          payer_name: string
+          payer_uf: string | null
+          payoff_number: string | null
+          receipt_number: string
+          recibo_pdf_url: string | null
+          service_description: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          amount_text: string
+          created_at?: string | null
+          id?: string
+          issue_date: string
+          number_doc?: string | null
+          observacoes?: string | null
+          payer_address?: string | null
+          payer_city?: string | null
+          payer_document: string
+          payer_name: string
+          payer_uf?: string | null
+          payoff_number?: string | null
+          receipt_number: string
+          recibo_pdf_url?: string | null
+          service_description: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          amount_text?: string
+          created_at?: string | null
+          id?: string
+          issue_date?: string
+          number_doc?: string | null
+          observacoes?: string | null
+          payer_address?: string | null
+          payer_city?: string | null
+          payer_document?: string
+          payer_name?: string
+          payer_uf?: string | null
+          payoff_number?: string | null
+          receipt_number?: string
+          recibo_pdf_url?: string | null
+          service_description?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      report_sequences: {
+        Row: {
+          client_id: string | null
+          created_at: string | null
+          id: string
+          last_number: number
+          updated_at: string | null
+          year: number
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string | null
+          id?: string
+          last_number?: number
+          updated_at?: string | null
+          year: number
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string | null
+          id?: string
+          last_number?: number
+          updated_at?: string | null
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_sequences_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salaries: {
+        Row: {
+          benefits: string | null
+          created_at: string | null
+          department: string | null
+          gross_salary: number
+          id: string
+          net_salary: number
+          position: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          benefits?: string | null
+          created_at?: string | null
+          department?: string | null
+          gross_salary?: number
+          id?: string
+          net_salary?: number
+          position?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          benefits?: string | null
+          created_at?: string | null
+          department?: string | null
+          gross_salary?: number
+          id?: string
+          net_salary?: number
+          position?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      task_notifications: {
+        Row: {
+          created_at: string | null
+          id: string
+          message: string
+          read: boolean | null
+          task_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          message: string
+          read?: boolean | null
+          task_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          message?: string
+          read?: boolean | null
+          task_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_notifications_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           assigned_to: string | null
@@ -1369,61 +2044,48 @@ export type Database = {
           title?: string
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "tasks_assigned_to_fkey"
-            columns: ["assigned_to"]
-            isOneToOne: false
-            referencedRelation: "user_profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tasks_requested_by_fkey"
-            columns: ["requested_by"]
-            isOneToOne: false
-            referencedRelation: "user_profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
-      task_notifications: {
+      travel_expenses: {
         Row: {
+          amount: number
+          category: string
           created_at: string | null
+          description: string
           id: string
-          message: string
-          read: boolean | null
-          task_id: string | null
-          user_id: string
+          paid_by: string
+          receipt_url: string | null
+          travel_report_id: string | null
+          updated_at: string | null
         }
         Insert: {
+          amount: number
+          category: string
           created_at?: string | null
+          description: string
           id?: string
-          message: string
-          read?: boolean | null
-          task_id?: string | null
-          user_id: string
+          paid_by: string
+          receipt_url?: string | null
+          travel_report_id?: string | null
+          updated_at?: string | null
         }
         Update: {
+          amount?: number
+          category?: string
           created_at?: string | null
+          description?: string
           id?: string
-          message?: string
-          read?: boolean | null
-          task_id?: string | null
-          user_id?: string
+          paid_by?: string
+          receipt_url?: string | null
+          travel_report_id?: string | null
+          updated_at?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "task_notifications_task_id_fkey"
-            columns: ["task_id"]
+            foreignKeyName: "travel_expenses_travel_report_id_fkey"
+            columns: ["travel_report_id"]
             isOneToOne: false
-            referencedRelation: "tasks"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "task_notifications_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_profiles"
+            referencedRelation: "travel_reports"
             referencedColumns: ["id"]
           },
         ]
@@ -1441,10 +2103,10 @@ export type Database = {
           id: string
           numero_relatorio: string | null
           start_date: string
-          status: string | null
+          status: Database["public"]["Enums"]["travel_report_status"] | null
           total_amount: number | null
           tripulante: string | null
-          type: string
+          type: Database["public"]["Enums"]["travel_type"]
           updated_at: string | null
           user_id: string | null
         }
@@ -1460,10 +2122,10 @@ export type Database = {
           id?: string
           numero_relatorio?: string | null
           start_date: string
-          status?: string | null
+          status?: Database["public"]["Enums"]["travel_report_status"] | null
           total_amount?: number | null
           tripulante?: string | null
-          type: string
+          type?: Database["public"]["Enums"]["travel_type"]
           updated_at?: string | null
           user_id?: string | null
         }
@@ -1479,10 +2141,10 @@ export type Database = {
           id?: string
           numero_relatorio?: string | null
           start_date?: string
-          status?: string | null
+          status?: Database["public"]["Enums"]["travel_report_status"] | null
           total_amount?: number | null
           tripulante?: string | null
-          type?: string
+          type?: Database["public"]["Enums"]["travel_type"]
           updated_at?: string | null
           user_id?: string | null
         }
@@ -1505,7 +2167,8 @@ export type Database = {
           email: string
           full_name: string
           id: string
-          phone: string | null
+          phone: number | null
+          role: Database["public"]["Enums"]["app_role"] | null
           tipo: string | null
           updated_at: string | null
         }
@@ -1517,7 +2180,8 @@ export type Database = {
           email: string
           full_name: string
           id: string
-          phone?: string | null
+          phone?: number | null
+          role?: Database["public"]["Enums"]["app_role"] | null
           tipo?: string | null
           updated_at?: string | null
         }
@@ -1529,7 +2193,8 @@ export type Database = {
           email?: string
           full_name?: string
           id?: string
-          phone?: string | null
+          phone?: number | null
+          role?: Database["public"]["Enums"]["app_role"] | null
           tipo?: string | null
           updated_at?: string | null
         }
@@ -1539,62 +2204,47 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
-          role: string
+          role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Insert: {
           created_at?: string | null
           id?: string
-          role: string
+          role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Update: {
           created_at?: string | null
           id?: string
-          role?: string
+          role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
         }
         Relationships: []
       }
-      manutencoes: {
+      voos: {
         Row: {
-          id: string
-          tipo: string
           aeronave_id: string | null
-          data_programada: string
-          mecanico: string
-          etapa: string
-          oficina: string | null
-          observacoes: string | null
-          custo_estimado: number | null
           created_at: string | null
-          updated_at: string | null
+          date: string
+          destination: string
+          hours: number
+          id: string
         }
         Insert: {
-          id?: string
-          tipo: string
           aeronave_id?: string | null
-          data_programada: string
-          mecanico: string
-          etapa?: string
-          oficina?: string | null
-          observacoes?: string | null
-          custo_estimado?: number | null
           created_at?: string | null
-          updated_at?: string | null
+          date: string
+          destination: string
+          hours: number
+          id?: string
         }
         Update: {
-          id?: string
-          tipo?: string
           aeronave_id?: string | null
-          data_programada?: string
-          mecanico?: string
-          etapa?: string
-          oficina?: string | null
-          observacoes?: string | null
-          custo_estimado?: number | null
           created_at?: string | null
-          updated_at?: string | null
+          date?: string
+          destination?: string
+          hours?: number
+          id?: string
         }
         Relationships: []
       }
@@ -1609,22 +2259,30 @@ export type Database = {
       }
       get_user_roles: {
         Args: { _user_id: string }
-        Returns: string[]
+        Returns: Database["public"]["Enums"]["app_role"][]
       }
       has_role: {
         Args: {
-          _role: string
+          _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
       }
     }
     Enums: {
-      app_role: "tripulante" | "piloto_chefe" | "admin" | "financeiro_master" | "financeiro" | "operacoes"
-      contact_type: "Colaboradores" | "Fornecedores" | "Hoteis" | "Clientes"
+      aircraft_status: "ativo" | "inativo" | "manutenção"
+      app_role:
+      | "admin"
+      | "tripulante"
+      | "financeiro"
+      | "financeiro_master"
+      | "piloto_chefe"
+      | "operacoes"
+      | "cotista"
+      | "gestor_master"
+      contact_type: "Colaboradores" | "Fornecedores" | "Hoteis" | "Cotista"
       travel_report_status: "draft" | "submitted" | "approved" | "rejected"
       travel_type: "company" | "personal"
-      user_role: "admin" | "manager" | "member"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1632,86 +2290,140 @@ export type Database = {
   }
 }
 
-type DatabaseWithoutInternals = Database
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
 
-type DefaultSchema = Database["public"]
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
-  PublicTableNameOrOptions extends
-    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
-        Database[PublicTableNameOrOptions["schema"]]["Views"])
-    : never = never
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
-      Database[PublicTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+  DefaultSchemaTableNameOrOptions extends
+  | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+  | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+  ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+    DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+  : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+    DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
-    ? R
-    : never
-  : PublicTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-      DefaultSchema["Views"])
+  ? R
+  : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+    DefaultSchema["Views"])
   ? (DefaultSchema["Tables"] &
-      DefaultSchema["Views"])[PublicTableNameOrOptions] extends {
+    DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
       Row: infer R
     }
-    ? R
-    : never
+  ? R
+  : never
   : never
 
 export type TablesInsert<
-  PublicTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
-    : never = never
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Insert: infer I
-    }
-    ? I
-    : never
-  : PublicTableNameOrOptions extends keyof DefaultSchema["Tables"]
-  ? DefaultSchema["Tables"][PublicTableNameOrOptions] extends {
-      Insert: infer I
-    }
-    ? I
-    : never
+  DefaultSchemaTableNameOrOptions extends
+  | keyof DefaultSchema["Tables"]
+  | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+  ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+  : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+    Insert: infer I
+  }
+  ? I
+  : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+    Insert: infer I
+  }
+  ? I
+  : never
   : never
 
 export type TablesUpdate<
-  PublicTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
-    : never = never
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Update: infer U
-    }
-    ? U
-    : never
-  : PublicTableNameOrOptions extends keyof DefaultSchema["Tables"]
-  ? DefaultSchema["Tables"][PublicTableNameOrOptions] extends {
-      Update: infer U
-    }
-    ? U
-    : never
+  DefaultSchemaTableNameOrOptions extends
+  | keyof DefaultSchema["Tables"]
+  | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+  ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+  : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+    Update: infer U
+  }
+  ? U
+  : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+    Update: infer U
+  }
+  ? U
+  : never
   : never
 
 export type Enums<
-  PublicEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
-    | { schema: keyof Database },
-  EnumName extends PublicEnumNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicEnumNameOrOptions["schema"]]["Enums"]
-    : never = never
-> = PublicEnumNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicEnumNameOrOptions["schema"]]["Enums"][EnumName]
-  : PublicEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-  ? DefaultSchema["Enums"][PublicEnumNameOrOptions]
+  DefaultSchemaEnumNameOrOptions extends
+  | keyof DefaultSchema["Enums"]
+  | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+  ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+  : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+  ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
   : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+  | keyof DefaultSchema["CompositeTypes"]
+  | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+  ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+  : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+  ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+  : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      aircraft_status: ["ativo", "inativo", "manutenção"],
+      app_role: [
+        "admin",
+        "tripulante",
+        "financeiro",
+        "financeiro_master",
+        "piloto_chefe",
+        "operacoes",
+        "cotista",
+        "gestor_master",
+      ],
+      contact_type: ["Colaboradores", "Fornecedores", "Hoteis", "Cotista"],
+      travel_report_status: ["draft", "submitted", "approved", "rejected"],
+      travel_type: ["company", "personal"],
+    },
+  },
+} as const
