@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const useMessageNotifications = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const { roles } = useAuth();
 
   useEffect(() => {
     // Get current user
@@ -35,7 +37,7 @@ export const useMessageNotifications = () => {
           if (newMessage.author_id === currentUserId) return;
 
           // Check if message is for current user
-          const isForMe = await checkIfMessageIsForUser(newMessage, currentUserId);
+          const isForMe = await checkIfMessageIsForUser(newMessage, currentUserId, roles ?? []);
           
           if (isForMe) {
             toast.info(newMessage.author_name, {
@@ -54,10 +56,10 @@ export const useMessageNotifications = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [currentUserId]);
+  }, [currentUserId, roles]);
 };
 
-async function checkIfMessageIsForUser(message: any, userId: string): Promise<boolean> {
+async function checkIfMessageIsForUser(message: any, userId: string, userRolesList: string[]): Promise<boolean> {
   // Message for all users
   if (message.target_type === 'all') return true;
 
@@ -68,14 +70,7 @@ async function checkIfMessageIsForUser(message: any, userId: string): Promise<bo
 
   // Message for specific roles
   if (message.target_type === 'role' && message.target_roles && message.target_roles.length > 0) {
-    // Avoid RLS recursion on user_roles by using roles from AuthContext (JWT metadata-backed)
-    try {
-      const { roles } = await import("@/contexts/AuthContext").then(m => m.useAuth());
-      const userRolesList = roles ?? [];
-      return message.target_roles.some((role: any) => userRolesList.includes(role));
-    } catch (_) {
-      return false;
-    }
+    return message.target_roles.some((role: any) => userRolesList.includes(role));
   }
 
   return false;
