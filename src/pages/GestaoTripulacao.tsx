@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { TripulanteFormDialog } from "@/components/tripulacao/TripulanteFormDialog";
 import { useNavigate } from "react-router-dom";
+import { getErrorMessage } from "@/lib/utils";
 
  type CrewMemberRow = Database["public"]["Tables"]["crew_members"]["Row"];
 
@@ -32,8 +33,8 @@ export default function GestaoTripulacao() {
       if (error) throw error;
       setCrewMembers(data ?? []);
     } catch (err) {
-      console.error("Erro ao buscar tripulantes:", err);
-      toast.error("Não foi possível carregar os tripulantes");
+      console.error(`Erro ao buscar tripulantes: ${getErrorMessage(err)}`);
+      toast.error(`Não foi possível carregar os tripulantes: ${getErrorMessage(err)}`);
       setCrewMembers([]);
     } finally {
       setLoading(false);
@@ -63,7 +64,7 @@ export default function GestaoTripulacao() {
         });
         setRolesByUser(map);
       } catch (e) {
-        console.error("Erro ao carregar papéis de usuários:", e);
+        console.error(`Erro ao carregar papéis de usuários: ${getErrorMessage(e)}`);
       }
     };
     loadRoles();
