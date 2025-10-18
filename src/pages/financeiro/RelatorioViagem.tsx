@@ -1,48 +1,67 @@
+import { useState, useEffect } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plane, MapPin, Calendar, DollarSign, Plus, FileText } from "lucide-react";
+import { Plane, Calendar, DollarSign, Plus, FolderOpen } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { TravelReportForm } from "@/components/travel/TravelReportForm";
+import { TravelReportsFolder } from "@/components/travel/TravelReportsFolder";
+
+interface TravelReport {
+  aeronave: string | null;
+  cotista: string | null;
+  created_at: string | null;
+  description: string | null;
+  destination: string;
+  end_date: string | null;
+  expense_count: number | null;
+  has_receipts: boolean | null;
+  id: string;
+  numero_relatorio: string | null;
+  start_date: string;
+  status: string | null;
+  total_amount: number | null;
+  tripulante: string | null;
+  type: string | null;
+  updated_at: string | null;
+  user_id: string | null;
+}
 
 export default function RelatorioViagem() {
-  const viagens = [
-    {
-      id: 1,
-      destino: "São Paulo - Rio de Janeiro",
-      data: "15/01/2024",
-      status: "Concluída",
-      valor: 2850.00,
-      categoria: "Comercial",
-    },
-    {
-      id: 2,
-      destino: "Brasília - Salvador",
-      data: "22/01/2024",
-      status: "Em andamento",
-      valor: 3200.00,
-      categoria: "Executiva",
-    },
-    {
-      id: 3,
-      destino: "Recife - Fortaleza",
-      data: "28/01/2024",
-      status: "Planejada",
-      valor: 1950.00,
-      categoria: "Turismo",
-    },
-  ];
+  const [reports, setReports] = useState<TravelReport[]>([]);
+  const [isCreating, setIsCreating] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    loadReports();
+  }, []);
+
+  const loadReports = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('travel_reports')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      toast.error("Erro ao carregar relatórios");
+      console.error(error);
+    } else {
+      setReports(data || []);
+    }
+    setLoading(false);
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case "Concluída":
-        return <Badge className="bg-green-100 text-green-800">Concluída</Badge>;
-      case "Em andamento":
-        return <Badge className="bg-blue-100 text-blue-800">Em andamento</Badge>;
-      case "Planejada":
-        return <Badge className="bg-yellow-100 text-yellow-800">Planejada</Badge>;
+      case 'finalized':
+        return <Badge className="bg-green-500">Finalizado</Badge>;
+      case 'draft':
+        return <Badge variant="secondary">Rascunho</Badge>;
       default:
-        return <Badge variant="secondary">{status}</Badge>;
+        return <Badge variant="outline">{status}</Badge>;
     }
   };
 
@@ -52,6 +71,27 @@ export default function RelatorioViagem() {
       currency: 'BRL'
     }).format(value);
   };
+
+  const formatDate = (date: string) => {
+    return new Date(date).toLocaleDateString('pt-BR');
+  };
+
+
+  if (isCreating) {
+    return (
+      <Layout>
+        <div className="p-6">
+          <TravelReportForm
+            onSave={() => {
+              setIsCreating(false);
+              loadReports();
+            }}
+            onCancel={() => setIsCreating(false)}
+          />
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -63,7 +103,7 @@ export default function RelatorioViagem() {
               Gerencie e acompanhe os relatórios de viagens
             </p>
           </div>
-          <Button className="flex items-center gap-2">
+          <Button className="flex items-center gap-2" onClick={() => setIsCreating(true)}>
             <Plus className="h-4 w-4" />
             Nova Viagem
           </Button>
@@ -75,7 +115,7 @@ export default function RelatorioViagem() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Total de Viagens</p>
-                  <p className="text-2xl font-bold text-primary">12</p>
+                  <p className="text-2xl font-bold text-primary">{reports.length}</p>
                 </div>
                 <Plane className="h-8 w-8 text-primary" />
               </div>
@@ -87,7 +127,14 @@ export default function RelatorioViagem() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Este Mês</p>
-                  <p className="text-2xl font-bold text-secondary">3</p>
+                  <p className="text-2xl font-bold text-secondary">
+                    {reports.filter(r => {
+                      const reportDate = new Date(r.created_at);
+                      const now = new Date();
+                      return reportDate.getMonth() === now.getMonth() &&
+                        reportDate.getFullYear() === now.getFullYear();
+                    }).length}
+                  </p>
                 </div>
                 <Calendar className="h-8 w-8 text-secondary" />
               </div>
@@ -99,7 +146,9 @@ export default function RelatorioViagem() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Gasto Total</p>
-                  <p className="text-2xl font-bold text-accent">R$ 24.5K</p>
+                  <p className="text-2xl font-bold text-accent">
+                    {formatCurrency(reports.reduce((sum, r) => sum + (r.total_amount || 0), 0))}
+                  </p>
                 </div>
                 <DollarSign className="h-8 w-8 text-accent" />
               </div>
@@ -110,62 +159,18 @@ export default function RelatorioViagem() {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Destinos</p>
-                  <p className="text-2xl font-bold text-foreground">8</p>
+                  <p className="text-sm text-muted-foreground">Relatórios</p>
+                  <p className="text-2xl font-bold text-success">
+                    {reports.filter(r => r.status === 'finalized').length}
+                  </p>
                 </div>
-                <MapPin className="h-8 w-8 text-foreground" />
+                <FolderOpen className="h-8 w-8 text-success" />
               </div>
             </CardContent>
           </Card>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Viagens Recentes
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Destino</TableHead>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Categoria</TableHead>
-                  <TableHead>Valor</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {viagens.map((viagem) => (
-                  <TableRow key={viagem.id}>
-                    <TableCell className="font-medium">{viagem.destino}</TableCell>
-                    <TableCell>{viagem.data}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{viagem.categoria}</Badge>
-                    </TableCell>
-                    <TableCell className="font-semibold">
-                      {formatCurrency(viagem.valor)}
-                    </TableCell>
-                    <TableCell>{getStatusBadge(viagem.status)}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm">
-                          Ver Detalhes
-                        </Button>
-                        <Button variant="default" size="sm">
-                          Relatório
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+        <TravelReportsFolder />
       </div>
     </Layout>
   );
