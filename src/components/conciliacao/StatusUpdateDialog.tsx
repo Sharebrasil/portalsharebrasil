@@ -10,7 +10,7 @@ interface StatusUpdateDialogProps {
   onOpenChange: (open: boolean) => void;
   reconciliationId: string;
   currentStatus: string;
-  type: "client" | "crew";
+  type: 'client' | 'crew';
   onUpdate: () => void;
 }
 
@@ -20,46 +20,50 @@ export function StatusUpdateDialog({
   reconciliationId,
   currentStatus,
   type,
-  onUpdate,
+  onUpdate
 }: StatusUpdateDialogProps) {
   const [status, setStatus] = useState(currentStatus);
   const [loading, setLoading] = useState(false);
 
   const clientStatusOptions = [
-    { value: "pendente", label: "Pendente - Aguardando Envio" },
-    { value: "enviado", label: "Enviado Email - Aguardando Pagamento" },
-    { value: "pago", label: "Pago e Concluído" },
+    { value: 'pendente', label: 'Pendente - Aguardando Envio' },
+    { value: 'enviado', label: 'Enviado Email - Aguardando Pagamento' },
+    { value: 'pago', label: 'Pago e Concluído' }
   ];
 
   const crewStatusOptions = [
-    { value: "pendente", label: "Pendente - Aguardando Pagamento" },
-    { value: "pago", label: "Pago e Concluído" },
+    { value: 'pendente', label: 'Pendente - Aguardando Pagamento' },
+    { value: 'pago', label: 'Pago e Concluído' }
   ];
 
-  const statusOptions = type === "client" ? clientStatusOptions : crewStatusOptions;
+  const statusOptions = type === 'client' ? clientStatusOptions : crewStatusOptions;
 
   const handleUpdate = async () => {
     setLoading(true);
     try {
-      const table = type === "client" ? "client_reconciliations" : "crew_reconciliations";
-      const updateData: Record<string, unknown> = { status };
+      const table = type === 'client' ? 'client_reconciliations' : 'crew_reconciliations';
+      const updateData: any = { status };
 
-      if (status === "enviado" && type === "client") {
+      // Adicionar datas baseado no status
+      if (status === 'enviado' && type === 'client') {
         updateData.sent_date = new Date().toISOString();
-      } else if (status === "pago") {
+      } else if (status === 'pago') {
         updateData.paid_date = new Date().toISOString();
       }
 
-      const { error } = await supabase.from(table).update(updateData).eq("id", reconciliationId);
+      const { error } = await supabase
+        .from(table)
+        .update(updateData)
+        .eq('id', reconciliationId);
 
       if (error) throw error;
 
-      toast.success("Status atualizado com sucesso!");
+      toast.success('Status atualizado com sucesso!');
       onUpdate();
       onOpenChange(false);
     } catch (error: any) {
-      console.error("Erro ao atualizar status:", error);
-      toast.error(error?.message || "Erro ao atualizar status");
+      console.error('Erro ao atualizar status:', error);
+      toast.error(error.message || 'Erro ao atualizar status');
     } finally {
       setLoading(false);
     }
@@ -79,7 +83,7 @@ export function StatusUpdateDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {statusOptions.map((option) => (
+                {statusOptions.map(option => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
                   </SelectItem>
@@ -92,7 +96,7 @@ export function StatusUpdateDialog({
               Cancelar
             </Button>
             <Button onClick={handleUpdate} disabled={loading}>
-              {loading ? "Salvando..." : "Salvar"}
+              {loading ? 'Salvando...' : 'Salvar'}
             </Button>
           </div>
         </div>
