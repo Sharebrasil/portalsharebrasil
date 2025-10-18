@@ -487,13 +487,13 @@ export default function DiarioBordoDetalhes() {
                 <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">POUSOS</th>
                 <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">ABAST</th>
                 <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">FUEL</th>
-                <th className="border border-gray-300 p-1 bg-[rgba(2,54,34,1)]" colSpan={3}>CTM</th>
+                <th className="border border-gray-300 p-1 bg-[rgba(2,54,34,1)]" colSpan={1}>CTM</th>
                 <th className="border border-gray-300 p-1 bg-[rgba(2,54,34,1)]" colSpan={2}>CANAC</th>
                 <th rowSpan={2} className="border border-gray-300 p-1">DIÁRIAS</th>
                 <th className="border border-gray-300 p-1 bg-[rgba(2,54,34,1)]" colSpan={3}>CONTROLE COTISTA</th>
               </tr>
               <tr>
-                <th className="border border-gray-300 p-1 text-[10px] bg-[rgba(4,56,88,1)]" colSpan={3}>CELULA</th>
+                <th className="border border-gray-300 p-1 text-[10px] bg-[rgba(4,56,88,1)]">CTM</th>
                 <th className="border border-gray-300 p-1">PIC</th>
                 <th className="border border-gray-300 p-1">SIC</th>
                 <th className="border border-gray-300 p-1 text-[10px] bg-[rgba(4,56,88,1)]">EXTRAS</th>
@@ -531,10 +531,14 @@ export default function DiarioBordoDetalhes() {
                   </td>
                   <td className="border border-gray-300 p-1">
                     <Input
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="00:00"
+                      pattern="^\\d{1,2}:\\d{2}$"
                       value={entry.ac}
                       onChange={(e) => updateEntry(index, 'ac', e.target.value)}
                       disabled={isClosed}
-                      className="h-7 text-xs w-12"
+                      className="h-7 text-xs w-16"
                     />
                   </td>
                   <td className="border border-gray-300 p-1">
@@ -557,10 +561,14 @@ export default function DiarioBordoDetalhes() {
                   </td>
                   <td className="border border-gray-300 p-1">
                     <Input
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="00:00"
+                      pattern="^\\d{1,2}:\\d{2}$"
                       value={entry.cor}
                       onChange={(e) => updateEntry(index, 'cor', e.target.value)}
                       disabled={isClosed}
-                      className="h-7 text-xs w-12"
+                      className="h-7 text-xs w-16"
                     />
                   </td>
                   <td className="border border-gray-300 p-1">
@@ -656,28 +664,8 @@ export default function DiarioBordoDetalhes() {
                     <Input
                       type="number"
                       step="0.1"
-                      value={entry.celula_ant}
-                      onChange={(e) => updateEntry(index, 'celula_ant', e.target.value)}
-                      disabled={isClosed}
-                      className="h-7 text-xs w-16"
-                    />
-                  </td>
-                  <td className="border border-gray-300 p-1">
-                    <Input
-                      type="number"
-                      step="0.1"
-                      value={entry.celula_post}
-                      onChange={(e) => updateEntry(index, 'celula_post', e.target.value)}
-                      disabled={isClosed}
-                      className="h-7 text-xs w-16"
-                    />
-                  </td>
-                  <td className="border border-gray-300 p-1">
-                    <Input
-                      type="number"
-                      step="0.1"
-                      value={entry.celula_disp}
-                      onChange={(e) => updateEntry(index, 'celula_disp', e.target.value)}
+                      value={entry.ctm}
+                      onChange={(e) => updateEntry(index, 'ctm', e.target.value)}
                       disabled={isClosed}
                       className="h-7 text-xs w-16"
                     />
