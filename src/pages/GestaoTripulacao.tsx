@@ -52,16 +52,11 @@ export default function GestaoTripulacao() {
       try {
         const userIds = (crewMembers || []).map(c => c.user_id).filter(Boolean) as string[];
         if (userIds.length === 0) { setRolesByUser({}); return; }
-        const { data, error } = await supabase
-          .from("user_roles")
-          .select("user_id, role")
-          .in("user_id", userIds);
-        if (error) throw error;
-        const map: Record<string, string[]> = {};
-        (data || []).forEach(r => {
-          if (!r.user_id || !r.role) return;
-          map[r.user_id] = [...(map[r.user_id] || []), r.role];
+        const { data, error } = await supabase.functions.invoke("list-user-roles", {
+          body: { userIds },
         });
+        if (error) throw new Error(error.message ?? "Erro ao carregar papéis de usuários");
+        const map = (data as { rolesByUser?: Record<string, string[]> })?.rolesByUser ?? {};
         setRolesByUser(map);
       } catch (e) {
         console.error(`Erro ao carregar papéis de usuários: ${getErrorMessage(e)}`);

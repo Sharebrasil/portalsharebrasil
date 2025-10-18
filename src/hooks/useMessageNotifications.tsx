@@ -68,15 +68,14 @@ async function checkIfMessageIsForUser(message: any, userId: string): Promise<bo
 
   // Message for specific roles
   if (message.target_type === 'role' && message.target_roles && message.target_roles.length > 0) {
-    const { data: userRoles } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', userId);
-
-    if (!userRoles) return false;
-
-    const userRolesList = userRoles.map(r => r.role);
-    return message.target_roles.some((role: any) => userRolesList.includes(role));
+    // Avoid RLS recursion on user_roles by using roles from AuthContext (JWT metadata-backed)
+    try {
+      const { roles } = await import("@/contexts/AuthContext").then(m => m.useAuth());
+      const userRolesList = roles ?? [];
+      return message.target_roles.some((role: any) => userRolesList.includes(role));
+    } catch (_) {
+      return false;
+    }
   }
 
   return false;
