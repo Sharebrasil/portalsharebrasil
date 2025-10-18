@@ -16,7 +16,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import type { UserProfile } from "@/hooks/useUserProfile";
-import type { AppRole } from "@/lib/roles";
+import { ROLE_LABELS, selectPrimaryRole, type AppRole } from "@/lib/roles";
 
 type ContactType = Exclude<UserProfile["tipo"], null>;
 
@@ -99,6 +99,7 @@ const DEFAULT_CROP_SCALE = 1;
 
 export default function Perfil() {
   const { user, roles } = useAuth();
+  const primaryRole = useMemo(() => selectPrimaryRole(roles), [roles]);
   const { toast } = useToast();
   const { profile, isLoading, isFetching, updateProfile, isUpdating } = useUserProfile(user);
   const [formState, setFormState] = useState<FormState>({
@@ -662,7 +663,7 @@ export default function Perfil() {
                     )}
                   </div>
                     </div>
-                  <Badge variant="secondary">{profile?.tipo ? profile.tipo.toUpperCase() : "Sem categoria"}</Badge>
+                  <Badge variant="secondary">{primaryRole ? ROLE_LABELS[primaryRole] : "Sem categoria"}</Badge>
                 </div>
               </div>
             </CardHeader>
