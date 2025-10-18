@@ -5,6 +5,16 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+export function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message
+  if (typeof error === "string") return error
+  try {
+    return JSON.stringify(error)
+  } catch {
+    return String(error)
+  }
+}
+
 export function formatMinutesToHHMM(totalMinutes: number): string {
   if (!isFinite(totalMinutes) || totalMinutes < 0) totalMinutes = 0
   const hours = Math.floor(totalMinutes / 60)
@@ -114,10 +124,8 @@ export function formatBRL(value: number | string): string {
 
 export function parseBRL(value: string): number {
   if (!value) return 0
-  // Remove currency symbols and spaces
   const raw = value.replace(/[^\d,.-]/g, '')
   if (!raw) return 0
-  // If there are both comma and dot, assume Brazilian format (dot as thousand, comma as decimal)
   const hasComma = raw.includes(',')
   const normalized = hasComma ? raw.replace(/\./g, '').replace(',', '.') : raw
   const num = parseFloat(normalized)
