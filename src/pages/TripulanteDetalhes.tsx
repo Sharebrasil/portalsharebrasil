@@ -18,7 +18,7 @@ export default function TripulanteDetalhes() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialTab = (searchParams.get("tab") === "anexos" ? "anexos" : searchParams.get("tab") === "calendario" ? "calendario" : "dados") as "dados" | "anexos" | "calendario";
+  const initialTab = (searchParams.get("tab") === "anexos" ? "anexos" : searchParams.get("tab") === "dados" ? "dados" : "calendario") as "dados" | "anexos" | "calendario";
   const [activeTab, setActiveTab] = useState<"dados" | "anexos" | "calendario">(initialTab);
 
   const { data: member, isLoading, refetch } = useQuery({
@@ -104,8 +104,8 @@ export default function TripulanteDetalhes() {
       <div className="p-6 space-y-6">
         <Card className="border-0 shadow-none">
           <CardContent className="p-0">
-            <div className="flex items-start justify-between rounded-xl bg-[#0E2138] text-white p-6">
-              <div className="flex items-center gap-4">
+            <div className="relative flex items-start justify-between rounded-xl bg-[rgba(1,24,53,0.69)] text-white p-6">
+              <div className="flex items-center gap-4 ml-[9px]">
                 <Avatar className="h-20 w-20 border-4 border-white/10">
                   <AvatarImage src={member.photo_url || undefined} />
                   <AvatarFallback className="bg-white text-primary">
@@ -117,7 +117,7 @@ export default function TripulanteDetalhes() {
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <h1 className="text-2xl font-bold leading-tight">{member.full_name}</h1>
+                  <h1 className="text-[19px] leading-[30px] font-bold">{member.full_name}</h1>
                   <div className="mt-2 flex flex-wrap items-center gap-3 text-sm">
                     <Badge className="bg-[#059936]">Código ANAC: {member.canac || "N/A"}</Badge>
                     <div className="flex items-center gap-2">
@@ -127,8 +127,13 @@ export default function TripulanteDetalhes() {
                   </div>
                 </div>
               </div>
-              <Button variant="secondary" onClick={() => navigate("/tripulacao")} className="bg-white text-[#0E2138]">
-                <ArrowLeft className="h-4 w-4 mr-2" /> Voltar para Funcionários
+              <Button
+                variant="secondary"
+                onClick={() => navigate("/tripulacao")}
+                className="absolute right-2 top-2 h-[22px] w-[26px] px-1 bg-sky-300/40 text-slate-200 border-transparent rounded-[10px]"
+                aria-label="Voltar"
+              >
+                <ArrowLeft className="h-4 w-4" />
               </Button>
             </div>
           </CardContent>
@@ -138,8 +143,8 @@ export default function TripulanteDetalhes() {
           <CardContent className="p-6">
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
               <TabsList className="grid w-full max-w-xl grid-cols-3">
-                <TabsTrigger value="dados">Dados Principais</TabsTrigger>
-                <TabsTrigger value="calendario">Calendário de Voo</TabsTrigger>
+                <TabsTrigger value="dados">Dados</TabsTrigger>
+                <TabsTrigger value="calendario">Horas de Voo</TabsTrigger>
                 <TabsTrigger value="anexos">Anexos</TabsTrigger>
               </TabsList>
 
