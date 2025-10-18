@@ -1,66 +1,65 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CheckCircle, AlertCircle, Clock, DollarSign, User, Edit } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CheckCircle, Clock, User } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { StatusUpdateDialog } from "./StatusUpdateDialog";
+import { useUserRole } from "@/hooks/useUserRole";
+
+interface CrewReconciliation {
+  id: string;
+  travel_report_id: string | null;
+  crew_member_name: string;
+  client_id: string | null;
+  aircraft_registration: string | null;
+  description: string;
+  amount: number;
+  category: string;
+  status: string;
+  paid_date: string | null;
+  created_at: string;
+  clients: { company_name: string } | null;
+}
 
 export function ConciliacaoColaborador() {
-  const [colaboradorData, setColaboradorData] = useState([
-    {
-      id: 1,
-      data: "2024-01-15",
-      descricao: "Transferência PIX - Salário",
-      valor: 2500.00,
-      status: "conciliado",
-      banco: "Banco do Brasil",
-      categoria: "salário",
-    },
-    {
-      id: 2,
-      data: "2024-01-14",
-      descricao: "Reembolso - Despesas de viagem",
-      valor: 450.00,
-      status: "pendente",
-      banco: "Itaú",
-      categoria: "reembolso",
-    },
-    {
-      id: 3,
-      data: "2024-01-13",
-      descricao: "Vale Alimentação",
-      valor: 300.00,
-      status: "conciliado",
-      banco: "Santander",
-      categoria: "benefício",
-    },
-    {
-      id: 4,
-      data: "2024-01-12",
-      descricao: "Desconto - Plano de Saúde",
-      valor: -120.00,
-      status: "divergente",
-      categoria: "desconto",
-    },
-  ]);
+  const [reconciliations, setReconciliations] = useState<CrewReconciliation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState('');
+  const { hasAnyRole } = useUserRole();
+  const canEditStatus = hasAnyRole(['admin', 'financeiro_master', 'financeiro', 'gestor_master']);
 
-  const handleStatusChange = (id: number, newStatus: string) => {
-    setColaboradorData(prev => 
-      prev.map(item => 
-        item.id === id ? { ...item, status: newStatus } : item
-      )
-    );
+  useEffect(() => {
+    loadReconciliations();
+  }, []);
+
+  const loadReconciliations = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('crew_reconciliations')
+      .select(`
+        *,
+        clients:client_id(company_name)
+      `)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Erro ao carregar conciliações:', error);
+    } else {
+      setReconciliations(data || []);
+    }
+    setLoading(false);
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case "conciliado":
-        return <Badge className="bg-green-100 text-green-800">Conciliado</Badge>;
-      case "pendente":
-        return <Badge className="bg-yellow-100 text-yellow-800">Pendente</Badge>;
-      case "divergente":
-        return <Badge className="bg-red-100 text-red-800">Divergente</Badge>;
+      case 'pago':
+        return <Badge className="bg-green-500 text-white">Pago</Badge>;
+      case 'pendente':
+        return <Badge className="bg-yellow-500 text-white">Pendente</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
@@ -68,12 +67,10 @@ export function ConciliacaoColaborador() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case "conciliado":
+      case 'pago':
         return <CheckCircle className="h-4 w-4 text-green-600" />;
-      case "pendente":
+      case 'pendente':
         return <Clock className="h-4 w-4 text-yellow-600" />;
-      case "divergente":
-        return <AlertCircle className="h-4 w-4 text-red-600" />;
       default:
         return null;
     }
@@ -86,24 +83,35 @@ export function ConciliacaoColaborador() {
     }).format(value);
   };
 
-  const resumoColaborador = {
-    totalConciliado: 2800.00,
-    totalPendente: 450.00,
-    totalDivergente: 120.00,
-    saldoFinal: 3130.00,
+  const formatDate = (date: string | null) => {
+    if (!date) return '-';
+    return new Date(date).toLocaleDateString('pt-BR');
+  };
+
+  const handleStatusClick = (id: string, currentStatus: string) => {
+    if (!canEditStatus) {
+      return;
+    }
+    setSelectedId(id);
+    setSelectedStatus(currentStatus);
+    setStatusDialogOpen(true);
+  };
+
+  const totals = {
+    totalPago: reconciliations.filter(r => r.status === 'pago').reduce((sum, r) => sum + Number(r.amount), 0),
+    totalPendente: reconciliations.filter(r => r.status === 'pendente').reduce((sum, r) => sum + Number(r.amount), 0),
   };
 
   return (
     <div className="space-y-6">
-      {/* Resumo Colaborador */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Total Conciliado</p>
+                <p className="text-sm text-muted-foreground">Total Pago</p>
                 <p className="text-2xl font-bold text-green-600">
-                  {formatCurrency(resumoColaborador.totalConciliado)}
+                  {formatCurrency(totals.totalPago)}
                 </p>
               </div>
               <CheckCircle className="h-8 w-8 text-green-600" />
@@ -117,49 +125,20 @@ export function ConciliacaoColaborador() {
               <div>
                 <p className="text-sm text-muted-foreground">Total Pendente</p>
                 <p className="text-2xl font-bold text-yellow-600">
-                  {formatCurrency(resumoColaborador.totalPendente)}
+                  {formatCurrency(totals.totalPendente)}
                 </p>
               </div>
               <Clock className="h-8 w-8 text-yellow-600" />
             </div>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Divergente</p>
-                <p className="text-2xl font-bold text-red-600">
-                  {formatCurrency(resumoColaborador.totalDivergente)}
-                </p>
-              </div>
-              <AlertCircle className="h-8 w-8 text-red-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Saldo Final</p>
-                <p className="text-2xl font-bold text-primary">
-                  {formatCurrency(resumoColaborador.saldoFinal)}
-                </p>
-              </div>
-              <DollarSign className="h-8 w-8 text-primary" />
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
-      {/* Tabela de Movimentações Colaborador */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <User className="h-5 w-5" />
-            Movimentações do Colaborador
+            Conciliação Colaborador
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -168,54 +147,85 @@ export function ConciliacaoColaborador() {
               <TableRow>
                 <TableHead>Data</TableHead>
                 <TableHead>Descrição</TableHead>
+                <TableHead>Colaborador</TableHead>
+                <TableHead>Cliente</TableHead>
+                <TableHead>Aeronave</TableHead>
+                <TableHead>Categoria</TableHead>
                 <TableHead>Valor</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Data Pagamento</TableHead>
                 <TableHead>Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {colaboradorData.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell>{new Date(item.data).toLocaleDateString('pt-BR')}</TableCell>
-                  <TableCell className="max-w-xs">
-                    <div className="flex items-center gap-2">
-                      {getStatusIcon(item.status)}
-                      <span className="truncate">{item.descricao}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <span className={item.valor > 0 ? "text-green-600" : "text-red-600"}>
-                      {formatCurrency(item.valor)}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <Select value={item.status} onValueChange={(value) => handleStatusChange(item.id, value)}>
-                      <SelectTrigger className="w-[130px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="pendente">Pendente</SelectItem>
-                        <SelectItem value="conciliado">Conciliado</SelectItem>
-                        <SelectItem value="divergente">Divergente</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-1">
-                      <Button variant="outline" size="sm">
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button variant="default" size="sm">
-                        Conciliar
-                      </Button>
-                    </div>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={10} className="text-center">
+                    Carregando...
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : reconciliations.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={10} className="text-center text-muted-foreground">
+                    Nenhuma conciliação encontrada
+                  </TableCell>
+                </TableRow>
+              ) : (
+                reconciliations.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell>{formatDate(item.created_at)}</TableCell>
+                    <TableCell className="max-w-xs">
+                      <div className="flex items-center gap-2">
+                        {getStatusIcon(item.status)}
+                        <span className="truncate">{item.description}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>{item.crew_member_name}</TableCell>
+                    <TableCell>{item.clients?.company_name || '-'}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{item.aircraft_registration}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">{item.category}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-green-600 font-medium">
+                        {formatCurrency(Number(item.amount))}
+                      </span>
+                    </TableCell>
+                    <TableCell>{getStatusBadge(item.status)}</TableCell>
+                    <TableCell>{formatDate(item.paid_date)}</TableCell>
+                    <TableCell>
+                      {canEditStatus ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleStatusClick(item.id, item.status)}
+                        >
+                          Alterar Status
+                        </Button>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
+
+      {selectedId && (
+        <StatusUpdateDialog
+          open={statusDialogOpen}
+          onOpenChange={setStatusDialogOpen}
+          reconciliationId={selectedId}
+          currentStatus={selectedStatus}
+          type="crew"
+          onUpdate={loadReconciliations}
+        />
+      )}
     </div>
   );
 }

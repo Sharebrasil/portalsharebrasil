@@ -9,6 +9,8 @@ export const APP_ROLE_VALUES = [
   "operacoes",
   "piloto_chefe",
   "tripulante",
+  "cotista",
+  "gestor_master",
 ] as const satisfies readonly AppRole[];
 
 export const ROLE_LABELS: Record<AppRole, string> = {
@@ -18,6 +20,8 @@ export const ROLE_LABELS: Record<AppRole, string> = {
   operacoes: "Operações",
   piloto_chefe: "Piloto Chefe",
   tripulante: "Tripulante",
+  cotista: "Cotista",
+  gestor_master: "Gestor Master",
 };
 
 const DEFAULT_ROLE_LABEL = "Sem categoria";

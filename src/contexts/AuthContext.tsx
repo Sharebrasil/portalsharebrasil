@@ -25,23 +25,46 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return [];
     }
 
-    const { data, error } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId);
+    try {
+      // Prefer RPC which may bypass RLS restrictions when implemented server-side
+      const { data: rpcData, error: rpcError } = await supabase.rpc('get_user_roles', { _user_id: userId });
 
-    if (error) {
-      console.error("Failed to load user roles", error);
+      if (!rpcError && rpcData) {
+        const roleList = Array.isArray(rpcData) ? (rpcData as AppRole[]) : [rpcData as AppRole];
+        setRoles(roleList);
+        return roleList;
+      }
+
+      // Fallback to direct query
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId);
+
+      if (error) {
+        // Log both RPC and query errors for easier debugging
+        const detail = { rpcError: rpcError ? (rpcError as any) : null, queryError: error as any };
+        console.error("Failed to load user roles", JSON.stringify(detail, Object.getOwnPropertyNames(detail), 2));
+        setRoles([]);
+        return [];
+      }
+
+      const roleList = (data ?? [])
+        .map((entry: any) => entry.role)
+        .filter((role): role is AppRole => Boolean(role));
+
+      setRoles(roleList);
+      return roleList;
+    } catch (e) {
+      // Ensure errors are readable in logs
+      try {
+        console.error("Failed to load user roles", typeof e === 'object' ? JSON.stringify(e, Object.getOwnPropertyNames(e), 2) : e);
+      } catch (_) {
+        console.error("Failed to load user roles", e);
+      }
       setRoles([]);
       return [];
     }
-
-    const roleList = (data ?? [])
-      .map((entry) => entry.role)
-      .filter((role): role is AppRole => Boolean(role));
-
-    setRoles(roleList);
-    return roleList;
   }, []);
 
   const refreshRoles = useCallback(

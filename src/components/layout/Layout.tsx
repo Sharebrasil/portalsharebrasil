@@ -17,7 +17,7 @@ export function Layout({ children, showRightSidebar = true }: LayoutProps) {
       <Header />
       <div className="flex">
         <Sidebar />
-        <main className="flex-1">{children}</main>
+        <main className="flex-1 ml-px">{children}</main>
         {showRightSidebar && <RightSidebar />}
       </div>
     </div>

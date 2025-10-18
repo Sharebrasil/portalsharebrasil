@@ -8,6 +8,7 @@ export function useUserRole() {
   const roleSet = useMemo(() => new Set<AppRole>(roles), [roles]);
 
   const hasRole = (role: AppRole | string) => roleSet.has(role as AppRole);
+  const hasAnyRole = (someRoles: Array<AppRole | string>) => someRoles.some((r) => hasRole(r));
 
   const isAdmin = hasRole("admin");
   const isFinanceiroMaster = hasRole("financeiro_master");
@@ -16,6 +17,7 @@ export function useUserRole() {
   return {
     userRoles: roles,
     hasRole,
+    hasAnyRole,
     isAdmin,
     isFinanceiroMaster,
     isGestorMaster,

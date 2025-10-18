@@ -503,9 +503,7 @@ export default function DiarioBordoDetalhes() {
                 <th className="border border-gray-300 p-1 bg-[rgba(2,54,34,1)]" colSpan={3}>CONTROLE COTISTA</th>
               </tr>
               <tr>
-                <th className="border border-gray-300 p-1 text-[10px] bg-[rgba(4,56,88,1)]">ANT</th>
-                <th className="border border-gray-300 p-1 text-[10px] bg-[rgba(4,56,88,1)]">POST</th>
-                <th className="border border-gray-300 p-1 text-[10px] bg-[rgba(4,56,88,1)]">DISP</th>
+                <th className="border border-gray-300 p-1 text-[10px] bg-[rgba(4,56,88,1)]" colSpan={3}>CELULA</th>
                 <th className="border border-gray-300 p-1">PIC</th>
                 <th className="border border-gray-300 p-1">SIC</th>
                 <th className="border border-gray-300 p-1 text-[10px] bg-[rgba(4,56,88,1)]">EXTRAS</th>
