@@ -22,21 +22,19 @@ interface LogbookEntry {
   data: string;
   de: string;
   para: string;
-  ac: string;
+  ac: string; // horário (HH:MM)
   dep: string;
   pou: string;
-  cor: string;
-  tvoo: string;
-  tdia: string;
-  tnoit: string;
-  total: string;
-  ifr: string;
+  cor: string; // horário (HH:MM)
+  tvoo: string; // horário (HH:MM)
+  tdia: string; // horário (HH:MM)
+  tnoit: string; // horário (HH:MM)
+  total: string; // horário (HH:MM)
+  ifr: string; // horário (HH:MM)
   pousos: string;
   abast: string;
   fuel: string;
-  celula_ant: string;
-  celula_post: string;
-  celula_disp: string;
+  ctm: string; // CTM único valor numérico
   pic: string;
   sic: string;
   diarias: string;
