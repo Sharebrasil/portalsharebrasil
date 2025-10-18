@@ -2,6 +2,7 @@ import { createContext, type ReactNode, useCallback, useContext, useEffect, useM
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import type { AppRole } from "@/lib/roles";
+import { getErrorMessage } from "@/lib/utils";
 
 interface AuthContextValue {
   session: Session | null;
@@ -31,7 +32,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       .eq("user_id", userId);
 
     if (error) {
-      console.error("Failed to load user roles", error);
+      console.error(`Failed to load user roles: ${getErrorMessage(error)}`);
       setRoles([]);
       return [];
     }
@@ -62,7 +63,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
         await loadRoles(nextSession?.user?.id ?? null);
       } catch (error) {
-        console.error("Failed to load user roles", error);
+        console.error(`Failed to load user roles: ${getErrorMessage(error)}`);
         setRoles([]);
       }
     };
@@ -90,7 +91,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           return;
         }
 
-        console.error("Failed to initialize authentication", error);
+        console.error(`Failed to initialize authentication: ${getErrorMessage(error)}`);
         await applyAuthState(null);
       } finally {
         if (isMounted) {
@@ -116,7 +117,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             return;
           }
 
-          console.error("Failed to handle auth state change", error);
+          console.error(`Failed to handle auth state change: ${getErrorMessage(error)}`);
           await applyAuthState(null);
         }
       })();
