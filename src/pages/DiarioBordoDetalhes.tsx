@@ -22,7 +22,7 @@ interface LogbookEntry {
   data: string;
   de: string;
   para: string;
-  ac: string; // hor��rio (HH:MM)
+  ac: string; // horário (HH:MM)
   dep: string;
   pou: string;
   cor: string; // horário (HH:MM)
@@ -453,7 +453,7 @@ export default function DiarioBordoDetalhes() {
               <div>CONS. MÉD: {aircraft?.fuel_consumption} L/H</div>
             </div>
             <div>
-              <div className="font-bold">CÉLULA</div>
+              <div className="font-bold">C��LULA</div>
               <div>ANTER.: {cellStart} H</div>
               <div>ATUAL.: {cellEnd} H</div>
               <div>P.REV.: {cellPrev} H</div>
@@ -711,15 +711,15 @@ export default function DiarioBordoDetalhes() {
                   </td>
                   <td className="border border-gray-300 p-1">
                     <Select
-                      value={entry.voo_para}
-                      onValueChange={(val) => updateEntry(index, 'voo_para', val)}
+                      value={entry.voo_para || undefined}
+                      onValueChange={(val) => updateEntry(index, 'voo_para', val === '__none__' ? '' : val)}
                       disabled={isClosed}
                     >
                       <SelectTrigger className="h-7 text-xs w-full">
                         <SelectValue placeholder="-" />
                       </SelectTrigger>
                       <SelectContent className="bg-popover text-popover-foreground">
-                        <SelectItem value="">-</SelectItem>
+                        <SelectItem value="__none__">Sem cliente</SelectItem>
                         {clients?.map((client) => (
                           <SelectItem key={client.id} value={client.id}>
                             {client.company_name}
