@@ -1,7 +1,7 @@
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import type { AppRole } from "@/lib/roles";
+import { isAppRole, type AppRole } from "@/lib/roles";
 
 interface AuthContextValue {
   session: Session | null;
@@ -18,6 +18,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  const serializeError = (err: any) => {
+    if (!err) return null;
+    const out: Record<string, unknown> = {};
+    const keys = ["name", "message", "code", "status", "details", "hint", "stack"];
+    for (const k of keys) {
+      const v = (err as any)[k];
+      if (v !== undefined) out[k] = v;
+    }
+    return Object.keys(out).length ? out : String(err);
+  };
 
   const loadRoles = useCallback(async (userId: string | null): Promise<AppRole[]> => {
     if (!userId) {
@@ -42,9 +53,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .eq("user_id", userId);
 
       if (error) {
-        // Log both RPC and query errors for easier debugging
-        const detail = { rpcError: rpcError ? (rpcError as any) : null, queryError: error as any };
-        console.error("Failed to load user roles", JSON.stringify(detail, Object.getOwnPropertyNames(detail), 2));
+        // Final fallback: try roles from JWT/app_metadata or user_metadata
+        const { data: userRes } = await supabase.auth.getUser();
+        const rawRoles = (userRes.user as any)?.app_metadata?.roles ?? (userRes.user as any)?.user_metadata?.roles;
+        const fallbackList: AppRole[] = Array.isArray(rawRoles)
+          ? (rawRoles as unknown[])
+              .filter((r): r is string => typeof r === 'string')
+              .filter((r): r is AppRole => isAppRole(r))
+          : [];
+        if (fallbackList.length) {
+          setRoles(fallbackList);
+          return fallbackList;
+        }
+
+        console.error("Failed to load user roles", {
+          rpcError: serializeError(rpcError),
+          queryError: serializeError(error),
+        });
         setRoles([]);
         return [];
       }
@@ -56,12 +81,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setRoles(roleList);
       return roleList;
     } catch (e) {
-      // Ensure errors are readable in logs
-      try {
-        console.error("Failed to load user roles", typeof e === 'object' ? JSON.stringify(e, Object.getOwnPropertyNames(e), 2) : e);
-      } catch (_) {
-        console.error("Failed to load user roles", e);
-      }
+      console.error("Failed to load user roles", serializeError(e) ?? e);
       setRoles([]);
       return [];
     }
@@ -85,7 +105,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
         await loadRoles(nextSession?.user?.id ?? null);
       } catch (error) {
-        console.error("Failed to load user roles", error);
+        console.error("Failed to load user roles", serializeError(error));
         setRoles([]);
       }
     };
@@ -113,7 +133,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           return;
         }
 
-        console.error("Failed to initialize authentication", error);
+        console.error("Failed to initialize authentication", serializeError(error));
         await applyAuthState(null);
       } finally {
         if (isMounted) {
@@ -139,7 +159,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             return;
           }
 
-          console.error("Failed to handle auth state change", error);
+          console.error("Failed to handle auth state change", serializeError(error));
           await applyAuthState(null);
         }
       })();
