@@ -12,13 +12,14 @@ import { Calendar, ArrowLeft, UploadCloud, Trash2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import FlightHoursCard from "@/components/tripulacao/FlightHoursCard";
+import CrewCalendar from "@/components/tripulacao/CrewCalendar";
 
 export default function TripulanteDetalhes() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialTab = (searchParams.get("tab") === "anexos" ? "anexos" : "dados") as "dados" | "anexos";
-  const [activeTab, setActiveTab] = useState<"dados" | "anexos">(initialTab);
+  const initialTab = (searchParams.get("tab") === "anexos" ? "anexos" : searchParams.get("tab") === "calendario" ? "calendario" : "dados") as "dados" | "anexos" | "calendario";
+  const [activeTab, setActiveTab] = useState<"dados" | "anexos" | "calendario">(initialTab);
 
   const { data: member, isLoading, refetch } = useQuery({
     queryKey: ["crew_member", id],
@@ -68,6 +69,7 @@ export default function TripulanteDetalhes() {
     setSearchParams(params);
   }, [activeTab]);
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleUpload = async (file: File) => {
     if (!id) return;
     setUploading(true);
@@ -134,9 +136,10 @@ export default function TripulanteDetalhes() {
 
         <Card>
           <CardContent className="p-6">
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "dados" | "anexos")} className="w-full">
-              <TabsList className="grid w-full max-w-md grid-cols-2">
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
+              <TabsList className="grid w-full max-w-xl grid-cols-3">
                 <TabsTrigger value="dados">Dados Principais</TabsTrigger>
+                <TabsTrigger value="calendario">Calendário de Voo</TabsTrigger>
                 <TabsTrigger value="anexos">Anexos</TabsTrigger>
               </TabsList>
 
@@ -164,6 +167,11 @@ export default function TripulanteDetalhes() {
                 </div>
 
                 {/* Card de Horas de Voo PIC/SIC e Totais por Aeronave */}
+                <FlightHoursCard canac={member.canac || ''} />
+              </TabsContent>
+
+              <TabsContent value="calendario" className="mt-6 space-y-6">
+                <CrewCalendar crewMemberId={member.id} />
                 <FlightHoursCard canac={member.canac || ''} />
               </TabsContent>
 

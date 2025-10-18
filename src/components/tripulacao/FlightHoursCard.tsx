@@ -2,6 +2,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 function hoursToHhmm(n?: number | null) {
   const v = Number(n || 0);
@@ -14,15 +17,21 @@ function hoursToHhmm(n?: number | null) {
 interface Props { canac: string }
 
 export default function FlightHoursCard({ canac }: Props) {
+  const [cursor, setCursor] = useState(() => new Date());
+  const start = new Date(cursor.getFullYear(), cursor.getMonth(), 1).toISOString().slice(0,10);
+  const end = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0).toISOString().slice(0,10);
+
   const { data } = useQuery({
-    queryKey: ["crew-flight-aggregates", canac],
+    queryKey: ["crew-flight-aggregates", canac, start, end],
     enabled: !!canac,
     queryFn: async () => {
       // Busca entradas onde o tripulante aparece como PIC ou SIC
       const { data, error } = await supabase
         .from("logbook_entries")
-        .select("aircraft_id, total_time, night_hours, ifr_count, landings, daily_rate, pic_canac, sic_canac")
-        .or(`pic_canac.eq.${canac},sic_canac.eq.${canac}`);
+        .select("aircraft_id, total_time, night_hours, ifr_count, landings, daily_rate, pic_canac, sic_canac, entry_date")
+        .or(`pic_canac.eq.${canac},sic_canac.eq.${canac}`)
+        .gte("entry_date", start)
+        .lte("entry_date", end);
       if (error) throw error;
 
       // Mapa por aeronave
@@ -74,10 +83,16 @@ export default function FlightHoursCard({ canac }: Props) {
   const totals = data?.totals;
   const perAircraft = data?.perAircraft || [];
 
+  const monthLabel = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" }).format(cursor);
   return (
     <Card className="bg-gradient-card border-border shadow-card">
-      <CardHeader>
+      <CardHeader className="flex items-center justify-between">
         <CardTitle>Horas de Voo</CardTitle>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="icon" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}><ChevronLeft className="h-4 w-4" /></Button>
+          <div className="min-w-[140px] text-center font-semibold capitalize">{monthLabel}</div>
+          <Button variant="outline" size="icon" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))}><ChevronRight className="h-4 w-4" /></Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="grid grid-cols-3 gap-2 text-xs md:text-sm">
