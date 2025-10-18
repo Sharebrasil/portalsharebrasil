@@ -3,8 +3,9 @@ import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Users, Loader2, Edit } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Plus, Users, Loader2, Mail, Phone } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
@@ -42,6 +43,31 @@ export default function GestaoTripulacao() {
   useEffect(() => {
     void loadCrew();
   }, []);
+
+  const [rolesByUser, setRolesByUser] = useState<Record<string, string[]>>({});
+
+  useEffect(() => {
+    const loadRoles = async () => {
+      try {
+        const userIds = (crewMembers || []).map(c => c.user_id).filter(Boolean) as string[];
+        if (userIds.length === 0) { setRolesByUser({}); return; }
+        const { data, error } = await supabase
+          .from("user_roles")
+          .select("user_id, role")
+          .in("user_id", userIds);
+        if (error) throw error;
+        const map: Record<string, string[]> = {};
+        (data || []).forEach(r => {
+          if (!r.user_id || !r.role) return;
+          map[r.user_id] = [...(map[r.user_id] || []), r.role];
+        });
+        setRolesByUser(map);
+      } catch (e) {
+        console.error("Erro ao carregar papéis de usuários:", e);
+      }
+    };
+    loadRoles();
+  }, [crewMembers]);
 
   const filteredCrewMembers = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
@@ -123,39 +149,54 @@ export default function GestaoTripulacao() {
             ) : filteredCrewMembers.length === 0 ? (
               <div className="py-8 text-center text-sm text-muted-foreground">Nenhum tripulante encontrado.</div>
             ) : (
-              <Table>
-                <TableCaption>Lista de tripulantes</TableCaption>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>CANAC</TableHead>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Telefone</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Atualizado em</TableHead>
-                    <TableHead className="w-[1%]">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredCrewMembers.map((m) => (
-                    <TableRow key={m.id} className="cursor-pointer group" onClick={() => navigate(`/tripulacao/${m.id}`)}>
-                      <TableCell>{m.canac}</TableCell>
-                      <TableCell>{m.full_name}</TableCell>
-                      <TableCell>{m.email ?? ""}</TableCell>
-                      <TableCell>{m.phone ?? ""}</TableCell>
-                      <TableCell className={m.status === "active" ? "text-green-600" : "text-muted-foreground"}>
-                        {m.status ?? ""}
-                      </TableCell>
-                      <TableCell>{m.updated_at ? new Date(m.updated_at).toLocaleDateString() : ""}</TableCell>
-                      <TableCell onClick={(e)=>e.stopPropagation()}>
-                        <Button size="sm" variant="outline" onClick={() => handleEdit(m)} className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Edit className="h-4 w-4" /> Editar
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {filteredCrewMembers.map((m) => {
+                  const initials = (m.full_name || "?")
+                    .split(" ")
+                    .filter(Boolean)
+                    .slice(0, 2)
+                    .map((p) => p[0])
+                    .join("")
+                    .toUpperCase();
+                  const role = m.user_id && (rolesByUser[m.user_id]?.includes("piloto_chefe") ? "PILOTO CHEFE" : rolesByUser[m.user_id]?.includes("tripulante") ? "TRIPULANTE" : null);
+                  return (
+                    <Card key={m.id} className="bg-[#0E2138] text-white border-border shadow-card">
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-10 w-10">
+                              <AvatarImage src={m.photo_url || undefined} />
+                              <AvatarFallback className="bg-primary text-white">{initials}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <div className="font-bold leading-tight uppercase">{m.full_name}</div>
+                            </div>
+                          </div>
+                          {role && (
+                            <Badge className="bg-emerald-700/80 text-white border-emerald-500">{role}</Badge>
+                          )}
+                        </div>
+                        <div className="mt-3 space-y-1 text-sm text-white/90">
+                          {m.email && (
+                            <div className="flex items-center gap-2"><Mail className="h-4 w-4 opacity-70" />{m.email}</div>
+                          )}
+                          {m.phone && (
+                            <div className="flex items-center gap-2"><Phone className="h-4 w-4 opacity-70" />{m.phone}</div>
+                          )}
+                          <div>
+                            <Badge variant="secondary" className="bg-amber-500/20 border-amber-400 text-amber-200">ANAC: {m.canac || "—"}</Badge>
+                          </div>
+                        </div>
+                        <div className="mt-4">
+                          <Button variant="secondary" onClick={() => navigate(`/tripulacao/${m.id}`)} className="w-40 bg-black/30">
+                            Detalhes
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
             )}
           </CardContent>
         </Card>
