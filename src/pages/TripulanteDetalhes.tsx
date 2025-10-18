@@ -166,8 +166,6 @@ export default function TripulanteDetalhes() {
                   </div>
                 </div>
 
-                {/* Card de Horas de Voo PIC/SIC e Totais por Aeronave */}
-                <FlightHoursCard canac={member.canac || ''} />
               </TabsContent>
 
               <TabsContent value="calendario" className="mt-6 space-y-6">
