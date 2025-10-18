@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,7 @@ import { TripulanteFormDialog } from "@/components/tripulacao/TripulanteFormDial
 import { useNavigate } from "react-router-dom";
 import { getErrorMessage } from "@/lib/utils";
 
- type CrewMemberRow = Database["public"]["Tables"]["crew_members"]["Row"];
+type CrewMemberRow = Database["public"]["Tables"]["crew_members"]["Row"];
 
 export default function GestaoTripulacao() {
   const [crewMembers, setCrewMembers] = useState<CrewMemberRow[]>([]);
