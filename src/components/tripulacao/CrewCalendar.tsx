@@ -52,12 +52,7 @@ export default function CrewCalendar({ crewMemberId }: Props) {
   return (
     <Card className="bg-gradient-card border-border shadow-card">
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="flex items-center gap-2"><Plane className="h-5 w-5" /> Calendário de Voos</CardTitle>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}><ChevronLeft className="h-4 w-4" /></Button>
-          <div className="min-w-[140px] text-center font-semibold capitalize">{monthLabel(cursor)}</div>
-          <Button variant="outline" size="icon" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))}><ChevronRight className="h-4 w-4" /></Button>
-        </div>
+        <CardTitle className="flex items-center gap-2"><Plane className="h-5 w-5" /> Horas de Voo</CardTitle>
       </CardHeader>
       <CardContent>
         {isLoading ? (
