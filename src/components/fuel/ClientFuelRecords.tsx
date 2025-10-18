@@ -9,13 +9,12 @@ import { FuelRecordsByAircraft } from "./FuelRecordsByAircraft";
 interface Client {
   id: string;
   company_name: string;
-  aircraft: string | null;
+  aircraft_id: string | null;
 }
 
 interface Aircraft {
   id: string;
   registration: string;
-  year: number | null;
 }
 
 export function ClientFuelRecords() {
@@ -32,17 +31,16 @@ export function ClientFuelRecords() {
     if (selectedClient) {
       loadClientAircrafts();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedClient]);
 
   const loadClients = async () => {
     const { data, error } = await supabase
-      .from("clients")
-      .select("id, company_name, aircraft")
-      .order("company_name", { ascending: true });
+      .from('clients')
+      .select('id, company_name, aircraft_id')
+      .order('company_name', { ascending: true });
 
     if (error) {
-      toast.error("Erro ao carregar clientes");
+      toast.error('Erro ao carregar clientes');
       return;
     }
 
@@ -50,21 +48,19 @@ export function ClientFuelRecords() {
   };
 
   const loadClientAircrafts = async () => {
-    if (!selectedClient?.aircraft) {
+    if (!selectedClient?.aircraft_id) {
       setAircrafts([]);
       return;
     }
 
-    const aircraftRegistrations = selectedClient.aircraft.split(",").map((a) => a.trim());
-
     const { data, error } = await supabase
-      .from("aeronave")
-      .select("id, registration, year")
-      .in("registration", aircraftRegistrations)
-      .order("registration", { ascending: true });
+      .from('aircraft')
+      .select('id, registration')
+      .eq('id', selectedClient.aircraft_id)
+      .order('registration', { ascending: true });
 
     if (error) {
-      toast.error("Erro ao carregar aeronaves");
+      toast.error('Erro ao carregar aeronaves');
       return;
     }
 
@@ -91,7 +87,11 @@ export function ClientFuelRecords() {
 
   if (selectedAircraft && selectedClient) {
     return (
-      <FuelRecordsByAircraft client={selectedClient} aircraft={selectedAircraft} onBack={handleBack} />
+      <FuelRecordsByAircraft
+        client={selectedClient}
+        aircraft={selectedAircraft}
+        onBack={handleBack}
+      />
     );
   }
 
@@ -120,8 +120,10 @@ export function ClientFuelRecords() {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="font-medium">{client.company_name}</p>
-                        {client.aircraft && (
-                          <p className="text-sm text-muted-foreground mt-1">{client.aircraft}</p>
+                        {client.aircraft_id && (
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Aeronave cadastrada
+                          </p>
                         )}
                       </div>
                       <ChevronRight className="h-5 w-5 text-muted-foreground" />
@@ -131,7 +133,9 @@ export function ClientFuelRecords() {
               ))}
             </div>
             {clients.length === 0 && (
-              <div className="text-center py-12 text-muted-foreground">Nenhum cliente cadastrado</div>
+              <div className="text-center py-12 text-muted-foreground">
+                Nenhum cliente cadastrado
+              </div>
             )}
           </CardContent>
         </Card>
@@ -152,9 +156,6 @@ export function ClientFuelRecords() {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="font-medium text-lg">{aircraft.registration}</p>
-                        {aircraft.year && (
-                          <p className="text-sm text-muted-foreground">Ano: {aircraft.year}</p>
-                        )}
                       </div>
                       <ChevronRight className="h-5 w-5 text-muted-foreground" />
                     </div>
@@ -163,7 +164,9 @@ export function ClientFuelRecords() {
               ))}
             </div>
             {aircrafts.length === 0 && (
-              <div className="text-center py-12 text-muted-foreground">Nenhuma aeronave cadastrada para este cliente</div>
+              <div className="text-center py-12 text-muted-foreground">
+                Nenhuma aeronave cadastrada para este cliente
+              </div>
             )}
           </CardContent>
         </Card>
