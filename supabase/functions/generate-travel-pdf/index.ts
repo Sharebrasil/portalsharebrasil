@@ -85,6 +85,17 @@ serve(async (req) => {
 
     const totalGeral = totals.crew + totals.client + totals.sharebrasil;
 
+    const { data: company } = await supabase
+      .from("company_settings")
+      .select("logo_url, name")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const start = new Date(report.start_date);
+    const end = new Date(report.end_date);
+    const days = Math.max(1, Math.round((end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)) + 1);
+
     const html = `
 <!DOCTYPE html>
 <html>
@@ -92,242 +103,171 @@ serve(async (req) => {
   <meta charset="utf-8">
   <title>${report.numero_relatorio || "Relatório de Viagem"}</title>
   <style>
-    @page { size: A4; margin: 15mm; }
+    @page { size: A4; margin: 12mm; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { 
-      font-family: Arial, sans-serif; 
-      font-size: 11pt; 
-      line-height: 1.4; 
-      color: #333;
-      padding: 20px;
+    body {
+      font-family: Arial, sans-serif;
+      font-size: 11pt;
+      line-height: 1.45;
+      color: #1f2937;
+      padding: 10px;
+      background: #fff;
     }
-    .header { 
-      text-align: center; 
-      margin-bottom: 30px; 
-      border-bottom: 3px solid #1e40af;
-      padding-bottom: 15px;
+    .page {
+      border: 3px solid #16a34a;
+      border-radius: 10px;
+      padding: 18px 18px 12px 18px;
     }
-    .header h1 { 
-      margin: 0; 
-      font-size: 24pt; 
-      color: #1e40af; 
-      font-weight: bold;
-      letter-spacing: 2px;
+    .header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 10px;
     }
-    .header h2 { 
-      margin: 8px 0 3px 0; 
-      font-size: 16pt; 
-      color: #64748b; 
-      font-weight: normal;
-    }
-    .header h3 { 
-      margin: 3px 0 0 0; 
-      font-size: 14pt; 
-      color: #1e40af; 
-      font-weight: bold;
-    }
-    .info-section { 
-      margin: 25px 0; 
-      background: #f8fafc;
-      padding: 15px;
-      border-radius: 8px;
-      border-left: 4px solid #1e40af;
-    }
-    .info-row { 
-      display: flex; 
-      margin: 8px 0; 
-      line-height: 1.6;
-    }
-    .info-label { 
-      font-weight: bold; 
-      min-width: 100px;
-      color: #475569;
-    }
-    .info-value {
-      color: #1e293b;
-    }
-    h3 { 
-      margin: 25px 0 12px 0; 
-      color: #1e40af; 
-      font-size: 14pt;
-      border-bottom: 2px solid #e2e8f0;
-      padding-bottom: 5px;
-    }
-    table { 
-      width: 100%; 
-      border-collapse: collapse; 
-      margin: 15px 0; 
-      background: white;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    }
-    th { 
-      background: #1e40af; 
-      color: white; 
-      padding: 12px 10px; 
-      text-align: left; 
-      font-weight: bold;
-      font-size: 10pt;
-    }
-    td { 
-      padding: 10px; 
-      border-bottom: 1px solid #e2e8f0; 
-    }
-    tr:last-child td { border-bottom: none; }
-    tr:hover td { background: #f8fafc; }
-    .totals-table { 
-      margin: 20px 0;
-      background: #f8fafc;
-    }
-    .totals-table td { 
-      padding: 10px; 
-      border-bottom: 1px solid #cbd5e1;
-    }
-    .totals-table td:first-child { font-weight: 600; color: #475569; }
-    .totals-table td:last-child { text-align: right; font-family: 'Courier New', monospace; }
-    .total-row { font-weight: bold; background: #1e40af !important; color: white !important; }
-    .total-row td { border-bottom: none !important; padding: 12px 10px; }
-    .signatures { margin-top: 50px; display: flex; justify-content: space-between; gap: 30px; }
-    .signature-box { flex: 1; text-align: center; }
-    .signature-line { border-top: 2px solid #1e293b; margin-bottom: 10px; padding-top: 10px; margin-top: 40px; }
-    .signature-label { font-weight: bold; color: #475569; font-size: 10pt; }
-    .signature-name { color: #1e293b; margin-top: 3px; }
-    .footer { text-align: center; margin-top: 40px; padding-top: 20px; border-top: 2px solid #e2e8f0; color: #64748b; font-size: 9pt; }
-    .footer p { margin: 5px 0; }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .brand img { height: 36px; }
+    .title { text-align: center; flex: 1; }
+    .title h1 { font-size: 18pt; color: #1e40af; font-weight: 700; }
+    .title small { display: block; color: #334155; margin-top: 3px; }
+    .divider { height: 2px; background: #16a34a; margin: 8px 0 12px 0; }
+
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; margin-bottom: 10px; }
+    .info-item { display: flex; gap: 6px; }
+    .label { font-weight: 700; color: #0f172a; }
+    .muted { color: #475569; }
+
+    h3 { margin: 12px 0 6px 0; color: #1e40af; font-size: 12pt; }
+
+    table { width: 100%; border-collapse: collapse; background: #fff; }
+    thead th { background: #e2e8f0; color: #0f172a; text-align: left; padding: 8px; font-size: 10pt; }
+    tbody td { padding: 8px; border-bottom: 1px solid #e5e7eb; }
+    tbody tr:last-child td { border-bottom: none; }
+    td.amount, th.amount { text-align: right; font-family: 'Courier New', monospace; }
+
+    .totals { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px; }
+    .card { border: 1px solid #e2e8f0; border-radius: 6px; }
+    .card h4 { background: #f8fafc; border-bottom: 1px dashed #16a34a; color: #16a34a; padding: 8px 10px; font-size: 11pt; }
+    .card table { background: transparent; }
+    .card td { padding: 8px 10px; }
+    .card .total { color: #1e3a8a; font-weight: 800; font-size: 12pt; }
+
+    .signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 16px; }
+    .sig { text-align: center; margin-top: 28px; }
+    .sig .line { border-top: 1.5px solid #9ca3af; margin-bottom: 6px; padding-top: 8px; }
+    .sig .label { color: #374151; font-weight: 600; }
+
+    .attachments { margin-top: 14px; }
+    .attachments h3 { color: #1e40af; }
+    .attachment { margin-top: 10px; border: 1px solid #e5e7eb; border-radius: 6px; overflow: hidden; }
+    .attachment .meta { padding: 8px 10px; background: #f8fafc; border-bottom: 1px solid #e5e7eb; }
+    .attachment .meta div { margin: 2px 0; }
+    .attachment img { width: 100%; max-height: 520px; object-fit: contain; display: block; background: #fff; }
+
+    .footer { text-align: center; margin-top: 8px; color: #6b7280; font-size: 9pt; }
     @media print { body { padding: 0; } .no-print { display: none; } }
   </style>
 </head>
 <body>
-  <div class="header">
-    <h1>SHARE</h1>
-    <h2>Relatório de Despesas de Viagem</h2>
-    <h3>${report.numero_relatorio || ""}</h3>
-  </div>
+  <div class="page">
+    <div class="header">
+      <div class="brand">
+        ${company?.logo_url ? `<img src="${company.logo_url}" alt="${company?.name || 'Logo'}" />` : ''}
+      </div>
+      <div class="title">
+        <h1>Relatório de Despesas de Viagem</h1>
+        <small>${report.numero_relatorio ? `REL ${report.numero_relatorio}` : ''}${clientName ? ` - ${clientName}` : ''}</small>
+      </div>
+      <div style="width:36px"></div>
+    </div>
+    <div class="divider"></div>
 
-  <div class="info-section">
-    <div class="info-row">
-      <span class="info-label">Cliente:</span>
-      <span class="info-value">${clientName}</span>
+    <div class="info-grid">
+      <div class="info-item"><span class="label">Cliente:</span><span class="muted">${clientName}</span></div>
+      <div class="info-item"><span class="label">Aeronave:</span><span class="muted">${report.aeronave || ''}</span></div>
+      <div class="info-item"><span class="label">Trecho:</span><span class="muted">${report.description || '-'}</span></div>
+      <div class="info-item"><span class="label">Tripulante:</span><span class="muted">${report.tripulante || ''}</span></div>
+      <div class="info-item"><span class="label">Período:</span><span class="muted">${start.toLocaleDateString('pt-BR')} a ${end.toLocaleDateString('pt-BR')} (${days} dia${days>1?'s':''})</span></div>
     </div>
-    <div class="info-row">
-      <span class="info-label">Aeronave:</span>
-      <span class="info-value">${report.aeronave || ""}</span>
-    </div>
-    <div class="info-row">
-      <span class="info-label">Tripulante:</span>
-      <span class="info-value">${report.tripulante || ""}</span>
-    </div>
-    ${report.description ? `
-    <div class="info-row">
-      <span class="info-label">Trecho:</span>
-      <span class="info-value">${report.description}</span>
-    </div>
-    ` : ""}
-    <div class="info-row">
-      <span class="info-label">Período:</span>
-      <span class="info-value">${new Date(report.start_date).toLocaleDateString("pt-BR")} a ${new Date(report.end_date).toLocaleDateString("pt-BR")}</span>
-    </div>
-  </div>
 
-  <h3>Detalhes das Despesas</h3>
-  <table>
-    <thead>
-      <tr>
-        <th>Categoria</th>
-        <th>Descrição</th>
-        <th style="text-align: right;">Valor (R$)</th>
-        <th>Pago Por</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${expensesList.length > 0 ? expensesList.map((exp: any) => `
+    <h3>Detalhes das Despesas</h3>
+    <table>
+      <thead>
         <tr>
-          <td>${exp.category || ""}</td>
-          <td>${exp.description || ""}</td>
-          <td style="text-align: right; font-family: 'Courier New', monospace;">${parseFloat(exp.amount || 0).toFixed(2).replace(".", ",")}</td>
-          <td>${exp.paid_by || ""}</td>
+          <th>Categoria</th>
+          <th>Descrição</th>
+          <th class="amount">Valor (R$)</th>
+          <th>Pago Por</th>
         </tr>
-      `).join("") : '<tr><td colspan="4" style="text-align: center; color: #64748b;">Nenhuma despesa cadastrada</td></tr>'}
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        ${expensesList.length > 0 ? expensesList.map((exp: any) => `
+          <tr>
+            <td>${exp.category || ''}</td>
+            <td>${exp.description || ''}</td>
+            <td class="amount">${parseFloat(exp.amount || 0).toFixed(2).replace('.', ',')}</td>
+            <td>${exp.paid_by || ''}</td>
+          </tr>
+        `).join('') : '<tr><td colspan="4" style="text-align:center;color:#6b7280;">Nenhuma despesa cadastrada</td></tr>'}
+      </tbody>
+    </table>
 
-  <h3>Totais por Categoria (R$)</h3>
-  <table class="totals-table">
-    <tbody>
-      <tr>
-        <td>Combustível:</td>
-        <td>${totals.fuel.toFixed(2).replace(".", ",")}</td>
-      </tr>
-      <tr>
-        <td>Hospedagem:</td>
-        <td>${totals.lodging.toFixed(2).replace(".", ",")}</td>
-      </tr>
-      <tr>
-        <td>Alimentação:</td>
-        <td>${totals.food.toFixed(2).replace(".", ",")}</td>
-      </tr>
-      <tr>
-        <td>Transporte:</td>
-        <td>${totals.transport.toFixed(2).replace(".", ",")}</td>
-      </tr>
-      <tr>
-        <td>Outros:</td>
-        <td>${totals.other.toFixed(2).replace(".", ",")}</td>
-      </tr>
-      <tr class="total-row">
-        <td>TOTAL GERAL:</td>
-        <td>${totalGeral.toFixed(2).replace(".", ",")}</td>
-      </tr>
-    </tbody>
-  </table>
-
-  <h3>Totais por Pagador (R$)</h3>
-  <table class="totals-table">
-    <tbody>
-      <tr>
-        <td>Tripulante:</td>
-        <td>${totals.crew.toFixed(2).replace(".", ",")}</td>
-      </tr>
-      <tr>
-        <td>Cliente:</td>
-        <td>${totals.client.toFixed(2).replace(".", ",")}</td>
-      </tr>
-      <tr>
-        <td>ShareBrasil:</td>
-        <td>${totals.sharebrasil.toFixed(2).replace(".", ",")}</td>
-      </tr>
-      <tr class="total-row">
-        <td>TOTAL GERAL:</td>
-        <td>${totalGeral.toFixed(2).replace(".", ",")}</td>
-      </tr>
-    </tbody>
-  </table>
-
-  <div class="signatures">
-    <div class="signature-box">
-      <div class="signature-line">
-        <div class="signature-label">Assinatura do Tripulante(s):</div>
-        <div class="signature-name">${report.tripulante || ""}</div>
+    <div class="totals">
+      <div class="card">
+        <h4>Totais por Categoria (R$)</h4>
+        <table>
+          <tbody>
+            <tr><td>Combustível:</td><td class="amount">${totals.fuel.toFixed(2).replace('.', ',')}</td></tr>
+            <tr><td>Hospedagem:</td><td class="amount">${totals.lodging.toFixed(2).replace('.', ',')}</td></tr>
+            <tr><td>Alimentação:</td><td class="amount">${totals.food.toFixed(2).replace('.', ',')}</td></tr>
+            <tr><td>Transporte:</td><td class="amount">${totals.transport.toFixed(2).replace('.', ',')}</td></tr>
+            <tr><td>Outros:</td><td class="amount">${totals.other.toFixed(2).replace('.', ',')}</td></tr>
+            <tr><td class="label">TOTAL GERAL:</td><td class="amount total">${totalGeral.toFixed(2).replace('.', ',')}</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card">
+        <h4>Totais por Pagador (R$)</h4>
+        <table>
+          <tbody>
+            <tr><td>Tripulante:</td><td class="amount">${totals.crew.toFixed(2).replace('.', ',')}</td></tr>
+            <tr><td>Cliente:</td><td class="amount">${totals.client.toFixed(2).replace('.', ',')}</td></tr>
+            <tr><td>ShareBrasil:</td><td class="amount">${totals.sharebrasil.toFixed(2).replace('.', ',')}</td></tr>
+            <tr><td class="label">TOTAL GERAL:</td><td class="amount total">${totalGeral.toFixed(2).replace('.', ',')}</td></tr>
+          </tbody>
+        </table>
       </div>
     </div>
-    <div class="signature-box">
-      <div class="signature-line">
-        <div class="signature-label">Assinatura do Cliente:</div>
-        <div class="signature-name">${clientName}</div>
+
+    <div class="signatures">
+      <div class="sig">
+        <div class="line"></div>
+        <div class="label">Assinatura do Tripulante(s): ${report.tripulante || ''}</div>
       </div>
+      <div class="sig">
+        <div class="line"></div>
+        <div class="label">Assinatura do Cliente: ${clientName}</div>
+      </div>
+    </div>
+
+    <div class="footer">Gerado por Financeiro</div>
+
+    <div class="attachments">
+      <h3>Comprovantes Anexados</h3>
+      ${expensesList.filter((e:any)=>!!e.receipt_url).map((e:any, i:number)=>`
+        <div class="attachment">
+          <div class="meta">
+            <div><strong>Item Nº:</strong> ${i + 1}</div>
+            <div><strong>Descrição:</strong> ${e.description || ''}</div>
+            <div><strong>Categoria:</strong> ${e.category || ''}</div>
+            <div><strong>Valor:</strong> R$ ${parseFloat(e.amount || 0).toFixed(2).replace('.', ',')}</div>
+          </div>
+          <img src="${e.receipt_url}" alt="Comprovante ${i + 1}" />
+        </div>
+      `).join('')}
     </div>
   </div>
 
-  <div class="footer">
-    <p><strong>Gerado por Financeiro</strong></p>
-    <p>Comprovantes Anexados</p>
-    <p style="margin-top: 10px; font-size: 8pt;">Documento gerado em ${new Date().toLocaleDateString("pt-BR")} às ${new Date().toLocaleTimeString("pt-BR")}</p>
-  </div>
-  
   <script>
     window.onload = function() {
-      setTimeout(function() {
-        window.print();
-      }, 500);
+      setTimeout(function() { window.print(); }, 500);
     };
   </script>
 </body>
