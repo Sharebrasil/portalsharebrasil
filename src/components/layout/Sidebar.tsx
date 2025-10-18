@@ -65,7 +65,6 @@ const menuGroups = [
           { title: "Config. Empresa", href: "/financeiro/config" },
           { title: "Emissão de Recibo", href: "/financeiro/recibo" },
           { title: "Relatório de Viagem", href: "/financeiro/viagem" },
-          { title: "Cobrança", href: "/financeiro/cobranca" },
           { title: "Solicitação de Compras/Serviço", href: "/financeiro/compras" },
         ],
       },
