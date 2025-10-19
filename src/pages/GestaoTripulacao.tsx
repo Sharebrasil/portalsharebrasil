@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Plus, Users, Loader2, Mail, Phone } from "lucide-react";
+import { Plus, Users, Loader2, Mail, Phone, Folder } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
@@ -194,6 +194,62 @@ export default function GestaoTripulacao() {
             )}
           </CardContent>
         </Card>
+
+        {(crewMembers ?? []).some((m) => (m.status ?? 'active') !== 'active') && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Folder className="h-5 w-5 text-muted-foreground" />
+                <CardTitle>Tripulação Inativa</CardTitle>
+                <Badge variant="secondary" className="ml-2">
+                  {(crewMembers ?? []).filter((m) => (m.status ?? 'active') !== 'active').length}
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {(crewMembers ?? [])
+                  .filter((m) => (m.status ?? 'active') !== 'active')
+                  .map((m) => {
+                    const initials = (m.full_name || "?")
+                      .split(" ")
+                      .filter(Boolean)
+                      .slice(0, 2)
+                      .map((p) => p[0])
+                      .join("")
+                      .toUpperCase();
+                    const role = m.user_id && (rolesByUser[m.user_id]?.includes("piloto_chefe") ? "PILOTO CHEFE" : rolesByUser[m.user_id]?.includes("tripulante") ? "TRIPULANTE" : null);
+                    return (
+                      <Card key={m.id} className="bg-[#121826] text-white border-border shadow-card">
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center gap-3">
+                              <Avatar className="h-10 w-10">
+                                <AvatarImage src={m.photo_url || undefined} />
+                                <AvatarFallback className="bg-muted text-foreground">{initials}</AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <div className="font-bold leading-tight uppercase">{m.full_name}</div>
+                                <Badge variant="secondary" className="mt-1">INATIVO</Badge>
+                              </div>
+                            </div>
+                            {role && (
+                              <Badge className="bg-emerald-700/80 text-white border-emerald-500">{role}</Badge>
+                            )}
+                          </div>
+                          <div className="mt-4">
+                            <Button variant="secondary" onClick={() => navigate(`/tripulacao/${m.id}`)} className="w-40 bg-black/30">
+                              Detalhes
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <TripulanteFormDialog open={dialogOpen} onOpenChange={handleDialogChange} crewMember={editing as any} />
       </div>
