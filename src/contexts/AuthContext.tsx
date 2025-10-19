@@ -46,40 +46,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return roleList;
       }
 
-      // Fallback to direct query
-      const { data, error } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", userId);
-
-      if (error) {
-        // Final fallback: try roles from JWT/app_metadata or user_metadata
-        const { data: userRes } = await supabase.auth.getUser();
-        const rawRoles = (userRes.user as any)?.app_metadata?.roles ?? (userRes.user as any)?.user_metadata?.roles;
-        const fallbackList: AppRole[] = Array.isArray(rawRoles)
-          ? (rawRoles as unknown[])
-              .filter((r): r is string => typeof r === 'string')
-              .filter((r): r is AppRole => isAppRole(r))
-          : [];
-        if (fallbackList.length) {
-          setRoles(fallbackList);
-          return fallbackList;
-        }
-
-        console.error("Failed to load user roles", {
-          rpcError: serializeError(rpcError),
-          queryError: serializeError(error),
-        });
-        setRoles([]);
-        return [];
+      // Fallback: try roles from JWT/app_metadata or user_metadata (avoid querying user_roles due to RLS recursion)
+      const { data: userRes } = await supabase.auth.getUser();
+      const rawRoles = (userRes.user as any)?.app_metadata?.roles ?? (userRes.user as any)?.user_metadata?.roles;
+      const fallbackList: AppRole[] = Array.isArray(rawRoles)
+        ? (rawRoles as unknown[])
+            .filter((r): r is string => typeof r === 'string')
+            .filter((r): r is AppRole => isAppRole(r))
+        : [];
+      if (fallbackList.length) {
+        setRoles(fallbackList);
+        return fallbackList;
       }
 
-      const roleList = (data ?? [])
-        .map((entry: any) => entry.role)
-        .filter((role): role is AppRole => Boolean(role));
-
-      setRoles(roleList);
-      return roleList;
+      console.error("Failed to load user roles", {
+        rpcError: serializeError(rpcError),
+        queryError: 'skipped_user_roles_table_query_due_to_rls',
+      });
+      setRoles([]);
+      return [];
     } catch (e) {
       console.error("Failed to load user roles", serializeError(e) ?? e);
       setRoles([]);
