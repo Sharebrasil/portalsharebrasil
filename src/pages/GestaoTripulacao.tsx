@@ -26,12 +26,10 @@ export default function GestaoTripulacao() {
   const loadCrew = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("crew_members")
-        .select("*")
-        .order("full_name", { ascending: true });
-      if (error) throw error;
-      setCrewMembers(data ?? []);
+      const { data, error } = await supabase.functions.invoke("list-crew-members", { body: {} });
+      if (error) throw new Error(error.message ?? "Erro ao carregar tripulantes");
+      const list = (data as { crew_members?: CrewMemberRow[] })?.crew_members ?? [];
+      setCrewMembers(list);
     } catch (err) {
       console.error(`Erro ao buscar tripulantes: ${getErrorMessage(err)}`);
       toast.error(`Não foi possível carregar os tripulantes: ${getErrorMessage(err)}`);
