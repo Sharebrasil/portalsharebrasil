@@ -31,6 +31,14 @@ export default function DiarioBordo() {
     },
   });
 
+  const isActiveAircraft = (status?: string | null) => {
+    const s = String(status ?? '').toLowerCase();
+    return s === 'ativa' || s === 'active' || s === '';
+  };
+
+  const activeAircraft = (aircraft ?? []).filter((ac: any) => isActiveAircraft(ac.status));
+  const inactiveAircraft = (aircraft ?? []).filter((ac: any) => !isActiveAircraft(ac.status));
+
   return (
     <Layout>
       <div className="container mx-auto p-6 space-y-6 w-full">
@@ -76,9 +84,9 @@ export default function DiarioBordo() {
               </Card>
             ))}
           </div>
-        ) : aircraft && aircraft.length > 0 ? (
+        ) : activeAircraft.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {aircraft.map((ac) => (
+            {activeAircraft.map((ac) => (
               <Card
                 key={ac.id}
                 className="hover:shadow-lg transition-all cursor-pointer border-border bg-card"
@@ -140,7 +148,7 @@ export default function DiarioBordo() {
           </Card>
         )}
 
-        {(aircraft ?? []).some((ac: any) => String(ac.status ?? '').toLowerCase() !== 'ativa') && (
+        {inactiveAircraft.length > 0 && (
           <div className="space-y-3 mt-8">
             <button
               type="button"
@@ -152,7 +160,7 @@ export default function DiarioBordo() {
                 <Folder className="h-5 w-5 text-muted-foreground" />
                 <h2 className="text-xl font-semibold text-foreground">Aeronaves e Diários Inativos</h2>
                 <Badge variant="secondary">
-                  {(aircraft ?? []).filter((ac: any) => String(ac.status ?? '').toLowerCase() !== 'ativa').length}
+                  {inactiveAircraft.length}
                 </Badge>
               </div>
               <span className="text-sm text-muted-foreground">{showInactive ? 'Ocultar' : 'Abrir pasta'}</span>
@@ -160,9 +168,7 @@ export default function DiarioBordo() {
 
             {showInactive && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {(aircraft ?? [])
-                  .filter((ac: any) => String(ac.status ?? '').toLowerCase() !== 'ativa')
-                  .map((ac: any) => (
+                {inactiveAircraft.map((ac: any) => (
                     <Card
                       key={ac.id}
                       className="hover:shadow-lg transition-all cursor-pointer border-border bg-card/60"
