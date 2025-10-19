@@ -142,50 +142,64 @@ export default function DiarioBordo() {
 
         {(aircraft ?? []).some((ac: any) => String(ac.status ?? '').toLowerCase() !== 'ativa') && (
           <div className="space-y-3 mt-8">
-            <div className="flex items-center gap-2">
-              <Folder className="h-5 w-5 text-muted-foreground" />
-              <h2 className="text-xl font-semibold text-foreground">Pasta: Aeronaves e Diários Inativos</h2>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {(aircraft ?? [])
-                .filter((ac: any) => String(ac.status ?? '').toLowerCase() !== 'ativa')
-                .map((ac: any) => (
-                  <Card
-                    key={ac.id}
-                    className="hover:shadow-lg transition-all cursor-pointer border-border bg-card/60"
-                    onClick={() => navigate(`/diario-bordo/${ac.id}`)}
-                  >
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 rounded-lg bg-muted">
-                            <Plane className="h-6 w-6 text-foreground" />
+            <button
+              type="button"
+              className="w-full flex items-center justify-between rounded-md border border-border bg-card px-4 py-3 text-left"
+              onClick={() => setShowInactive((v) => !v)}
+              aria-expanded={showInactive}
+            >
+              <div className="flex items-center gap-2">
+                <Folder className="h-5 w-5 text-muted-foreground" />
+                <h2 className="text-xl font-semibold text-foreground">Aeronaves e Diários Inativos</h2>
+                <Badge variant="secondary">
+                  {(aircraft ?? []).filter((ac: any) => String(ac.status ?? '').toLowerCase() !== 'ativa').length}
+                </Badge>
+              </div>
+              <span className="text-sm text-muted-foreground">{showInactive ? 'Ocultar' : 'Abrir pasta'}</span>
+            </button>
+
+            {showInactive && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {(aircraft ?? [])
+                  .filter((ac: any) => String(ac.status ?? '').toLowerCase() !== 'ativa')
+                  .map((ac: any) => (
+                    <Card
+                      key={ac.id}
+                      className="hover:shadow-lg transition-all cursor-pointer border-border bg-card/60"
+                      onClick={() => navigate(`/diario-bordo/${ac.id}`)}
+                    >
+                      <CardHeader>
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-muted">
+                              <Plane className="h-6 w-6 text-foreground" />
+                            </div>
+                            <div>
+                              <CardTitle className="text-xl text-foreground">
+                                {ac.registration}
+                              </CardTitle>
+                              <p className="text-sm text-muted-foreground mt-1">
+                                {ac.model}
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <CardTitle className="text-xl text-foreground">
-                              {ac.registration}
-                            </CardTitle>
-                            <p className="text-sm text-muted-foreground mt-1">
-                              {ac.model}
-                            </p>
-                          </div>
+                          <Badge variant="secondary">{ac.status || 'Inativa'}</Badge>
                         </div>
-                        <Badge variant="secondary">{ac.status || 'Inativa'}</Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Calendar className="h-4 w-4" />
-                        <span>Diário {new Date().getFullYear()}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Clock className="h-4 w-4" />
-                        <span>{ac.total_hours?.toFixed(1) || '0.0'} horas totais</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-            </div>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Calendar className="h-4 w-4" />
+                          <span>Diário {new Date().getFullYear()}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Clock className="h-4 w-4" />
+                          <span>{ac.total_hours?.toFixed(1) || '0.0'} horas totais</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+              </div>
+            )}
           </div>
         )}
 
