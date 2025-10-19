@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ClienteCard } from "@/components/clientes/ClienteCard";
-import { Plus, Search, Building, Upload, FileText, X, Image, ChevronLeft, Edit, Phone, Mail, MapPin } from "lucide-react";
+import { Plus, Search, Building, Upload, FileText, X, Image, ChevronLeft, Edit, Phone, Mail, MapPin, Folder } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -57,6 +57,7 @@ interface Cliente {
   aircraft_id?: string | null;
   logo_url?: string;
   documents?: ClientDocument[];
+  status?: string | null;
 }
 
 interface AircraftOption {
@@ -73,6 +74,7 @@ export default function Clientes() {
   const [viewingCliente, setViewingCliente] = useState<Cliente | null>(null);
   const [editingCliente, setEditingCliente] = useState<Cliente | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [showInactive, setShowInactive] = useState(false);
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -347,6 +349,14 @@ export default function Clientes() {
     cliente.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const isActive = (status?: string | null) => {
+    const s = String(status ?? '').toLowerCase();
+    return s === 'active' || s === 'ativo' || s === '';
+  };
+
+  const activeClientes = filteredClientes.filter((c) => isActive(c.status));
+  const inactiveClientes = filteredClientes.filter((c) => !isActive(c.status));
+
   return (
     <Layout>
       {!viewingCliente && (
@@ -408,17 +418,53 @@ export default function Clientes() {
                 </Button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                {filteredClientes.map((cliente) => (
-                  <ClienteCard
-                    key={cliente.id}
-                    cliente={cliente}
-                    onView={handleViewCliente}
-                    onEdit={handleOpenDialog}
-                    onDelete={setDeleteId}
-                  />
-                ))}
-              </div>
+              <>
+                {activeClientes.length > 0 && (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                    {activeClientes.map((cliente) => (
+                      <ClienteCard
+                        key={cliente.id}
+                        cliente={cliente}
+                        onView={handleViewCliente}
+                        onEdit={handleOpenDialog}
+                        onDelete={setDeleteId}
+                      />
+                    ))}
+                  </div>
+                )}
+
+                {inactiveClientes.length > 0 && (
+                  <div className="space-y-3 mt-8">
+                    <button
+                      type="button"
+                      className="w-full flex items-center justify-between rounded-md border border-border bg-card px-4 py-3 text-left"
+                      onClick={() => setShowInactive((v) => !v)}
+                      aria-expanded={showInactive}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Folder className="h-5 w-5 text-muted-foreground" />
+                        <span className="text-xl font-semibold text-foreground">Clientes Inativos</span>
+                        <Badge variant="secondary">{inactiveClientes.length}</Badge>
+                      </div>
+                      <span className="text-sm text-muted-foreground">{showInactive ? 'Ocultar' : 'Abrir pasta'}</span>
+                    </button>
+
+                    {showInactive && (
+                      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                        {inactiveClientes.map((cliente) => (
+                          <ClienteCard
+                            key={cliente.id}
+                            cliente={cliente}
+                            onView={handleViewCliente}
+                            onEdit={handleOpenDialog}
+                            onDelete={setDeleteId}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
