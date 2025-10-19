@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Dialog,
   DialogContent,
@@ -47,10 +48,6 @@ interface Task {
   requested_by: string | null;
 }
 
-interface UserRoleRow {
-  role: string;
-}
-
 interface UserProfile {
   id: string;
   full_name: string;
@@ -70,6 +67,7 @@ export default function TaskDialog({ open, onOpenChange, task, onSave }: TaskDia
   const [currentUserId, setCurrentUserId] = useState<string>("");
   const [canAssignToOthers, setCanAssignToOthers] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { roles } = useAuth();
 
   const fetchCurrentUser = useCallback(async () => {
     const {
@@ -90,21 +88,9 @@ export default function TaskDialog({ open, onOpenChange, task, onSave }: TaskDia
 
     setCurrentUserId(user.id);
 
-    const { data: roles, error: rolesError } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id);
-
-    if (rolesError) {
-      console.error("Erro ao carregar papéis do usuário:", rolesError);
-      toast.error("Não foi possível verificar permissões do usuário");
-      return;
-    }
-
-    const userRoles = (roles ?? []).map((roleRow: UserRoleRow) => roleRow.role);
     const allowedRoles = new Set(["admin", "piloto_chefe", "financeiro_master"]);
-    setCanAssignToOthers(userRoles.some((role) => allowedRoles.has(role)));
-  }, []);
+    setCanAssignToOthers(roles.some((role) => allowedRoles.has(role)));
+  }, [roles]);
 
   const fetchUsers = useCallback(async () => {
     const { data, error } = await supabase

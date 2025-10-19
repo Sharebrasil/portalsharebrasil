@@ -82,27 +82,20 @@ export const fetchManagedUsers = async (): Promise<ManagedUser[]> => {
     throw new Error(profilesError.message ?? "Não foi possível carregar os perfis.");
   }
 
-  const { data: rolesData, error: rolesError } = await supabase
-    .from("user_roles")
-    .select("user_id, role");
+  const userIds = ((profilesData ?? []) as SupabaseProfileRow[]).map((p) => p.id);
+  const { data: rolesResp, error: rolesErr } = await supabase.functions.invoke("list-user-roles", {
+    body: { userIds },
+  });
 
-  if (rolesError) {
-    throw new Error(rolesError.message ?? "Não foi possível carregar os perfis de acesso.");
+  if (rolesErr) {
+    throw new Error(rolesErr.message ?? "Não foi possível carregar os perfis de acesso.");
   }
 
+  const rolesByUser = (rolesResp as { rolesByUser?: Record<string, AppRole[]> })?.rolesByUser ?? {};
+
   const rolesMap = new Map<string, AppRole[]>();
-
-  (rolesData ?? []).forEach((entry: SupabaseRoleRow) => {
-    if (!entry.role) {
-      return;
-    }
-
-    const current = rolesMap.get(entry.user_id) ?? [];
-
-    if (!current.includes(entry.role)) {
-      current.push(entry.role);
-      rolesMap.set(entry.user_id, current);
-    }
+  Object.entries(rolesByUser).forEach(([userId, roles]) => {
+    rolesMap.set(userId, roles);
   });
 
   const rawProfiles = (profilesData ?? []) as SupabaseProfileRow[];
