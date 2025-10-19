@@ -48,10 +48,6 @@ interface Task {
   requested_by: string | null;
 }
 
-interface UserRoleRow {
-  role: string;
-}
-
 interface UserProfile {
   id: string;
   full_name: string;
