@@ -21,6 +21,7 @@ export default function GestaoTripulacao() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<CrewMemberRow | null>(null);
+  const [showInactive, setShowInactive] = useState(false);
   const navigate = useNavigate();
 
   const loadCrew = async () => {
@@ -198,56 +199,66 @@ export default function GestaoTripulacao() {
         {(crewMembers ?? []).some((m) => (m.status ?? 'active') !== 'active') && (
           <Card>
             <CardHeader>
-              <div className="flex items-center gap-2">
-                <Folder className="h-5 w-5 text-muted-foreground" />
-                <CardTitle>Tripulação Inativa</CardTitle>
-                <Badge variant="secondary" className="ml-2">
-                  {(crewMembers ?? []).filter((m) => (m.status ?? 'active') !== 'active').length}
-                </Badge>
-              </div>
+              <button
+                type="button"
+                className="w-full flex items-center justify-between text-left"
+                onClick={() => setShowInactive((v) => !v)}
+                aria-expanded={showInactive}
+              >
+                <div className="flex items-center gap-2">
+                  <Folder className="h-5 w-5 text-muted-foreground" />
+                  <CardTitle>Tripulação Inativa</CardTitle>
+                  <Badge variant="secondary" className="ml-2">
+                    {(crewMembers ?? []).filter((m) => (m.status ?? 'active') !== 'active').length}
+                  </Badge>
+                </div>
+                <span className="text-sm text-muted-foreground">{showInactive ? 'Ocultar' : 'Abrir pasta'}</span>
+              </button>
             </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {(crewMembers ?? [])
-                  .filter((m) => (m.status ?? 'active') !== 'active')
-                  .map((m) => {
-                    const initials = (m.full_name || "?")
-                      .split(" ")
-                      .filter(Boolean)
-                      .slice(0, 2)
-                      .map((p) => p[0])
-                      .join("")
-                      .toUpperCase();
-                    const role = m.user_id && (rolesByUser[m.user_id]?.includes("piloto_chefe") ? "PILOTO CHEFE" : rolesByUser[m.user_id]?.includes("tripulante") ? "TRIPULANTE" : null);
-                    return (
-                      <Card key={m.id} className="bg-[#121826] text-white border-border shadow-card">
-                        <CardContent className="p-4">
-                          <div className="flex items-start justify-between">
-                            <div className="flex items-center gap-3">
-                              <Avatar className="h-10 w-10">
-                                <AvatarImage src={m.photo_url || undefined} />
-                                <AvatarFallback className="bg-muted text-foreground">{initials}</AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <div className="font-bold leading-tight uppercase">{m.full_name}</div>
-                                <Badge variant="secondary" className="mt-1">INATIVO</Badge>
+            {showInactive && (
+              <CardContent>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {(crewMembers ?? [])
+                    .filter((m) => (m.status ?? 'active') !== 'active')
+                    .map((m) => {
+                      const initials = (m.full_name || "?")
+                        .split(" ")
+                        .filter(Boolean)
+                        .slice(0, 2)
+                        .map((p) => p[0])
+                        .join("")
+                        .toUpperCase();
+                      const role = m.user_id && (rolesByUser[m.user_id]?.includes("piloto_chefe") ? "PILOTO CHEFE" : rolesByUser[m.user_id]?.includes("tripulante") ? "TRIPULANTE" : null);
+                      return (
+                        <Card key={m.id} className="bg-[#121826] text-white border-border shadow-card">
+                          <CardContent className="p-4">
+                            <div className="flex items-start justify-between">
+                              <div className="flex items-center gap-3">
+                                <Avatar className="h-10 w-10">
+                                  <AvatarImage src={m.photo_url || undefined} />
+                                  <AvatarFallback className="bg-muted text-foreground">{initials}</AvatarFallback>
+                                </Avatar>
+                                <div>
+                                  <div className="font-bold leading-tight uppercase">{m.full_name}</div>
+                                  <Badge variant="secondary" className="mt-1">INATIVO</Badge>
+                                </div>
                               </div>
+                              {role && (
+                                <Badge className="bg-emerald-700/80 text-white border-emerald-500">{role}</Badge>
+                              )}
                             </div>
-                            {role && (
-                              <Badge className="bg-emerald-700/80 text-white border-emerald-500">{role}</Badge>
-                            )}
-                          </div>
-                          <div className="mt-4">
-                            <Button variant="secondary" onClick={() => navigate(`/tripulacao/${m.id}`)} className="w-40 bg-black/30">
-                              Detalhes
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-              </div>
-            </CardContent>
+                            <div className="mt-4">
+                              <Button variant="secondary" onClick={() => navigate(`/tripulacao/${m.id}`)} className="w-40 bg-black/30">
+                                Detalhes
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                </div>
+              </CardContent>
+            )}
           </Card>
         )}
 
