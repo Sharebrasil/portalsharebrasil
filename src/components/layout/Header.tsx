@@ -186,11 +186,11 @@ export function Header() {
                 className="text-foreground hover:bg-accent cursor-pointer"
                 onSelect={(event) => {
                   event.preventDefault();
-                  setIsUserDialogOpen(true);
+                  navigate("/gestao-funcionarios");
                 }}
               >
                 <UserPlus className="mr-2 h-4 w-4" />
-                Gestão de Usuários
+                Gestão de Funcionários
               </DropdownMenuItem>
             )}
             <DropdownMenuItem className="text-foreground hover:bg-accent cursor-pointer">

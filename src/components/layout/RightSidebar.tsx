@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import {
   Calendar,
@@ -112,6 +111,12 @@ export function RightSidebar() {
       status: "completed",
       path: "/manutencao/relatorios",
     },
+    {
+      label: "Gestão de CTM",
+      icon: Wrench,
+      status: "normal",
+      path: "/manutencao/ctm",
+    },
   ];
 
   return (
@@ -169,9 +174,7 @@ export function RightSidebar() {
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0 space-y-2">
-          {maintenanceItems.map((item, index) => {
-            const statusConfig = maintenanceStatusConfig[item.status];
-            return (
+          {maintenanceItems.map((item, index) => (
               <Button
                 key={index}
                 variant="outline"
@@ -179,16 +182,12 @@ export function RightSidebar() {
                 onClick={() => navigate(item.path)}
                 aria-label={`Abrir ${item.label}`}
               >
-                <div className="flex items-center justify-between w-full">
-                  <div className="flex items-center">
-                    <item.icon className="mr-3 h-4 w-4 text-primary" />
-                    <span className="text-sm">{item.label}</span>
-                  </div>
-                  <Badge variant={statusConfig.variant}>{statusConfig.label}</Badge>
+                <div className="flex items-center w-full">
+                  <item.icon className="mr-3 h-4 w-4 text-primary" />
+                  <span className="text-sm">{item.label}</span>
                 </div>
               </Button>
-            );
-          })}
+          ))}
         </CardContent>
       </Card>
     </aside>

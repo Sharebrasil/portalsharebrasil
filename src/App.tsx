@@ -40,6 +40,8 @@ import Aerodromos from "./pages/Aerodromos";
 import Aeronaves from "./pages/Aeronaves";
 import GestaoSalarios from "./pages/GestaoSalarios";
 import GestaoUsuarios from "./pages/GestaoUsuarios";
+import GestaoFuncionarios from "./pages/GestaoFuncionarios";
+import GestaoCTM from "./pages/GestaoCTM";
 import ControleAbastecimento from "./pages/ControleAbastecimento";
 
 const queryClient = new QueryClient();
@@ -84,6 +86,7 @@ const App = () => {
               <Route path="/tripulacao/:id" element={renderProtected(<TripulanteDetalhes />)} />
               <Route path="/admin/usuarios" element={renderProtected(<GestaoUsuarios />)} />
               <Route path="/gestao-salarios" element={renderProtected(<GestaoSalarios />)} />
+              <Route path="/gestao-funcionarios" element={renderProtected(<GestaoFuncionarios />)} />
               <Route path="/abastecimento" element={renderProtected(<ControleAbastecimento />)} />
               <Route path="/diario-bordo" element={renderProtected(<DiarioBordo />)} />
               <Route path="/aerodromos" element={renderProtected(<Aerodromos />)} />
@@ -92,6 +95,7 @@ const App = () => {
               <Route path="/manutencao/vencimentos" element={renderProtected(<ControleVencimentos />)} />
               <Route path="/manutencao/programacao" element={renderProtected(<ProgramacaoManutencao />)} />
               <Route path="/manutencao/relatorios" element={renderProtected(<RelatoriosTecnicos />)} />
+              <Route path="/manutencao/ctm" element={renderProtected(<GestaoCTM />)} />
               <Route path="*" element={renderProtected(<NotFound />)} />
             </Routes>
           </HashRouter>
