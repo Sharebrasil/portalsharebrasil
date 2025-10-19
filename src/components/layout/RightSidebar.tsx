@@ -112,6 +112,12 @@ export function RightSidebar() {
       status: "completed",
       path: "/manutencao/relatorios",
     },
+    {
+      label: "Gestão de CTM",
+      icon: Wrench,
+      status: "normal",
+      path: "/manutencao/ctm",
+    },
   ];
 
   return (
