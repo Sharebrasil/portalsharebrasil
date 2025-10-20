@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, Cake, Users, Plus, Edit, Trash2 } from "lucide-react";
+import { Calendar, Cake, Plus, Edit, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import type { Database } from "@/integrations/supabase/types";
@@ -22,7 +22,6 @@ import {
   setYear,
   startOfDay,
 } from "date-fns";
-import { useNavigate } from "react-router-dom";
 
 type BirthdayRow = Database["public"]["Tables"]["birthdays"]["Row"];
 
@@ -76,12 +75,10 @@ const getBirthdayCategoryLabel = (category: string | null) => {
 
 export default function Aniversarios() {
   const [birthdays, setBirthdays] = useState<BirthdayRow[]>([]);
-  const [contactsCount, setContactsCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingBirthday, setEditingBirthday] = useState<BirthdayRow | null>(null);
   const { toast } = useToast();
-  const navigate = useNavigate();
   const [filter, setFilter] = useState<"month" | "next7" | "all">("month");
 
   const [formData, setFormData] = useState({
@@ -95,19 +92,14 @@ export default function Aniversarios() {
     try {
       setLoading(true);
 
-      const [{ data, error }, { count, error: countError }] = await Promise.all([
-        supabase
-          .from("birthdays")
-          .select("id,nome,data_aniversario,empresa,category,created_at,updated_at")
-          .order("data_aniversario", { ascending: true }),
-        supabase.from("contacts").select("id", { count: "exact", head: true }),
-      ]);
+      const { data, error } = await supabase
+        .from("birthdays")
+        .select("id,nome,data_aniversario,empresa,category,created_at,updated_at")
+        .order("data_aniversario", { ascending: true });
 
       if (error) throw error;
-      if (countError) throw countError;
 
       setBirthdays(data ?? []);
-      setContactsCount(count ?? 0);
     } catch (error) {
       console.error("Erro ao carregar aniversários:", error);
       toast({
@@ -234,14 +226,14 @@ export default function Aniversarios() {
             </CardContent>
           </Card>
 
-          <Card onClick={() => navigate("/agenda/contatos")} className="cursor-pointer">
+          <Card onClick={() => setFilter("all")} className="cursor-pointer">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Total de Contatos</p>
-                  <p className="text-2xl font-bold text-accent">{contactsCount}</p>
+                  <p className="text-sm text-muted-foreground">Total de Aniversários</p>
+                  <p className="text-2xl font-bold text-accent">{processedBirthdays.length}</p>
                 </div>
-                <Users className="h-8 w-8 text-accent" />
+                <Cake className="h-8 w-8 text-accent" />
               </div>
             </CardContent>
           </Card>
