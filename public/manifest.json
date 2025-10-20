@@ -12,42 +12,50 @@
     {
       "src": "https://cdn.builder.io/api/v1/image/assets%2F6c062f1e291b49728b0868343e9f0a9d%2F2e829c6f48f245a19302cc824e53af5f?format=webp&width=72",
       "sizes": "72x72",
-      "type": "image/webp"
+      "type": "image/webp",
+      "purpose": "any maskable"
     },
     {
       "src": "https://cdn.builder.io/api/v1/image/assets%2F6c062f1e291b49728b0868343e9f0a9d%2F2e829c6f48f245a19302cc824e53af5f?format=webp&width=96",
       "sizes": "96x96",
-      "type": "image/webp"
+      "type": "image/webp",
+      "purpose": "any maskable"
     },
     {
       "src": "https://cdn.builder.io/api/v1/image/assets%2F6c062f1e291b49728b0868343e9f0a9d%2F2e829c6f48f245a19302cc824e53af5f?format=webp&width=128",
       "sizes": "128x128",
-      "type": "image/webp"
+      "type": "image/webp",
+      "purpose": "any maskable"
     },
     {
       "src": "https://cdn.builder.io/api/v1/image/assets%2F6c062f1e291b49728b0868343e9f0a9d%2F2e829c6f48f245a19302cc824e53af5f?format=webp&width=144",
       "sizes": "144x144",
-      "type": "image/webp"
+      "type": "image/webp",
+      "purpose": "any maskable"
     },
     {
       "src": "https://cdn.builder.io/api/v1/image/assets%2F6c062f1e291b49728b0868343e9f0a9d%2F2e829c6f48f245a19302cc824e53af5f?format=webp&width=152",
       "sizes": "152x152",
-      "type": "image/webp"
+      "type": "image/webp",
+      "purpose": "any maskable"
     },
     {
       "src": "https://cdn.builder.io/api/v1/image/assets%2F6c062f1e291b49728b0868343e9f0a9d%2F2e829c6f48f245a19302cc824e53af5f?format=webp&width=192",
       "sizes": "192x192",
-      "type": "image/webp"
+      "type": "image/webp",
+      "purpose": "any maskable"
     },
     {
       "src": "https://cdn.builder.io/api/v1/image/assets%2F6c062f1e291b49728b0868343e9f0a9d%2F2e829c6f48f245a19302cc824e53af5f?format=webp&width=384",
       "sizes": "384x384",
-      "type": "image/webp"
+      "type": "image/webp",
+      "purpose": "any maskable"
     },
     {
       "src": "https://cdn.builder.io/api/v1/image/assets%2F6c062f1e291b49728b0868343e9f0a9d%2F2e829c6f48f245a19302cc824e53af5f?format=webp&width=512",
       "sizes": "512x512",
-      "type": "image/webp"
+      "type": "image/webp",
+      "purpose": "any maskable"
     }
   ],
   "categories": ["business", "productivity"],
