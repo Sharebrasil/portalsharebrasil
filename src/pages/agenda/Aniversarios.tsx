@@ -265,7 +265,7 @@ export default function Aniversarios() {
               </div>
             ) : (
               <div className="space-y-4">
-                {sortedBirthdays.map((birthday) => (
+                {filteredBirthdays.map((birthday) => (
                   <div
                     key={birthday.id}
                     className="group relative flex items-center justify-between p-4 border border-border rounded-lg hover:bg-accent transition-colors"
