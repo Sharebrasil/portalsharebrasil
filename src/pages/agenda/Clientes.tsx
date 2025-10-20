@@ -300,6 +300,17 @@ export default function Clientes() {
 
         if (error) throw error;
 
+        const prevActive = String((editingCliente.status as any) || '').toLowerCase();
+        const newActive = String((updatedData as any).status || '').toLowerCase();
+        const becameActive = !(prevActive === 'ativo' || prevActive === 'active' || prevActive === '') && (newActive === 'ativo' || newActive === 'active' || newActive === '');
+        if (becameActive) {
+          try {
+            await ensureTravelReportsFolder(updatedData.company_name);
+          } catch (e) {
+            console.warn('Falha ao criar pasta do cliente (ativação):', e);
+          }
+        }
+
         toast({
           title: "Sucesso",
           description: "Cliente atualizado com sucesso",
