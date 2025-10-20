@@ -341,7 +341,7 @@ export default function RelatorioViagem() {
           allowTaint: true,
           logging: false,
           letterRendering: true
-    ��   },
+       },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
         pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
       };
@@ -545,7 +545,7 @@ export default function RelatorioViagem() {
             </div>
             <div>
               <label className="text-sm font-medium">Data Início</label>
-        ��     <Input type="date" value={currentReport.data_inicio} onChange={(e) => handleInputChange('data_inicio', e.target.value)} />
+             <Input type="date" value={currentReport.data_inicio} onChange={(e) => handleInputChange('data_inicio', e.target.value)} />
             </div>
             <div>
               <label className="text-sm font-medium">Data Fim</label>
@@ -606,7 +606,7 @@ export default function RelatorioViagem() {
           {loadingHistory ? <p>Carregando...</p> : (
             <div className="grid gap-4">
               {history.map((item) => (
-              �� <div key={item.id} className="flex items-center justify-between p-4 border rounded">
+               <div key={item.id} className="flex items-center justify-between p-4 border rounded">
                   <div>
                     <p className="font-medium">{item.numero_relatorio} - {item.cliente}</p>
                     <p className="text-sm text-muted-foreground">{new Date(item.created_at).toLocaleDateString('pt-BR')}</p>
