@@ -3,7 +3,7 @@ import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plane, FileText, Pencil, Plus } from "lucide-react";
+import { Plane, FileText, Pencil, Plus, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { fetchFlightSchedulesWithDetails, type FlightScheduleWithDetails } from "@/services/flightSchedules";
 import { FlightPlanForm } from "@/components/plano-voo/FlightPlanForm";
@@ -14,6 +14,7 @@ export default function PlanoVoo() {
   const [schedules, setSchedules] = useState<FlightScheduleWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(null);
+  const [deletingPlanId, setDeletingPlanId] = useState<string | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   useEffect(() => {
@@ -64,6 +65,28 @@ export default function PlanoVoo() {
   const handleFormSuccess = () => {
     void fetchConfirmedSchedules(false);
     setSelectedScheduleId(null);
+  };
+
+  const handleDeletePlan = async (scheduleId: string, planId?: string) => {
+    if (!planId) return;
+    const confirmed = window.confirm("Tem certeza que deseja excluir este plano de voo?");
+    if (!confirmed) return;
+    setDeletingPlanId(planId);
+    try {
+      await supabase.from("flight_checklists").delete().eq("flight_plan_id", planId);
+      const { error } = await supabase.from("flight_plans").delete().eq("id", planId);
+      if (error) throw error;
+      toast.success("Plano de voo excluído com sucesso");
+      if (selectedScheduleId === scheduleId) {
+        setSelectedScheduleId(null);
+      }
+      void fetchConfirmedSchedules(false);
+    } catch (error) {
+      console.error("Erro ao excluir plano de voo:", error);
+      toast.error("Erro ao excluir plano de voo");
+    } finally {
+      setDeletingPlanId(null);
+    }
   };
 
   if (loading) {
@@ -139,14 +162,29 @@ export default function PlanoVoo() {
                 </div>
 
                 {schedule.flight_plans && schedule.flight_plans.length > 0 ? (
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => handleSelectSchedule(schedule.id)}
-                  >
-                    <Pencil className="h-4 w-4 mr-2" />
-                    Editar Plano de Voo
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => handleSelectSchedule(schedule.id)}
+                    >
+                      <Pencil className="h-4 w-4 mr-2" />
+                      Editar Plano de Voo
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      onClick={() => handleDeletePlan(schedule.id, schedule.flight_plans?.[0]?.id)}
+                      disabled={deletingPlanId === schedule.flight_plans?.[0]?.id}
+                      aria-label="Excluir plano de voo"
+                    >
+                      {deletingPlanId === schedule.flight_plans?.[0]?.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
                 ) : (
                   <Button
                     className="w-full"

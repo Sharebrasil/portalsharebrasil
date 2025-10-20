@@ -46,15 +46,18 @@ export function Header() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, roles } = useAuth();
-  const { isAdmin, isFinanceiroMaster } = useUserRole();
-  const canAccessSalaryManagement = isAdmin || isFinanceiroMaster;
+  const { isAdmin, isFinanceiroMaster, isGestorMaster } = useUserRole();
+  const canAccessSalaryManagement = isAdmin || isFinanceiroMaster || isGestorMaster;
   const { profile } = useUserProfile(user);
 
   const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
   const [isCreatingUser, setIsCreatingUser] = useState(false);
 
   const canManageUsers = useMemo(
-    () => roles.includes("admin" as AppRole) || roles.includes("financeiro_master" as AppRole),
+    () =>
+      roles.includes("admin" as AppRole) ||
+      roles.includes("financeiro_master" as AppRole) ||
+      roles.includes("gestor_master" as AppRole),
     [roles]
   );
 

@@ -1,83 +1,149 @@
-import { useMemo, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
-import { Trash2, UserPlus } from "lucide-react";
-import {
-  APP_ROLE_VALUES,
-  ROLE_LABELS,
-  createManagedUser,
-  deleteManagedUser,
-  fetchManagedUsers,
-  type AppRole,
-} from "@/services/adminUsers";
-import { selectPrimaryRole } from "@/lib/roles";
+import { useState, useEffect } from "react";
+import { useUserRole } from "@/hooks/useUserRole";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { UserPlus, Shield, Trash2, Loader2 } from "lucide-react";
 
-export default function GestaoUsuarios() {
-  const { roles: myRoles, user } = useAuth();
-  const canManage = useMemo(
-    () => myRoles.includes("admin" as AppRole) || myRoles.includes("financeiro_master" as AppRole),
-    [myRoles]
-  );
+type Role = 'admin' | 'tripulante' | 'financeiro' | 'financeiro_master' | 'operacoes' | 'piloto_chefe' | 'cotista' | 'gestor_master' ;
 
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
+interface UserProfile {
+  id: string;
+  email: string;
+  full_name: string;
+  roles: Role[];
+}
 
-  const { data: users = [], isLoading } = useQuery({
-    queryKey: ["managed-users"],
-    queryFn: fetchManagedUsers,
-  });
+const ROLE_LABELS: Record<Role, string> = {
+  admin: 'Administrador',
+  tripulante: 'Tripulante',
+  financeiro: 'Financeiro',
+  financeiro_master: 'Financeiro Master',
+  operacoes: 'Operações',
+ 
+  piloto_chefe: 'Piloto Chefe',
+  cotista: 'Cotista',
+  gestor_master: 'Gestor Master',
+ 
+};
 
-  const [fullName, setFullName] = useState("");
+export default function GerenciarUsuarios() {
+  const [users, setUsers] = useState<UserProfile[]>([]);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<AppRole>("tripulante");
+  const [fullName, setFullName] = useState("");
+  const [selectedRole, setSelectedRole] = useState<Role>('tripulante');
+  const [loading, setLoading] = useState(false);
 
-  const createMutation = useMutation({
-    mutationFn: async () =>
-      createManagedUser({
-        fullName,
+  const { isAdmin: isAdminRole, isGestorMaster, isLoading: isRolesLoading } = useUserRole();
+  const isAllowed = isAdminRole || isGestorMaster;
+
+  useEffect(() => {
+    if (isAllowed) {
+      void loadUsers();
+    }
+  }, [isAllowed]);
+
+  const loadUsers = async () => {
+    const { data: profiles } = await supabase
+      .from('user_profiles')
+      .select('*');
+
+    if (!profiles) return;
+
+    const usersWithRoles = await Promise.all(
+      profiles.map(async (profile) => {
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', profile.id);
+
+        return {
+          ...profile,
+          roles: roleData?.map(r => r.role) || []
+        };
+      })
+    );
+
+    setUsers(usersWithRoles);
+  };
+
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const { data: { user }, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
-        roles: [role],
-        tipo: "colaboradores",
-      }),
-    onSuccess: () => {
-      setFullName("");
+        options: {
+          data: {
+            full_name: fullName
+          }
+        }
+      });
+
+      if (signUpError) throw signUpError;
+      if (!user) throw new Error('Usuário não criado');
+
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .insert([{ user_id: user.id, role: selectedRole }] as any);
+
+      if (roleError) throw roleError;
+
+      toast.success('Usuário criado com sucesso!');
       setEmail("");
       setPassword("");
-      void queryClient.invalidateQueries({ queryKey: ["managed-users"] });
-      toast({ title: "Usuário criado" });
-    },
-    onError: (err: any) => toast({ title: "Falha ao criar usuário", description: String(err?.message || err), variant: "destructive" }),
-  });
+      setFullName("");
+      setSelectedRole('tripulante');
+      loadUsers();
+    } catch (error: any) {
+      toast.error(error.message || 'Erro ao criar usuário');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const deleteMutation = useMutation({
-    mutationFn: deleteManagedUser,
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["managed-users"] });
-      toast({ title: "Usuário removido" });
-    },
-    onError: (err: any) => toast({ title: "Falha ao remover usuário", description: String(err?.message || err), variant: "destructive" }),
-  });
+  const handleDeleteUser = async (userId: string) => {
+    if (!confirm('Tem certeza que deseja excluir este usuário?')) return;
 
-  if (!canManage) {
+    try {
+      const { error } = await supabase.auth.admin.deleteUser(userId);
+      if (error) throw error;
+
+      toast.success('Usuário excluído com sucesso!');
+      loadUsers();
+    } catch (error: any) {
+      toast.error(error.message || 'Erro ao excluir usuário');
+    }
+  };
+
+  if (isRolesLoading) {
+    return (
+      <Layout>
+        <div className="p-6 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!isAllowed) {
     return (
       <Layout>
         <div className="p-6">
-          <Card className="bg-card border-border">
-            <CardHeader>
-              <CardTitle>Acesso restrito</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p>Você não tem permissão para gerenciar usuários.</p>
+          <Card>
+            <CardContent className="pt-6">
+              <p className="text-center text-muted-foreground">
+                Você não tem permissão para acessar esta página.
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -87,70 +153,113 @@ export default function GestaoUsuarios() {
 
   return (
     <Layout>
-      <div className="p-6 grid gap-6 md:grid-cols-3">
-        <Card className="bg-card border-border shadow-card">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><UserPlus className="h-5 w-5" /> Criar Novo Usuário</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Nome Completo</label>
-              <Input placeholder="Nome e sobrenome" value={fullName} onChange={(e) => setFullName(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Email</label>
-              <Input type="email" placeholder="seu@email.com" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Senha</label>
-              <Input type="password" placeholder="••••••••" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Função</label>
-              <Select value={role} onValueChange={(v) => setRole(v as AppRole)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione a função" />
-                </SelectTrigger>
-                <SelectContent>
-                  {APP_ROLE_VALUES.map((r) => (
-                    <SelectItem key={r} value={r}>{ROLE_LABELS[r]}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <Button className="w-full" disabled={createMutation.isPending || !fullName || !email || !password} onClick={() => createMutation.mutate()}>Criar Usuário</Button>
-          </CardContent>
-        </Card>
+      <div className="p-6 space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Gerenciar Usuários</h1>
+          <p className="text-muted-foreground mt-2">
+            Crie e gerencie usuários do sistema
+          </p>
+        </div>
 
-        <Card className="bg-card border-border shadow-card md:col-span-2">
-          <CardHeader>
-            <CardTitle>Usuários Cadastrados</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-[60vh] pr-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Card className="lg:col-span-1">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <UserPlus className="h-5 w-5" />
+                Criar Novo Usuário
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleCreateUser} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="fullName">Nome Completo</Label>
+                  <Input
+                    id="fullName"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Senha</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="role">Função</Label>
+                  <Select value={selectedRole} onValueChange={(value) => setSelectedRole(value as Role)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(ROLE_LABELS).map(([value, label]) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? "Criando..." : "Criar Usuário"}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                Usuários Cadastrados
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
               <div className="space-y-3">
-                {isLoading && <p className="text-sm text-muted-foreground">Carregando...</p>}
-                {!isLoading && users.length === 0 && <p className="text-sm text-muted-foreground">Nenhum usuário encontrado.</p>}
-                {users.map((u) => {
-                  const primary = selectPrimaryRole(u.roles) ?? null;
-                  const isSelf = user?.id === u.id;
-                  return (
-                    <div key={u.id} className="flex items-center justify-between rounded-md bg-card-secondary border border-border px-4 py-3">
-                      <div>
-                        <div className="font-medium">{u.displayName || u.fullName || u.email}</div>
-                        <div className="text-xs text-muted-foreground">{u.email}</div>
-                        {primary && <Badge variant="secondary" className="mt-1">{ROLE_LABELS[primary]}</Badge>}
+                {users.map((user) => (
+                  <div
+                    key={user.id}
+                    className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-accent transition-smooth"
+                  >
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-foreground">{user.full_name}</h4>
+                      <p className="text-sm text-muted-foreground">{user.email}</p>
+                      <div className="flex gap-2 mt-2">
+                        {user.roles.map((role) => (
+                          <Badge key={role} variant="outline">
+                            {ROLE_LABELS[role]}
+                          </Badge>
+                        ))}
                       </div>
-                      <Button size="icon" variant="destructive" disabled={deleteMutation.isPending || isSelf} onClick={() => deleteMutation.mutate(u.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
                     </div>
-                  );
-                })}
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleDeleteUser(user.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
               </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </Layout>
   );
