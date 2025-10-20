@@ -14,6 +14,7 @@ import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { numberToCurrencyWordsPtBr } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface FavoritePayer {
   id: string;
@@ -53,6 +54,7 @@ export default function EmissaoRecibo() {
   const [numeroDoc, setNumeroDoc] = useState("");
   const [prazoMaximoQuitacao, setPrazoMaximoQuitacao] = useState<string>("");
   const [observacoes, setObservacoes] = useState("");
+  const [receiptType, setReceiptType] = useState<"reembolso" | "pagamento">("reembolso");
 
   const [pagadorNome, setPagadorNome] = useState("");
   const [pagadorDocumento, setPagadorDocumento] = useState("");
@@ -393,7 +395,7 @@ export default function EmissaoRecibo() {
     const X_EMISSOR = MARGIN_X;
     const X_PAGADOR = 220; // Ponto central da página para a 2ª coluna
 
-    // Função auxiliar para quebrar texto (mantida do seu código)
+    // Funç��o auxiliar para quebrar texto (mantida do seu código)
     const wrapText = (text: string, maxWidth: number, fontRef: any, size: number): string[] => {
       const words = text.split(/\s+/);
       const lines: string[] = [];
@@ -505,12 +507,22 @@ export default function EmissaoRecibo() {
     }
 
     const valorExtensoText = valorExtenso || numberToCurrencyWordsPtBr(amountNum);
-    const declaracaoText = `Declaração: Recebemos de ${pagadorNome.toUpperCase()}, a importância de ${valorExtensoText.toLowerCase()}, referente aos itens listados acima. Para maior clareza, firmo o presente recibo para que produza seus efeitos, dando plena, geral e irrevogável quitação pelo valor recebido.`;
-    const declLines = wrapText(declaracaoText, width - 60, font, 7);
-    declLines.forEach((line, idx) => {
-      page.drawText(line, { x: MARGIN_X, y: tableY - (idx * 9), size: 7, font });
-    });
-    tableY -= (declLines.length * 9) + 15;
+    const declaracaoPagamento = `Declaração: Recebemos de ${pagadorNome.toUpperCase()}, a importância de ${valorExtensoText.toLowerCase()}, referente aos itens listados acima. Para maior clareza, firmo o presente recibo para que produza seus efeitos, dando plena, geral e irrevogável quitação pelo valor recebido.`;
+    const obsReembolsoBloco = [
+      "OBS: Declaro, para os devidos fins, que o presente recibo é emitido antecipadamente a título de solicitação de reembolso referente às despesas efetuadas por esta empresa em benefício do cliente acima identificado.",
+      "Ressalta-se que o presente documento somente terá validade e produzirá seus efeitos legais após a efetiva quitação do valor nele indicado, mediante comprovação do respectivo pagamento.",
+      "Para maior clareza e segurança das partes, firmo o presente recibo, que permanecerá condicionado ao cumprimento integral da obrigação de pagamento até a data de quitação."
+    ].join("\n\n");
+    const declaracaoTexto = receiptType === "pagamento" ? declaracaoPagamento : obsReembolsoBloco;
+    const paragraphs = declaracaoTexto.split("\n\n");
+    for (let pIndex = 0; pIndex < paragraphs.length; pIndex++) {
+      const lines = wrapText(paragraphs[pIndex], width - 60, font, 7);
+      lines.forEach((line, idx) => {
+        page.drawText(line, { x: MARGIN_X, y: tableY - (idx * 9), size: 7, font });
+      });
+      tableY -= (lines.length * 9) + 10; // espaço entre parágrafos
+    }
+    tableY -= 5;
 
     const issueDate = (dataEmissao && dataEmissao.length >= 10) ? dataEmissao : new Date().toISOString().slice(0, 10);
     const issueDateFormatted = new Date(issueDate).toLocaleDateString("pt-BR");
@@ -710,6 +722,19 @@ export default function EmissaoRecibo() {
               <div className="space-y-2">
                 <Label htmlFor="valor">Valor (R$)</Label>
                 <Input id="valor" type="number" placeholder="0,00" step="0.01" value={valor} onChange={(e) => setValor(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Tipo de Recibo</Label>
+                <RadioGroup value={receiptType} onValueChange={(v)=>setReceiptType(v as any)} className="grid grid-cols-2 gap-3">
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem id="tipo-reembolso" value="reembolso" />
+                    <Label htmlFor="tipo-reembolso" className="cursor-pointer">Solicitação de reembolso</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem id="tipo-pagamento" value="pagamento" />
+                    <Label htmlFor="tipo-pagamento" className="cursor-pointer">Pagamento realizado</Label>
+                  </div>
+                </RadioGroup>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="observacoes">Observações (opcional)</Label>

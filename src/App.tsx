@@ -38,6 +38,7 @@ import ValeCombustivel from "./pages/ValeCombustivel";
 import ValeRefeicao from "./pages/ValeRefeicao";
 import PortalCliente from "./pages/PortalCliente";
 import PortalClienteDashboard from "./pages/PortalClienteDashboard";
+import PortalClienteColaborador from "./pages/PortalClienteColaborador";
 import Aerodromos from "./pages/Aerodromos";
 import Aeronaves from "./pages/Aeronaves";
 import GestaoSalarios from "./pages/GestaoSalarios";
@@ -86,6 +87,7 @@ const App = () => {
               <Route path="/perfil" element={renderProtected(<Perfil />)} />
               <Route path="/portal-cliente" element={renderProtected(<PortalCliente />)} />
               <Route path="/portal-cliente/dashboard" element={renderProtected(<PortalClienteDashboard />)} />
+              <Route path="/portal-cliente/colaborador" element={renderProtected(<PortalClienteColaborador />)} />
               <Route path="/tripulacao" element={renderProtected(<GestaoTripulacao />)} />
               <Route path="/tripulacao/:id" element={renderProtected(<TripulanteDetalhes />)} />
               <Route path="/admin/usuarios" element={renderProtected(<GestaoUsuarios />)} />

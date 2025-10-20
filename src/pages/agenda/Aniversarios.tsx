@@ -22,6 +22,7 @@ import {
   setYear,
   startOfDay,
 } from "date-fns";
+import { useNavigate } from "react-router-dom";
 
 type BirthdayRow = Database["public"]["Tables"]["birthdays"]["Row"];
 
@@ -69,7 +70,7 @@ const getBirthdayCategoryLabel = (category: string | null) => {
     case "hotel":
       return "Hotel";
     default:
-      return "Contato";
+      return "";
   }
 };
 
@@ -80,6 +81,8 @@ export default function Aniversarios() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingBirthday, setEditingBirthday] = useState<BirthdayRow | null>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const [filter, setFilter] = useState<"month" | "next7" | "all">("month");
 
   const [formData, setFormData] = useState({
     nome: "",
@@ -145,19 +148,19 @@ export default function Aniversarios() {
 
   const today = useMemo(() => startOfDay(new Date()), []);
 
-  const birthdaysThisMonth = useMemo(() => {
+  const listThisMonth = useMemo(() => {
     return processedBirthdays.filter((birthday) => {
       if (!birthday.currentYearDate) return false;
       return isSameMonth(birthday.currentYearDate, today);
-    }).length;
+    });
   }, [processedBirthdays, today]);
 
-  const birthdaysNextSevenDays = useMemo(() => {
+  const listNextSevenDays = useMemo(() => {
     return processedBirthdays.filter((birthday) => {
       if (!birthday.nextOccurrence) return false;
       const diff = differenceInCalendarDays(startOfDay(birthday.nextOccurrence), today);
       return diff >= 0 && diff <= 7;
-    }).length;
+    });
   }, [processedBirthdays, today]);
 
   const sortedBirthdays = useMemo(() => {
@@ -170,6 +173,21 @@ export default function Aniversarios() {
       return a.nome.localeCompare(b.nome);
     });
   }, [processedBirthdays]);
+
+  const birthdaysThisMonth = listThisMonth.length;
+  const birthdaysNextSevenDays = listNextSevenDays.length;
+
+  const filteredBirthdays = useMemo(() => {
+    switch (filter) {
+      case "next7":
+        return sortedBirthdays.filter((b) => listNextSevenDays.includes(b));
+      case "all":
+        return sortedBirthdays;
+      case "month":
+      default:
+        return sortedBirthdays.filter((b) => listThisMonth.includes(b));
+    }
+  }, [filter, sortedBirthdays, listNextSevenDays, listThisMonth]);
 
   return (
     <Layout>
@@ -192,7 +210,7 @@ export default function Aniversarios() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
+          <Card onClick={() => setFilter("month")} className="cursor-pointer">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -204,7 +222,7 @@ export default function Aniversarios() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card onClick={() => setFilter("next7")} className="cursor-pointer">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -216,7 +234,7 @@ export default function Aniversarios() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card onClick={() => navigate("/agenda/contatos")} className="cursor-pointer">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -233,7 +251,7 @@ export default function Aniversarios() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Cake className="h-5 w-5" />
-              Aniversariantes deste Mês
+              {filter === "next7" ? "Aniversários - Próximos 7 dias" : filter === "all" ? "Todos os Aniversários" : "Aniversariantes deste Mês"}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -241,13 +259,13 @@ export default function Aniversarios() {
               <div className="flex items-center justify-center py-12 text-muted-foreground">
                 Carregando aniversários...
               </div>
-            ) : sortedBirthdays.length === 0 ? (
+            ) : filteredBirthdays.length === 0 ? (
               <div className="flex items-center justify-center py-12 text-muted-foreground">
                 Nenhum aniversário registrado.
               </div>
             ) : (
               <div className="space-y-4">
-                {sortedBirthdays.map((birthday) => (
+                {filteredBirthdays.map((birthday) => (
                   <div
                     key={birthday.id}
                     className="group relative flex items-center justify-between p-4 border border-border rounded-lg hover:bg-accent transition-colors"
@@ -265,9 +283,11 @@ export default function Aniversarios() {
                     </div>
                     <div className="text-right">
                       <div className="text-lg font-bold text-primary">{birthday.displayDate}</div>
-                      <div className="flex items-center gap-2 justify-end">
-                        <Badge variant="outline">{getBirthdayCategoryLabel(birthday.category)}</Badge>
-                      </div>
+                      {getBirthdayCategoryLabel(birthday.category) && (
+                        <div className="flex items-center gap-2 justify-end">
+                          <Badge variant="outline">{getBirthdayCategoryLabel(birthday.category)}</Badge>
+                        </div>
+                      )}
                     </div>
 
                     <div className="absolute right-3 top-3 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
