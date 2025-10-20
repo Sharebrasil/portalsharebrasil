@@ -222,7 +222,7 @@ export default function Aniversarios() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card onClick={() => setFilter("next7")} className="cursor-pointer">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
