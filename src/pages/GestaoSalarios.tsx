@@ -10,8 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { useUserRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
-import { Pencil, Trash2, Plus, Save } from "lucide-react";
+import { Pencil, Trash2, Plus, Save, Loader2 } from "lucide-react";
 
 const GestaoSalarios = () => {
   const queryClient = useQueryClient();
@@ -20,6 +21,9 @@ const GestaoSalarios = () => {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedCrewMember, setSelectedCrewMember] = useState<string>("");
+
+  const { isAdmin, isFinanceiroMaster, isGestorMaster, isLoading: isRolesLoading } = useUserRole();
+  const isAllowed = isAdmin || isFinanceiroMaster || isGestorMaster;
 
   const { data: salaries = [] } = useQuery({
     queryKey: ["salaries"],
@@ -164,6 +168,32 @@ const GestaoSalarios = () => {
     "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
     "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
   ];
+
+  if (isRolesLoading) {
+    return (
+      <Layout>
+        <div className="p-6 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!isAllowed) {
+    return (
+      <Layout>
+        <div className="p-6">
+          <Card>
+            <CardContent className="pt-6">
+              <p className="text-center text-muted-foreground">
+                Você não tem permissão para acessar esta página.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
