@@ -14,6 +14,7 @@ import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { numberToCurrencyWordsPtBr } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface FavoritePayer {
   id: string;
