@@ -18,8 +18,13 @@ export default function TripulanteDetalhes() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialTab = (searchParams.get("tab") === "anexos" ? "anexos" : searchParams.get("tab") === "calendario" ? "calendario" : "dados") as "dados" | "anexos" | "calendario";
-  const [activeTab, setActiveTab] = useState<"dados" | "anexos" | "calendario">(initialTab);
+  const initialTab = (
+    searchParams.get("tab") === "anexos" ? "anexos" :
+    searchParams.get("tab") === "calendario" ? "calendario" :
+    searchParams.get("tab") === "escala" ? "escala" :
+    "dados"
+  ) as "dados" | "anexos" | "calendario" | "escala";
+  const [activeTab, setActiveTab] = useState<"dados" | "anexos" | "calendario" | "escala">(initialTab);
 
   const { data: member, isLoading, refetch } = useQuery({
     queryKey: ["crew_member", id],
