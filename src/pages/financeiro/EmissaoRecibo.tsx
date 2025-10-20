@@ -54,6 +54,7 @@ export default function EmissaoRecibo() {
   const [numeroDoc, setNumeroDoc] = useState("");
   const [prazoMaximoQuitacao, setPrazoMaximoQuitacao] = useState<string>("");
   const [observacoes, setObservacoes] = useState("");
+  const [receiptType, setReceiptType] = useState<"reembolso" | "pagamento">("reembolso");
 
   const [pagadorNome, setPagadorNome] = useState("");
   const [pagadorDocumento, setPagadorDocumento] = useState("");
@@ -394,7 +395,7 @@ export default function EmissaoRecibo() {
     const X_EMISSOR = MARGIN_X;
     const X_PAGADOR = 220; // Ponto central da página para a 2ª coluna
 
-    // Função auxiliar para quebrar texto (mantida do seu código)
+    // Funç��o auxiliar para quebrar texto (mantida do seu código)
     const wrapText = (text: string, maxWidth: number, fontRef: any, size: number): string[] => {
       const words = text.split(/\s+/);
       const lines: string[] = [];
