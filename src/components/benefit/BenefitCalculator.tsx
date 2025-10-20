@@ -45,6 +45,24 @@ const MONTHS = [
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
 ];
 
+// Legacy interface for backward compatibility
+interface BenefitCalculatorLegacyProps {
+  title: string;
+  month: string;
+  initialBalance: number;
+  onInitialBalanceChange: (balance: number) => void;
+}
+
+// Wrapper component for legacy interface
+export function BenefitCalculator({ title, month, initialBalance, onInitialBalanceChange }: BenefitCalculatorLegacyProps) {
+  // Determine card type from title
+  const cardType: 'alimentacao' | 'combustivel' = title.toLowerCase().includes('combustível') || title.toLowerCase().includes('combustivel')
+    ? 'combustivel'
+    : 'alimentacao';
+
+  return <BenefitCalculatorReal title={title} cardType={cardType} />;
+}
+
 export function BenefitCalculatorReal({ title, cardType }: BenefitCalculatorRealProps) {
   const [currentCard, setCurrentCard] = useState<BenefitCard | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
