@@ -257,13 +257,29 @@ export default function EmissaoRecibo() {
     void loadFavoritePayers();
   }, [user?.id]);
 
+  const formatDateLocalYYYYMMDD = (d: Date) => {
+    const y = d.getFullYear();
+    const m = (d.getMonth() + 1).toString().padStart(2, "0");
+    const day = d.getDate().toString().padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  };
+
+  const formatDateDisplay = (dateStr: string) => {
+    if (!dateStr) return "";
+    if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
+      const [y, m, d] = dateStr.slice(0, 10).split("-");
+      return `${d}/${m}/${y}`;
+    }
+    return new Date(dateStr).toLocaleDateString("pt-BR");
+  };
+
   const saveReceipt = async (): Promise<string | null> => {
     if (!user?.id) {
       toast({ title: "Sessão necessária", description: "Faça login para salvar o recibo." });
       return null;
     }
     const recNumber = await ensureNumero();
-    const issueDate = (dataEmissao && dataEmissao.length >= 10) ? dataEmissao : new Date().toISOString().slice(0, 10);
+    const issueDate = (dataEmissao && dataEmissao.length >= 10) ? dataEmissao : formatDateLocalYYYYMMDD(new Date());
     const amountNum = parseFloat(valor || "0");
 
     if (!recNumber || !issueDate || !amountNum || !servico.trim() || !pagadorNome.trim() || !pagadorDocumento.trim()) {
@@ -330,13 +346,14 @@ export default function EmissaoRecibo() {
     const LINE_HEIGHT_XS = 9;
 
     // --- 1. LOGOTIPO E TÍTULO ---
+    let logoImage: any = null;
     try {
       const logoBytes = await fetch(company?.logo_url || LOGO_FALLBACK).then(r => r.arrayBuffer());
-      const png = await pdfDoc.embedPng(logoBytes);
+      logoImage = await pdfDoc.embedPng(logoBytes);
       // Ajuste no Y para alinhar com o topo
-      page.drawImage(png, { x: MARGIN_X, y: TOP_Y_START - 20, width: 60, height: 40 });
+      page.drawImage(logoImage, { x: MARGIN_X, y: TOP_Y_START - 20, width: 60, height: 40 });
     } catch {
-      // Fallback de texto para o logo/nome do emissor (SHARE BRASIL SERVIÇOS ADMINISTRATIVOS)
+      // Fallback de texto para o logo/nome do emissor
       page.drawText(company?.name || "EMISSOR", { x: MARGIN_X, y: TOP_Y_START - 20, size: 9, font: bold });
     }
 
@@ -349,10 +366,19 @@ export default function EmissaoRecibo() {
     });
 
     // --- 2. BLOCO DE VALOR (CANTO SUPERIOR DIREITO) ---
-    const BOX_WIDTH = 110;
-    const BOX_HEIGHT = 50;
+    const PAD_X = 6;
+    const PAD_Y = 4;
+    const valueStr = formatBRL(amountNum);
+    const valueW = bold.widthOfTextAtSize(valueStr, 10);
+    const labelStr = "Número do recibo:";
+    const labelW = font.widthOfTextAtSize(labelStr, 7);
+    const recW = font.widthOfTextAtSize(recNumber, 7);
+    const contentW = Math.max(valueW, labelW, recW);
+    const contentH = 10 /*value*/ + 2 + 7 /*label*/ + 2 + 7 /*rec*/;
+    const BOX_WIDTH = contentW + PAD_X * 2;
+    const BOX_HEIGHT = contentH + PAD_Y * 2;
     const BOX_X = width - MARGIN_X - BOX_WIDTH; // Alinha à direita
-    const BOX_Y_BOTTOM = TOP_Y_START - BOX_HEIGHT; // Alinha o topo da caixa com a linha de partida (TOP_Y_START)
+    const BOX_Y_BOTTOM = TOP_Y_START - BOX_HEIGHT; // Caixa rente ao conteúdo
 
     // Caixa (Retângulo)
     page.drawRectangle({
@@ -362,32 +388,18 @@ export default function EmissaoRecibo() {
       height: BOX_HEIGHT,
       borderColor: rgb(0.7, 0.7, 0.7),
       borderWidth: 1,
-      color: rgb(0.95, 0.95, 0.95) // Cor de fundo sutil para destaque
+      color: rgb(0.95, 0.95, 0.95)
     });
 
-    // Valor (dentro da caixa, ajustado para o topo da caixa)
-    page.drawText(formatBRL(amountNum), {
-      x: BOX_X + 10,
-      y: TOP_Y_START - 10, // Posição do texto do valor
-      size: 10,
-      font: bold
-    });
-
+    // Valor
+    let ty = TOP_Y_START - PAD_Y - 10; // topo dentro da caixa
+    page.drawText(valueStr, { x: BOX_X + PAD_X, y: ty, size: 10, font: bold });
+    ty -= 12;
     // Rótulo do recibo
-    page.drawText(`Número do recibo:`, {
-      x: BOX_X + 10,
-      y: TOP_Y_START - 23,
-      size: 7,
-      font
-    });
-
+    page.drawText(labelStr, { x: BOX_X + PAD_X, y: ty, size: 7, font });
+    ty -= 9;
     // Número do recibo
-    page.drawText(recNumber, {
-      x: BOX_X + 10,
-      y: TOP_Y_START - 32,
-      size: 7,
-      font
-    });
+    page.drawText(recNumber, { x: BOX_X + PAD_X, y: ty, size: 7, font });
 
     // --- 3. BLOCO DE INFORMAÇÕES (EMISSOR E PAGADOR) ---
     // Começa abaixo dos elementos do topo (Ex: abaixo da caixa de valor, com um espaçamento)
@@ -477,13 +489,7 @@ export default function EmissaoRecibo() {
     tableY -= (descLines.length * LINE_HEIGHT_SM) + 10;
 
     page.drawLine({ start: { x: MARGIN_X, y: tableY }, end: { x: width - MARGIN_X, y: tableY }, thickness: 0.5 });
-    tableY -= 16;
-    page.drawText("Subtotal:", { x: width - MARGIN_X - 100, y: tableY, size: 9, font });
-    page.drawText(formatBRL(amountNum), { x: width - MARGIN_X - 45, y: tableY, size: 9, font });
-    tableY -= 12;
-    page.drawText("Desconto:", { x: width - MARGIN_X - 100, y: tableY, size: 9, font });
-    page.drawText("R$ 0,00", { x: width - MARGIN_X - 45, y: tableY, size: 9, font });
-    tableY -= 12;
+    tableY -= 14;
     page.drawText("Total:", { x: width - MARGIN_X - 100, y: tableY, size: 9, font: bold });
     page.drawText(formatBRL(amountNum), { x: width - MARGIN_X - 45, y: tableY, size: 9, font: bold });
 
@@ -524,7 +530,7 @@ export default function EmissaoRecibo() {
     }
     tableY -= 5;
 
-    const issueDate = (dataEmissao && dataEmissao.length >= 10) ? dataEmissao : new Date().toISOString().slice(0, 10);
+    const issueDate = (dataEmissao && dataEmissao.length >= 10) ? dataEmissao : formatDateLocalYYYYMMDD(new Date());
     const issueDateFormatted = new Date(issueDate).toLocaleDateString("pt-BR");
     const cityText = company?.city || pagadorCidade || "";
     const dataCidadeText = `${cityText}, ${issueDateFormatted}`;
@@ -532,6 +538,12 @@ export default function EmissaoRecibo() {
 
     // Linha de assinatura
     const signatureY = tableY - 60;
+    // Logo acima da assinatura (pequena)
+    if (logoImage) {
+      const logoW = 60;
+      const logoH = 20;
+      page.drawImage(logoImage, { x: width / 2 - logoW / 2, y: signatureY + 12, width: logoW, height: logoH });
+    }
     page.drawLine({ start: { x: width / 2 - 80, y: signatureY }, end: { x: width / 2 + 80, y: signatureY }, thickness: 0.5 });
     page.drawText(company?.name || "Assinatura do Emissor", {
       x: width / 2 - (font.widthOfTextAtSize(company?.name || "Assinatura do Emissor", 8) / 2),
@@ -640,7 +652,7 @@ export default function EmissaoRecibo() {
               <CardContent className="space-y-2">
                 {recentReceipts.map(r => (
                   <div key={r.id} className="flex items-center justify-between rounded border p-2">
-                    <div className="text-sm">{r.receipt_number} • {new Date(r.issue_date).toLocaleDateString()} • {formatBRL(r.amount)}</div>
+                    <div className="text-sm">{r.receipt_number} • {formatDateDisplay(r.issue_date)} • {formatBRL(r.amount)}</div>
                     <div className="flex gap-2">
                       <Button variant="outline" size="sm" onClick={async()=>{
                         const path = `${user?.id}/recibo-${r.receipt_number}.pdf`;
