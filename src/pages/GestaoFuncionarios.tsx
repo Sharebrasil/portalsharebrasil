@@ -98,7 +98,8 @@ export default function GestaoFuncionarios() {
         })
       );
 
-      return employeesWithRoles;
+      // Filter out admin users from employee list
+      return employeesWithRoles.filter(employee => !employee.roles.includes('admin'));
     },
     enabled: canManage,
   });
