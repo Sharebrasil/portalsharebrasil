@@ -15,11 +15,11 @@ export default function ConciliacaoBancaria() {
 
   return (
     <Layout>
-      <div className="p-4 lg:p-6 space-y-6">
+      <div className="p-6 space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Conciliação Bancária</h1>
+            <h1 className="text-3xl font-bold text-foreground">Conciliação Bancária</h1>
             <p className="text-muted-foreground mt-2">
               Gerencie e concilie as movimentações bancárias da empresa
             </p>
@@ -39,7 +39,7 @@ export default function ConciliacaoBancaria() {
         </div>
 
         {/* Filtros */}
-        <Card>
+        <Card className="max-w-[1400px] mx-auto">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Filter className="h-5 w-5" />
@@ -89,7 +89,7 @@ export default function ConciliacaoBancaria() {
         </Card>
 
         {/* Tabs para Conciliação */}
-        <Tabs defaultValue="clientes" className="w-full">
+        <Tabs defaultValue="clientes" className="w-full max-w-[1400px] mx-auto">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="clientes">Conciliação com Clientes</TabsTrigger>
             <TabsTrigger value="colaborador">Conciliação Colaborador</TabsTrigger>

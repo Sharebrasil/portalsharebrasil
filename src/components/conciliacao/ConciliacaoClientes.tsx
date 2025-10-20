@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CheckCircle, Clock, Send, Users } from "lucide-react";
+import { CheckCircle, Clock, Send, Users, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { StatusUpdateDialog } from "./StatusUpdateDialog";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -31,6 +31,7 @@ export function ConciliacaoClientes() {
   const [selectedStatus, setSelectedStatus] = useState('');
   const { hasAnyRole } = useUserRole();
   const canEditStatus = hasAnyRole(['admin', 'financeiro_master', 'financeiro', 'gestor_master']);
+  const canDelete = hasAnyRole(['admin', 'financeiro_master', 'gestor_master']);
 
   useEffect(() => {
     loadReconciliations();
@@ -99,6 +100,18 @@ export function ConciliacaoClientes() {
     setSelectedId(id);
     setSelectedStatus(currentStatus);
     setStatusDialogOpen(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!canDelete) return;
+    const confirmed = window.confirm('Deseja realmente excluir esta conciliação?');
+    if (!confirmed) return;
+    const { error } = await supabase.from('client_reconciliations').delete().eq('id', id);
+    if (error) {
+      console.error('Erro ao excluir conciliação:', error);
+      return;
+    }
+    await loadReconciliations();
   };
 
   const totals = {
@@ -216,17 +229,29 @@ export function ConciliacaoClientes() {
                       <TableCell>{formatDate(item.sent_date)}</TableCell>
                       <TableCell>{formatDate(item.paid_date)}</TableCell>
                       <TableCell>
-                        {canEditStatus ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleStatusClick(item.id, item.status)}
-                          >
-                            Alterar Status
-                          </Button>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">-</span>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {canEditStatus && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleStatusClick(item.id, item.status)}
+                            >
+                              Alterar Status
+                            </Button>
+                          )}
+                          {canDelete && (
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => void handleDelete(item.id)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-1" /> Excluir
+                            </Button>
+                          )}
+                          {!canEditStatus && !canDelete && (
+                            <span className="text-sm text-muted-foreground">-</span>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))

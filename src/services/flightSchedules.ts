@@ -56,10 +56,14 @@ export async function fetchFlightSchedulesWithDetails(
     }
 
     // Fallback without relational selects: fetch base rows then hydrate
-    const { data: baseRows, error: baseErr } = await supabase
+    let baseQuery = supabase
       .from("flight_schedules")
       .select("*")
       .order("flight_date", { ascending: true });
+    if (status) {
+      baseQuery = baseQuery.eq("status", status);
+    }
+    const { data: baseRows, error: baseErr } = await baseQuery;
 
     if (baseErr) {
       console.error("Error details:", baseErr);

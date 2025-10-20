@@ -1,322 +1,524 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { Layout } from "@/components/layout/Layout";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  ArrowLeft,
+  Plane,
+  Clock,
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
+  DollarSign,
+  FileText,
+  Calendar,
+  Fuel,
+  MapPin,
+  Download
+} from "lucide-react";
 import { toast } from "sonner";
-import { FilePlus2, Plane, Upload, FileText, Trash2, DollarSign } from "lucide-react";
 
-interface Selection {
-  clientId: string;
-  aircraftId: string;
-  companyName: string;
-  registration: string;
+interface Client {
+  id: string;
+  company_name: string;
+  share_percentage: number;
+  aircraft_id: string;
+  aircraft?: {
+    id: string;
+    registration: string;
+    manufacturer: string;
+    model: string;
+    year: string;
+  };
 }
 
-const PortalClienteColaborador = () => {
-  const [cnpj, setCnpj] = useState("");
-  const [registration, setRegistration] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [selection, setSelection] = useState<Selection | null>(null);
+interface Aircraft {
+  id: string;
+  registration: string;
+  manufacturer: string;
+  model: string;
+  year: string;
+  status: string;
+  total_hours?: number;
+}
 
-  // portal data form
-  const [dataType, setDataType] = useState("documento");
-  const [description, setDescription] = useState("");
-  const [file, setFile] = useState<File | null>(null);
-  const [submittingData, setSubmittingData] = useState(false);
-  const [portalData, setPortalData] = useState<any[]>([]);
+interface FlightActivity {
+  total_flights: number;
+  total_hours: number;
+  total_landings: number;
+  recent_destinations: string[];
+}
 
-  // reconciliation form
-  const [recDesc, setRecDesc] = useState("");
-  const [recCategory, setRecCategory] = useState("Outros");
-  const [recAmount, setRecAmount] = useState("");
-  const [savingRec, setSavingRec] = useState(false);
+interface PendingItem {
+  count: number;
+  total_amount: number;
+}
+
+interface Document {
+  id: string;
+  name: string;
+  valid_until: string;
+  status: string;
+  document_url?: string;
+}
+
+interface MaintenanceAlert {
+  type: string;
+  message: string;
+  severity: 'warning' | 'error' | 'info';
+  date?: string;
+}
+
+export default function PortalCliente() {
+  const [clients, setClients] = useState<Client[]>([]);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [aircraft, setAircraft] = useState<Aircraft | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [flightActivity, setFlightActivity] = useState<FlightActivity>({
+    total_flights: 0,
+    total_hours: 0,
+    total_landings: 0,
+    recent_destinations: []
+  });
+  const [pendingPayments, setPendingPayments] = useState<PendingItem>({ count: 0, total_amount: 0 });
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [alerts, setAlerts] = useState<MaintenanceAlert[]>([]);
 
   useEffect(() => {
-    if (!selection) return;
-    void loadPortalData(selection);
-  }, [selection]);
+    loadClients();
+  }, []);
 
-  const handleFind = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+  useEffect(() => {
+    if (selectedClient) {
+      loadClientData();
+    }
+  }, [selectedClient]);
+
+  const loadClients = async () => {
     try {
-      const { data: clients, error: clientError } = await supabase
-        .from("clients")
-        .select("id, cnpj, company_name, aircraft_id")
-        .like("cnpj", `${cnpj}%`);
-      if (clientError) throw clientError;
-      if (!clients || clients.length === 0) {
-        toast.error("Cliente não encontrado");
-        return;
-      }
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('clients')
+        .select(`
+          id,
+          company_name,
+          share_percentage,
+          aircraft_id,
+          aircraft:aircraft_id (
+            id,
+            registration,
+            manufacturer,
+            model,
+            year
+          )
+        `)
+        .not('aircraft_id', 'is', null);
 
-      const { data: aircraft, error: aircraftError } = await supabase
-        .from("aircraft")
-        .select("id, registration")
-        .eq("registration", registration.toUpperCase())
-        .single();
-      if (aircraftError || !aircraft) {
-        toast.error("Aeronave não encontrada");
-        return;
-      }
-
-      const clientWithAircraft = clients.find((c: any) => c.aircraft_id === aircraft.id);
-      if (!clientWithAircraft) {
-        toast.error("Cliente não tem acesso a essa aeronave");
-        return;
-      }
-
-      setSelection({
-        clientId: clientWithAircraft.id,
-        aircraftId: aircraft.id,
-        companyName: clientWithAircraft.company_name,
-        registration: aircraft.registration,
-      });
-      toast.success("Cliente carregado");
-    } catch (err) {
-      console.error(err);
-      toast.error("Erro ao buscar dados");
+      if (error) throw error;
+      setClients(data || []);
+    } catch (error) {
+      console.error('Error loading clients:', error);
+      toast.error('Erro ao carregar clientes');
     } finally {
       setLoading(false);
     }
   };
 
-  const loadPortalData = async (s: Selection) => {
-    try {
-      const { data, error } = await supabase
-        .from("client_portal_data")
-        .select("*")
-        .eq("client_id", s.clientId)
-        .eq("aircraft_id", s.aircraftId)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      setPortalData(data || []);
-    } catch (err) {
-      console.error("Erro ao carregar dados do portal:", err);
-    }
-  };
+  const loadClientData = async () => {
+    if (!selectedClient?.aircraft_id) return;
 
-  const handleUploadData = async () => {
-    if (!selection) return;
-    if (!file && !description) {
-      toast.error("Informe um arquivo ou uma descrição");
-      return;
-    }
-    setSubmittingData(true);
     try {
-      let fileUrl: string | null = null;
-      let fileName: string | null = null;
+      setLoading(true);
 
-      if (file) {
-        const ext = file.name.split(".").pop();
-        const name = `${selection.clientId}-${selection.registration}-${Date.now()}.${ext}`;
-        const path = `portal-data/${name}`;
-        const { error: uploadError } = await supabase.storage
-          .from("client-portal-files")
-          .upload(path, file);
-        if (uploadError) throw uploadError;
-        const { data: urlData } = supabase.storage.from("client-portal-files").getPublicUrl(path);
-        fileUrl = urlData.publicUrl;
-        fileName = file.name;
+      // Load aircraft details
+      const { data: aircraftData } = await supabase
+        .from('aircraft')
+        .select('*')
+        .eq('id', selectedClient.aircraft_id)
+        .single();
+
+      if (aircraftData) setAircraft(aircraftData);
+
+      // Load flight activity from logbook
+      const { data: logbookData } = await supabase
+        .from('logbook_entries')
+        .select('total_time, landings, arrival_airport')
+        .eq('aircraft_id', selectedClient.aircraft_id)
+        .order('entry_date', { ascending: false })
+        .limit(10);
+
+      if (logbookData) {
+        const totalHours = logbookData.reduce((sum, entry) => sum + (entry.total_time || 0), 0);
+        const totalLandings = logbookData.reduce((sum, entry) => sum + (entry.landings || 0), 0);
+        const destinations = [...new Set(logbookData.map(e => e.arrival_airport).filter(Boolean))].slice(0, 5);
+
+        setFlightActivity({
+          total_flights: logbookData.length,
+          total_hours: totalHours,
+          total_landings: totalLandings,
+          recent_destinations: destinations as string[]
+        });
       }
 
-      const { error: insertError } = await supabase.from("client_portal_data").insert({
-        client_id: selection.clientId,
-        aircraft_id: selection.aircraftId,
-        data_type: dataType,
-        description: description || null,
-        file_url: fileUrl,
-        file_name: fileName,
-      });
-      if (insertError) throw insertError;
+      // Load pending payments
+      const { data: paymentsData } = await supabase
+        .from('client_reconciliations')
+        .select('amount')
+        .eq('client_id', selectedClient.id)
+        .eq('status', 'pendente');
 
-      toast.success("Dados adicionados ao portal");
-      setDescription("");
-      setFile(null);
-      await loadPortalData(selection);
-    } catch (err) {
-      console.error("Erro ao salvar dados:", err);
-      toast.error("Erro ao salvar dados");
+      if (paymentsData) {
+        setPendingPayments({
+          count: paymentsData.length,
+          total_amount: paymentsData.reduce((sum, p) => sum + (p.amount || 0), 0)
+        });
+      }
+
+      // Load aircraft documents
+      const { data: docsData } = await supabase
+        .from('documentos')
+        .select('*')
+        .eq('aircraft_id', selectedClient.aircraft_id)
+        .order('valid_until', { ascending: true })
+        .limit(5);
+
+      if (docsData) setDocuments(docsData);
+
+      // Generate alerts
+      const alertsList: MaintenanceAlert[] = [];
+
+      if (docsData) {
+        const expiringSoon = docsData.filter(doc => {
+          const daysUntilExpiry = Math.floor((new Date(doc.valid_until).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+          return daysUntilExpiry <= 60 && daysUntilExpiry >= 0;
+        });
+
+        if (expiringSoon.length > 0) {
+          alertsList.push({
+            type: 'Revisão Programada',
+            message: `Próxima revisão em ${new Date(expiringSoon[0].valid_until).toLocaleDateString('pt-BR')}`,
+            severity: 'warning',
+            date: expiringSoon[0].valid_until
+          });
+        }
+      }
+
+      if (pendingPayments.count > 0) {
+        alertsList.push({
+          type: 'Pagamentos Pendentes',
+          message: `${pendingPayments.count} pagamento(s) pendente(s) no valor total de R$ ${pendingPayments.total_amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+          severity: 'error'
+        });
+      }
+
+      if (documents.every(doc => doc.status === 'Válido')) {
+        alertsList.push({
+          type: 'Documentação em Dia',
+          message: 'Todos os documentos obrigatórios estão válidos',
+          severity: 'info'
+        });
+      }
+
+      setAlerts(alertsList);
+
+    } catch (error) {
+      console.error('Error loading client data:', error);
+      toast.error('Erro ao carregar dados do cliente');
     } finally {
-      setSubmittingData(false);
+      setLoading(false);
     }
   };
 
-  const handleCreateReconciliation = async () => {
-    if (!selection) return;
-    if (!recDesc || !recAmount) {
-      toast.error("Preencha descrição e valor");
-      return;
-    }
-    setSavingRec(true);
-    try {
-      const amount = Number(String(recAmount).replace(/[^0-9.,]/g, '').replace(',', '.'));
-      const { error } = await supabase.from("client_reconciliations").insert({
-        client_id: selection.clientId,
-        aircraft_registration: selection.registration,
-        description: recDesc,
-        amount,
-        category: recCategory,
-        status: "pendente",
-      });
-      if (error) throw error;
-      toast.success("Pagamento pendente criado");
-      setRecDesc("");
-      setRecAmount("");
-    } catch (err) {
-      console.error("Erro ao criar pendência:", err);
-      toast.error("Erro ao criar pendência");
-    } finally {
-      setSavingRec(false);
-    }
+  const handleClientSelect = (client: Client) => {
+    setSelectedClient(client);
   };
 
-  const handleDeleteData = async (id: string) => {
-    if (!selection) return;
-    try {
-      const { error } = await supabase.from("client_portal_data").delete().eq("id", id);
-      if (error) throw error;
-      toast.success("Registro removido");
-      await loadPortalData(selection);
-    } catch (err) {
-      console.error("Erro ao remover registro:", err);
-      toast.error("Erro ao remover registro");
-    }
+  const handleBack = () => {
+    setSelectedClient(null);
+    setAircraft(null);
+    setFlightActivity({ total_flights: 0, total_hours: 0, total_landings: 0, recent_destinations: [] });
+    setPendingPayments({ count: 0, total_amount: 0 });
+    setDocuments([]);
+    setAlerts([]);
   };
+
+  if (loading && !selectedClient) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-lg">Carregando...</div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
-      <div className="container mx-auto py-8 space-y-6">
-        {!selection ? (
-          <Card>
-            <CardHeader className="text-center">
-              <div className="flex justify-center mb-4">
-                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
-                  <Plane className="w-8 h-8 text-primary" />
-                </div>
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8">
+          {!selectedClient ? (
+            // Client Selection View
+            <>
+              <div className="mb-8">
+                <h1 className="text-3xl font-bold text-foreground mb-2">Portal do Cliente</h1>
+                <p className="text-muted-foreground">Selecione um cliente para acessar as informações</p>
               </div>
-              <CardTitle>Portal do Cliente — Colaborador</CardTitle>
-              <CardDescription>Digite os 4 primeiros dígitos do CNPJ e a matrícula da aeronave</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleFind} className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="cnpj">CNPJ (4 primeiros dígitos)</Label>
-                  <Input id="cnpj" value={cnpj} onChange={(e) => setCnpj(e.target.value.slice(0, 4))} maxLength={4} required placeholder="1234" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="registration">Matrícula</Label>
-                  <Input id="registration" value={registration} onChange={(e) => setRegistration(e.target.value.toUpperCase())} required placeholder="PR-ABC" />
-                </div>
-                <div className="md:col-span-2">
-                  <Button type="submit" className="w-full" disabled={loading}>{loading ? "Carregando..." : "Acessar"}</Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-bold">{selection.companyName}</h1>
-                <p className="text-muted-foreground">Aeronave: {selection.registration}</p>
-              </div>
-              <Button variant="outline" onClick={() => setSelection(null)}>Trocar cliente</Button>
-            </div>
 
-            <div className="grid gap-6 md:grid-cols-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2"><FilePlus2 className="w-5 h-5" />Adicionar dados ao Portal</CardTitle>
-                  <CardDescription>Envie documentos ou registros visíveis para o cliente</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid gap-4">
-                    <div className="space-y-2">
-                      <Label>Tipo</Label>
-                      <Input value={dataType} onChange={(e) => setDataType(e.target.value)} placeholder="documento, boleto, nota fiscal..." />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Descrição</Label>
-                      <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Ex.: Boleto de hangaragem - Outubro" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Arquivo (opcional)</Label>
-                      <Input type="file" accept="image/*,.pdf" onChange={(e) => setFile(e.target.files?.[0] || null)} />
-                    </div>
-                    <Button onClick={handleUploadData} disabled={submittingData} className="w-full">
-                      <Upload className="w-4 h-4 mr-2" />
-                      {submittingData ? "Enviando..." : "Adicionar ao Portal"}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2"><DollarSign className="w-5 h-5" />Criar pagamento pendente</CardTitle>
-                  <CardDescription>Adicione cobranças que aparecerão no portal do cliente</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Descrição</Label>
-                    <Input value={recDesc} onChange={(e) => setRecDesc(e.target.value)} placeholder="Ex.: Hangaragem 10/2024" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Categoria</Label>
-                    <Input value={recCategory} onChange={(e) => setRecCategory(e.target.value)} placeholder="Categoria" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Valor (R$)</Label>
-                    <Input value={recAmount} onChange={(e) => setRecAmount(e.target.value)} placeholder="0,00" />
-                  </div>
-                  <Button onClick={handleCreateReconciliation} disabled={savingRec} className="w-full">{savingRec ? "Salvando..." : "Criar pendência"}</Button>
-                </CardContent>
-              </Card>
-            </div>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2"><FileText className="w-5 h-5" />Registros já enviados</CardTitle>
-                <CardDescription>Arquivos e registros disponíveis no portal</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {portalData.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Nenhum registro encontrado.</p>
-                ) : (
-                  <div className="space-y-3">
-                    {portalData.map((d: any) => (
-                      <div key={d.id} className="flex items-center justify-between p-3 border rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <FileText className="w-4 h-4 text-primary" />
-                          <div>
-                            <p className="font-medium">{d.file_name || d.data_type}</p>
-                            <p className="text-xs text-muted-foreground">{new Date(d.created_at).toLocaleDateString("pt-BR")}</p>
-                          </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {clients.map((client) => (
+                  <Card
+                    key={client.id}
+                    className="hover:shadow-lg transition-smooth cursor-pointer border-border bg-card"
+                    onClick={() => handleClientSelect(client)}
+                  >
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <CardTitle className="text-lg mb-1">{client.company_name}</CardTitle>
+                          <CardDescription className="text-sm">
+                            {client.aircraft?.registration} - {client.aircraft?.manufacturer} {client.aircraft?.model}
+                          </CardDescription>
                         </div>
-                        <div className="flex items-center gap-2">
-                          {d.file_url && (
-                            <Button variant="ghost" size="sm" onClick={() => window.open(d.file_url, "_blank")}>Abrir</Button>
-                          )}
-                          <Button variant="destructive" size="sm" onClick={() => handleDeleteData(d.id)}>
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                        <Badge variant="secondary" className="ml-2">
+                          {client.share_percentage}%
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Participação:</span>
+                          <span className="font-semibold">{client.share_percentage}%</span>
+                        </div>
+                        <Button className="w-full mt-4" variant="default">
+                          <Plane className="mr-2 h-4 w-4" />
+                          Acessar Portal
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </>
+          ) : (
+            // Client Dashboard View
+            <>
+              <div className="mb-8">
+                <Button variant="outline" onClick={handleBack} className="mb-4">
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Voltar
+                </Button>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <Plane className="h-8 w-8 text-primary" />
+                    <div>
+                      <h1 className="text-3xl font-bold text-foreground">{selectedClient.company_name}</h1>
+                      <p className="text-muted-foreground">
+                        {aircraft?.registration} • {aircraft?.manufacturer} {aircraft?.model}
+                      </p>
+                    </div>
+                  </div>
+                  <Badge variant="outline" className="text-lg px-4 py-2">
+                    {selectedClient.share_percentage}% de Participação
+                  </Badge>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                {/* Aircraft Information */}
+                <Card className="border-border bg-card">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Plane className="h-5 w-5" />
+                      Informações da Aeronave
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Matrícula</p>
+                        <p className="font-semibold text-lg">{aircraft?.registration}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Ano</p>
+                        <p className="font-semibold text-lg">{aircraft?.year}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Total de Horas</p>
+                        <p className="font-semibold text-lg">{aircraft?.total_hours || 0}h</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Status</p>
+                        <Badge variant={aircraft?.status === 'Ativa' ? 'default' : 'secondary'}>
+                          {aircraft?.status || 'Ativa'}
+                        </Badge>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Flight Activity */}
+                <Card className="border-border bg-card">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Clock className="h-5 w-5" />
+                      Atividade de Voo
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Voos Este Mês</p>
+                        <p className="font-semibold text-2xl text-primary">{flightActivity.total_flights}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Horas Este Mês</p>
+                        <p className="font-semibold text-2xl text-primary">{flightActivity.total_hours.toFixed(1)}h</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Pousos</p>
+                        <p className="font-semibold text-2xl text-primary">{flightActivity.total_landings}</p>
+                      </div>
+                    </div>
+
+                    {flightActivity.recent_destinations.length > 0 && (
+                      <div>
+                        <p className="text-sm text-muted-foreground mb-2">Destinos Recentes:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {flightActivity.recent_destinations.map((dest, idx) => (
+                            <Badge key={idx} variant="outline">
+                              <MapPin className="h-3 w-3 mr-1" />
+                              {dest}
+                            </Badge>
+                          ))}
                         </div>
                       </div>
-                    ))}
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Payments and Invoices */}
+              <Card className="border-border bg-card mb-6">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <DollarSign className="h-5 w-5" />
+                      Pagamentos e Faturas
+                    </CardTitle>
+                    {pendingPayments.count > 0 && (
+                      <Badge variant="destructive">
+                        {pendingPayments.count} pendente(s)
+                      </Badge>
+                    )}
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        )}
+                </CardHeader>
+                <CardContent>
+                  {pendingPayments.count > 0 ? (
+                    <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+                      <p className="text-sm text-muted-foreground mb-1">Total Pendente:</p>
+                      <p className="text-2xl font-bold text-destructive">
+                        R$ {pendingPayments.total_amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        {pendingPayments.count} pagamento(s) pendente(s) no valor total de R$ {pendingPayments.total_amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="bg-success/10 border border-success/20 rounded-lg p-4 flex items-center gap-3">
+                      <CheckCircle className="h-8 w-8 text-success" />
+                      <div>
+                        <p className="font-semibold">Sem Pendências</p>
+                        <p className="text-sm text-muted-foreground">Todos os pagamentos estão em dia</p>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Documents */}
+                <Card className="border-border bg-card">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <FileText className="h-5 w-5" />
+                      Documentos da Aeronave
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {documents.map((doc) => (
+                        <div key={doc.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                          <div className="flex-1">
+                            <p className="font-medium">{doc.name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              Válido até: {new Date(doc.valid_until).toLocaleDateString('pt-BR')}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant={doc.status === 'Válido' ? 'default' : 'destructive'}>
+                              {doc.status}
+                            </Badge>
+                            {doc.document_url && (
+                              <Button size="sm" variant="ghost">
+                                <Download className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Alerts and Notifications */}
+                <Card className="border-border bg-card">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <AlertTriangle className="h-5 w-5" />
+                      Alertas e Notificações
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {alerts.map((alert, idx) => (
+                        <div
+                          key={idx}
+                          className={`p-4 rounded-lg border ${alert.severity === 'error'
+                              ? 'bg-destructive/10 border-destructive/20'
+                              : alert.severity === 'warning'
+                                ? 'bg-warning/10 border-warning/20'
+                                : 'bg-success/10 border-success/20'
+                            }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            {alert.severity === 'error' && <XCircle className="h-5 w-5 text-destructive mt-0.5" />}
+                            {alert.severity === 'warning' && <AlertTriangle className="h-5 w-5 text-warning mt-0.5" />}
+                            {alert.severity === 'info' && <CheckCircle className="h-5 w-5 text-success mt-0.5" />}
+                            <div>
+                              <p className="font-semibold">{alert.type}</p>
+                              <p className="text-sm text-muted-foreground">{alert.message}</p>
+                              {alert.date && (
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {new Date(alert.date).toLocaleDateString('pt-BR')}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </Layout>
   );
-};
-
-export default PortalClienteColaborador;
+}
