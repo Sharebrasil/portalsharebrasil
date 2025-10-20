@@ -289,7 +289,7 @@ export default function RelatorioViagem() {
     const { data: { user } } = await supabase.auth.getUser();
     const payload = {
       numero_relatorio: currentReport.numero,
-      cliente: currentReport.cliente,
+      cliente: (clients.find((c:any)=>c.id===currentReport.cliente_id)?.company_name) || currentReport.cliente,
       aeronave: currentReport.aeronave,
       tripulante: currentReport.tripulante,
       destination: currentReport.destino,
@@ -312,7 +312,7 @@ export default function RelatorioViagem() {
     await (supabase as any).from('travel_report_history').insert([{
       report_id: dbRow?.id,
       numero_relatorio: currentReport.numero,
-      cliente: currentReport.cliente,
+      cliente: (clients.find((c:any)=>c.id===currentReport.cliente_id)?.company_name) || currentReport.cliente,
       pdf_path: pdfPath,
       metadata: { status: 'submitted', destination: currentReport.destino }
     }]);
@@ -604,7 +604,7 @@ export default function RelatorioViagem() {
         <div className="space-y-4">
           <h2 className="text-xl font-semibold">Histórico de PDFs</h2>
           {loadingHistory ? <p>Carregando...</p> : (
-            <div className="grid gap-4">
+��           <div className="grid gap-4">
               {history.map((item) => (
                <div key={item.id} className="flex items-center justify-between p-4 border rounded">
                   <div>
