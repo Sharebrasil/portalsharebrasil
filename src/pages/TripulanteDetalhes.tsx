@@ -18,7 +18,7 @@ export default function TripulanteDetalhes() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialTab = (searchParams.get("tab") === "anexos" ? "anexos" : searchParams.get("tab") === "dados" ? "dados" : "calendario") as "dados" | "anexos" | "calendario";
+  const initialTab = (searchParams.get("tab") === "anexos" ? "anexos" : searchParams.get("tab") === "calendario" ? "calendario" : "dados") as "dados" | "anexos" | "calendario";
   const [activeTab, setActiveTab] = useState<"dados" | "anexos" | "calendario">(initialTab);
 
   const { data: member, isLoading, refetch } = useQuery({
@@ -143,7 +143,7 @@ export default function TripulanteDetalhes() {
           <CardContent className="p-6">
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
               <TabsList className="grid w-full max-w-xl grid-cols-3">
-                <TabsTrigger value="dados">Dados</TabsTrigger>
+                <TabsTrigger value="dados">Dados Principais</TabsTrigger>
                 <TabsTrigger value="calendario">Horas de Voo</TabsTrigger>
                 <TabsTrigger value="anexos">Anexos</TabsTrigger>
               </TabsList>
