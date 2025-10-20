@@ -27,7 +27,7 @@ export default function RelatorioViagem() {
   const [pdfModalUrl, setPdfModalUrl] = useState<string | null>(null);
 
   const CATEGORIAS_DESPESA = ["Combustível", "Hospedagem", "Alimentação", "Transporte", "Outros"];
-  const PAGADORES = ["Tripulante", "Cliente", "ShareBrasil"];
+  const PAGADORES = ["Tripulante 1", "Tripulante 2", "Cliente", "ShareBrasil"];
 
   const toFolder = (s: string) => (s || 'sem_cliente')
     .normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
@@ -179,6 +179,8 @@ export default function RelatorioViagem() {
         default: totals.total_outros += valor;
       }
       switch (d.pago_por) {
+        case 'Tripulante 1':
+        case 'Tripulante 2':
         case 'Tripulante': totals.total_tripulante += valor; break;
         case 'Cliente': totals.total_cliente += valor; break;
         case 'ShareBrasil': totals.total_share_brasil += valor; break;
@@ -220,10 +222,20 @@ export default function RelatorioViagem() {
       const reader = new FileReader();
       reader.onload = () => {
         handleDespesaChange(index, 'comprovante_url', String(reader.result));
+        toast({
+          title: "Upload concluído!",
+          description: `Comprovante da despesa ${index + 1} adicionado com sucesso.`,
+          variant: "default"
+        });
       };
       reader.readAsDataURL(file);
     } catch (error) {
       console.error('Erro no upload:', error);
+      toast({
+        title: "Erro no upload",
+        description: "Não foi possível carregar o arquivo.",
+        variant: "destructive"
+      });
     }
     setUploadingIndex(null);
   };
