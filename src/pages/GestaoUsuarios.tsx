@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { UserPlus, Shield, Trash2 } from "lucide-react";
 
-type Role = 'admin' | 'tripulante' | 'financeiro' | 'financeiro_master' | 'operacoes' | 'ctm' | 'piloto_chefe' | 'cotista' | 'gestor_master' | 'operador';
+type Role = 'admin' | 'tripulante' | 'financeiro' | 'financeiro_master' | 'operacoes' | 'piloto_chefe' | 'cotista' | 'gestor_master' ;
 
 interface UserProfile {
   id: string;
@@ -25,11 +25,11 @@ const ROLE_LABELS: Record<Role, string> = {
   financeiro: 'Financeiro',
   financeiro_master: 'Financeiro Master',
   operacoes: 'Operações',
-  ctm: 'CTM',
+ 
   piloto_chefe: 'Piloto Chefe',
   cotista: 'Cotista',
   gestor_master: 'Gestor Master',
-  operador: 'Operador'
+ 
 };
 
 export default function GerenciarUsuarios() {
