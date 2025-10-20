@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Save, X } from "lucide-react";
+import { Save, X, Trash2, Loader2 } from "lucide-react";
 
 const preVooChecklist = [
   "Verificar CHT (Certificado de Habilitação Técnica da Aeronave)",
@@ -101,6 +101,7 @@ export function FlightPlanForm({ scheduleId, onCancel, onSuccess }: FlightPlanFo
   const [comissariaItems, setComissariaItems] = useState<boolean[]>(() => new Array(comissariaChecklist.length).fill(false));
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -289,11 +290,51 @@ export function FlightPlanForm({ scheduleId, onCancel, onSuccess }: FlightPlanFo
               <CardTitle>{existingPlanId ? "Editar Plano de Voo" : "Criar Plano de Voo"}</CardTitle>
               <p className="text-sm text-muted-foreground">{scheduleTitle}</p>
             </div>
-            {onCancel && (
-              <Button type="button" variant="ghost" size="icon" onClick={onCancel} aria-label="Fechar formulário">
-                <X className="h-4 w-4" />
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              {existingPlanId && (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  onClick={async () => {
+                    if (!existingPlanId) return;
+                    const confirmed = window.confirm("Tem certeza que deseja excluir este plano de voo?");
+                    if (!confirmed) return;
+                    setDeleting(true);
+                    try {
+                      await supabase.from("flight_checklists").delete().eq("flight_plan_id", existingPlanId);
+                      const { error } = await supabase.from("flight_plans").delete().eq("id", existingPlanId);
+                      if (error) throw error;
+                      setExistingPlanId(null);
+                      setFormData({
+                        ...defaultFormData,
+                        aircraft_registration: schedule?.aircraft.registration || "",
+                        aircraft_type: schedule?.aircraft.model || "",
+                      });
+                      setPreVooItems(new Array(preVooChecklist.length).fill(false));
+                      setComissariaItems(new Array(comissariaChecklist.length).fill(false));
+                      toast.success("Plano de voo excluído com sucesso");
+                      onSuccess?.();
+                      onCancel?.();
+                    } catch (error) {
+                      console.error("Erro ao excluir plano de voo:", error);
+                      toast.error("Erro ao excluir plano de voo");
+                    } finally {
+                      setDeleting(false);
+                    }
+                  }}
+                  disabled={deleting}
+                >
+                  {deleting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Trash2 className="h-4 w-4 mr-2" />}
+                  Excluir
+                </Button>
+              )}
+              {onCancel && (
+                <Button type="button" variant="ghost" size="icon" onClick={onCancel} aria-label="Fechar formulário">
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           </div>
         </CardHeader>
         <CardContent className="grid grid-cols-1 gap-6">
