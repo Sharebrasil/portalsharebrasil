@@ -409,10 +409,29 @@ export default function Clientes() {
               Gerencie o cadastro de clientes e cotistas
             </p>
           </div>
-          <Button onClick={() => handleOpenDialog()} className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            Novo Cadastro
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={async () => {
+              try {
+                const actives = clientes.filter((c) => {
+                  const s = String(c.status ?? '').toLowerCase();
+                  return s === 'active' || s === 'ativo' || s === '';
+                });
+                for (const c of actives) {
+                  await ensureTravelReportsFolder(c.company_name);
+                }
+                toast({ title: 'Pastas criadas', description: `${actives.length} clientes ativos processados.` });
+              } catch (e) {
+                toast({ title: 'Erro ao criar pastas', description: 'Tente novamente mais tarde.', variant: 'destructive' });
+              }
+            }} className="flex items-center gap-2">
+              <Folder className="h-4 w-4" />
+              Criar Pastas Ativos
+            </Button>
+            <Button onClick={() => handleOpenDialog()} className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              Novo Cadastro
+            </Button>
+          </div>
         </div>
 
         {/* Cards de Resumo */}
