@@ -10,7 +10,6 @@ import Agendamento from "./pages/Agendamento";
 import Aniversarios from "./pages/agenda/Aniversarios";
 import Clientes from "./pages/agenda/Clientes";
 import Contatos from "./pages/agenda/Contatos";
-import Cobranca from "./pages/financeiro/Cobranca";
 import ConfigEmpresa from "./pages/financeiro/ConfigEmpresa";
 import EmissaoRecibo from "./pages/financeiro/EmissaoRecibo";
 import RelatorioViagem from "./pages/financeiro/RelatorioViagem";
@@ -76,7 +75,6 @@ const App = () => {
               <Route path="/financeiro/config" element={renderProtected(<ConfigEmpresa />)} />
               <Route path="/financeiro/recibo" element={renderProtected(<EmissaoRecibo />)} />
               <Route path="/financeiro/viagem" element={renderProtected(<RelatorioViagem />)} />
-              <Route path="/financeiro/cobranca" element={renderProtected(<Cobranca />)} />
               <Route path="/financeiro/compras" element={renderProtected(<SolicitacaoCompras />)} />
               <Route path="/cartao/alimentacao" element={renderProtected(<ValeAlimentacao />)} />
               <Route path="/cartao/refeicao" element={renderProtected(<ValeRefeicao />)} />
