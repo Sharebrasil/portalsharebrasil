@@ -24,17 +24,13 @@ import {
   CreditCard,
   DollarSign,
   User as UserIcon,
-  Edit, // Importação do ícone de edição
-  Save, // Importação do ícone de salvar
-  X // Importação do ícone de cancelar
+  Edit,
+  Save,
+  X
 } from "lucide-react";
 import { APP_ROLE_VALUES, ROLE_LABELS, type AppRole } from "@/lib/roles";
 import { formatRoleLabel } from "@/lib/roles";
 
-// Atualizado: Incluindo 'app_role' no tipo Employee, já que você mencionou que o perfil tem essa informação.
-// No entanto, vou manter a lógica de pegar as roles de 'user_roles' por ser mais robusta.
-// Se 'app_role' for um campo na tabela 'user_profiles', você pode adicionar aqui.
-// Assumindo que o campo 'roles: AppRole[]' é o que define a função.
 interface Employee {
   id: string;
   email: string;
@@ -52,8 +48,6 @@ interface Employee {
   is_authenticated_user: boolean;
   bank_data: any;
   roles: AppRole[];
-  // Se o app_role for um campo no profile, adicione-o:
-  // app_role?: AppRole;
 }
 
 // Tipo para o formulário de edição
@@ -61,16 +55,28 @@ type EditEmployeeForm = Omit<Employee, 'id' | 'is_authenticated_user' | 'bank_da
   role: AppRole;
 };
 
+// -----------------------------------------------------------
+// Definição das roles que DEVEM ser exibidas na lista de gestão
+// -----------------------------------------------------------
+const ROLES_TO_DISPLAY: AppRole[] = [
+    'financeiro',
+    'financeiro_master',
+    'tripulante',
+    'piloto_chefe',
+    'operacoes',
+];
+
 export default function GestaoFuncionarios() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { isAdmin, isFinanceiroMaster, isGestorMaster } = useUserRole();
+  // Condição para Acesso à Página: Somente esses perfis
   const canManage = isAdmin || isFinanceiroMaster || isGestorMaster;
 
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [isCreating, setIsCreating] = useState(false);
-  const [isEditing, setIsEditing] = useState(false); // Novo estado para modo de edição
-  const [editEmployeeForm, setEditEmployeeForm] = useState<EditEmployeeForm | null>(null); // Novo estado para o formulário de edição
+  const [isEditing, setIsEditing] = useState(false);
+  const [editEmployeeForm, setEditEmployeeForm] = useState<EditEmployeeForm | null>(null);
 
   // Resetar o estado de edição ao selecionar um novo funcionário
   const handleSelectEmployee = (employee: Employee) => {
@@ -117,7 +123,9 @@ export default function GestaoFuncionarios() {
     is_authenticated_user: false,
   });
 
-  // Fetch employees
+  // -----------------------------------------------------------
+  // Fetch employees (COM FILTRO AJUSTADO)
+  // -----------------------------------------------------------
   const { data: employees = [], isLoading } = useQuery({
     queryKey: ["employees"],
     queryFn: async () => {
@@ -136,22 +144,25 @@ export default function GestaoFuncionarios() {
             .select("role")
             .eq("user_id", profile.id);
 
-          // Lógica para determinar a função principal (ex: a primeira, ou uma hierarquia)
+          // Lógica para determinar a função principal
           const roles = rolesData?.map((r) => r.role).filter(Boolean) || [];
 
           return {
             ...profile,
             roles: roles,
-            // app_role: profile.app_role, // Descomente se 'app_role' estiver no 'user_profiles'
           } as Employee;
         })
       );
 
-      // 1. FILTRAR ADMINISTRADORES: Garante que admins não apareçam na lista de funcionários.
-      return employeesWithRoles.filter(employee => !employee.roles.includes('admin'));
+      // NOVO FILTRO: Retorna SOMENTE os usuários que possuem uma das ROLES_TO_DISPLAY.
+      return employeesWithRoles.filter(employee => 
+        employee.roles.some(role => ROLES_TO_DISPLAY.includes(role))
+      );
     },
     enabled: canManage,
   });
+  // -----------------------------------------------------------
+
 
   // Create employee mutation (mantido)
   const createEmployeeMutation = useMutation({
@@ -187,7 +198,7 @@ export default function GestaoFuncionarios() {
             employment_status: "ativo",
             is_authenticated_user: false,
             // Adicionar app_role se for um campo na tabela profiles
-            // app_role: employee.role, 
+            // app_role: employee.role, 
           })
           .select()
           .single();
@@ -256,7 +267,7 @@ export default function GestaoFuncionarios() {
     },
   });
 
-  // 3. MUTATION DE EDIÇÃO DE FUNCIONÁRIO (NOVA)
+  // 3. MUTATION DE EDIÇÃO DE FUNCIONÁRIO (mantido)
   const updateEmployeeMutation = useMutation({
     mutationFn: async (updatedData: EditEmployeeForm) => {
       if (!selectedEmployee) throw new Error("Nenhum funcionário selecionado para edição.");
@@ -320,7 +331,7 @@ export default function GestaoFuncionarios() {
   });
 
   if (!canManage) {
-    // ... (Permissão negada - MANTIDA)
+    // Permissão negada (Mantido: só admin, gestor master e financeiro master passam)
     return (
       <Layout>
         <div className="p-6">
@@ -336,7 +347,7 @@ export default function GestaoFuncionarios() {
     );
   }
 
-  // Componente de Formulário de Edição
+  // Componente de Formulário de Edição (Mantido)
   const EditEmployeeFormContent = () => {
     if (!editEmployeeForm || !selectedEmployee) return null;
 
@@ -463,7 +474,8 @@ export default function GestaoFuncionarios() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {APP_ROLE_VALUES.filter((role) => role !== "admin").map((role) => (
+                  {/* Exibe todas as roles, incluindo as que não aparecem na lista (para permitir a edição) */}
+                  {APP_ROLE_VALUES.map((role) => (
                     <SelectItem key={role} value={role}>
                       {ROLE_LABELS[role]}
                     </SelectItem>
@@ -507,8 +519,8 @@ export default function GestaoFuncionarios() {
       </ScrollArea>
     );
   };
-
-  // Refatoração do Detalhe do Funcionário para suportar edição e visualização
+    
+  // Refatoração do Detalhe do Funcionário para suportar edição e visualização (Mantido)
   const EmployeeDetails = () => {
     if (!selectedEmployee) return null;
 
@@ -525,7 +537,7 @@ export default function GestaoFuncionarios() {
       );
     }
 
-    // Modo de Visualização (mantido, com o botão de edição adicionado)
+    // Modo de Visualização
     return (
       <>
         <CardHeader>
@@ -553,16 +565,16 @@ export default function GestaoFuncionarios() {
               </div>
             </div>
             <div className="flex gap-2">
-              <Badge
+                <Badge
                 variant={
-                  selectedEmployee.employment_status === "ativo" ? "default" : "destructive"
+                    selectedEmployee.employment_status === "ativo" ? "default" : "destructive"
                 }
-              >
+                >
                 {selectedEmployee.employment_status}
-              </Badge>
-              <Button variant="outline" size="icon" onClick={startEditing} title="Editar Perfil">
-                <Edit className="h-4 w-4" />
-              </Button>
+                </Badge>
+                <Button variant="outline" size="icon" onClick={startEditing} title="Editar Perfil">
+                    <Edit className="h-4 w-4" />
+                </Button>
             </div>
           </div>
         </CardHeader>
@@ -596,8 +608,8 @@ export default function GestaoFuncionarios() {
                         <p className="font-medium">
                           {selectedEmployee.birth_date
                             ? new Date(selectedEmployee.birth_date).toLocaleDateString(
-                              "pt-BR"
-                            )
+                                "pt-BR"
+                              )
                             : "—"}
                         </p>
                       </div>
@@ -630,8 +642,8 @@ export default function GestaoFuncionarios() {
                           <Calendar className="h-4 w-4" />
                           {selectedEmployee.admission_date
                             ? new Date(selectedEmployee.admission_date).toLocaleDateString(
-                              "pt-BR"
-                            )
+                                "pt-BR"
+                              )
                             : "—"}
                         </p>
                       </div>
@@ -641,8 +653,8 @@ export default function GestaoFuncionarios() {
                           <DollarSign className="h-4 w-4" />
                           {selectedEmployee.salary
                             ? `R$ ${selectedEmployee.salary.toLocaleString("pt-BR", {
-                              minimumFractionDigits: 2,
-                            })}`
+                                minimumFractionDigits: 2,
+                              })}`
                             : "—"}
                         </p>
                       </div>
@@ -731,11 +743,7 @@ export default function GestaoFuncionarios() {
             Novo Funcionário
           </Button>
         </div>
-        {/*
-          2. LAYOUT EM CARDS para a lista de funcionários: 
-          O layout atual já usa <Card> e um <div> estilizado que funciona como um card na lista.
-          Ajustei o `onClick` para usar `handleSelectEmployee`.
-        */}
+        
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <Card className="lg:col-span-1">
             <CardHeader>
@@ -748,14 +756,18 @@ export default function GestaoFuncionarios() {
               <ScrollArea className="h-[calc(100vh-280px)]">
                 <div className="space-y-2">
                   {isLoading && <p className="text-sm text-muted-foreground">Carregando...</p>}
+                  {employees.length === 0 && !isLoading && (
+                    <p className="text-sm text-muted-foreground">Nenhum funcionário encontrado com os perfis permitidos.</p>
+                  )}
                   {employees.map((employee) => (
                     <div
                       key={employee.id}
-                      className={`p-3 border rounded-lg cursor-pointer transition-smooth ${selectedEmployee?.id === employee.id
+                      className={`p-3 border rounded-lg cursor-pointer transition-smooth ${
+                        selectedEmployee?.id === employee.id
                           ? "bg-primary/10 border-primary"
                           : "hover:bg-accent border-border"
-                        }`}
-                      onClick={() => handleSelectEmployee(employee)} // Usando a nova função
+                      }`}
+                      onClick={() => handleSelectEmployee(employee)}
                     >
                       <div className="flex items-center gap-3">
                         <Avatar className="h-10 w-10">
@@ -780,10 +792,11 @@ export default function GestaoFuncionarios() {
                           )}
                         </div>
                         <div
-                          className={`w-2 h-2 rounded-full ${employee.employment_status === "ativo"
+                          className={`w-2 h-2 rounded-full ${
+                            employee.employment_status === "ativo"
                               ? "bg-green-500"
                               : "bg-red-500"
-                            }`}
+                          }`}
                         />
                       </div>
                     </div>
@@ -802,7 +815,6 @@ export default function GestaoFuncionarios() {
                   <CardTitle>Novo Funcionário</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {/* ... Conteúdo do formulário de criação ... */}
                   <ScrollArea className="h-[calc(100vh-280px)] pr-4">
                     <div className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
@@ -811,9 +823,7 @@ export default function GestaoFuncionarios() {
                           <Input
                             id="full_name"
                             value={newEmployee.full_name}
-                            onChange={(e) =>
-                              setNewEmployee({ ...newEmployee, full_name: e.target.value })
-                            }
+                            onChange={(e) => setNewEmployee({ ...newEmployee, full_name: e.target.value })}
                           />
                         </div>
                         <div className="col-span-2">
@@ -822,9 +832,7 @@ export default function GestaoFuncionarios() {
                             id="email"
                             type="email"
                             value={newEmployee.email}
-                            onChange={(e) =>
-                              setNewEmployee({ ...newEmployee, email: e.target.value })
-                            }
+                            onChange={(e) => setNewEmployee({ ...newEmployee, email: e.target.value })}
                           />
                         </div>
                         <div>
@@ -832,9 +840,7 @@ export default function GestaoFuncionarios() {
                           <Input
                             id="cpf"
                             value={newEmployee.cpf}
-                            onChange={(e) =>
-                              setNewEmployee({ ...newEmployee, cpf: e.target.value })
-                            }
+                            onChange={(e) => setNewEmployee({ ...newEmployee, cpf: e.target.value })}
                           />
                         </div>
                         <div>
@@ -842,9 +848,7 @@ export default function GestaoFuncionarios() {
                           <Input
                             id="rg"
                             value={newEmployee.rg}
-                            onChange={(e) =>
-                              setNewEmployee({ ...newEmployee, rg: e.target.value })
-                            }
+                            onChange={(e) => setNewEmployee({ ...newEmployee, rg: e.target.value })}
                           />
                         </div>
                         <div>
@@ -853,9 +857,7 @@ export default function GestaoFuncionarios() {
                             id="birth_date"
                             type="date"
                             value={newEmployee.birth_date}
-                            onChange={(e) =>
-                              setNewEmployee({ ...newEmployee, birth_date: e.target.value })
-                            }
+                            onChange={(e) => setNewEmployee({ ...newEmployee, birth_date: e.target.value })}
                           />
                         </div>
                         <div>
@@ -863,9 +865,7 @@ export default function GestaoFuncionarios() {
                           <Input
                             id="phone"
                             value={newEmployee.phone}
-                            onChange={(e) =>
-                              setNewEmployee({ ...newEmployee, phone: e.target.value })
-                            }
+                            onChange={(e) => setNewEmployee({ ...newEmployee, phone: e.target.value })}
                           />
                         </div>
                         <div className="col-span-2">
@@ -873,9 +873,7 @@ export default function GestaoFuncionarios() {
                           <Input
                             id="address"
                             value={newEmployee.address}
-                            onChange={(e) =>
-                              setNewEmployee({ ...newEmployee, address: e.target.value })
-                            }
+                            onChange={(e) => setNewEmployee({ ...newEmployee, address: e.target.value })}
                           />
                         </div>
                         <div>
@@ -884,9 +882,7 @@ export default function GestaoFuncionarios() {
                             id="admission_date"
                             type="date"
                             value={newEmployee.admission_date}
-                            onChange={(e) =>
-                              setNewEmployee({ ...newEmployee, admission_date: e.target.value })
-                            }
+                            onChange={(e) => setNewEmployee({ ...newEmployee, admission_date: e.target.value })}
                           />
                         </div>
                         <div>
@@ -896,9 +892,7 @@ export default function GestaoFuncionarios() {
                             type="number"
                             step="0.01"
                             value={newEmployee.salary}
-                            onChange={(e) =>
-                              setNewEmployee({ ...newEmployee, salary: e.target.value })
-                            }
+                            onChange={(e) => setNewEmployee({ ...newEmployee, salary: e.target.value })}
                           />
                         </div>
                         <div className="col-span-2">
@@ -906,24 +900,21 @@ export default function GestaoFuncionarios() {
                           <Input
                             id="benefits"
                             value={newEmployee.benefits}
-                            onChange={(e) =>
-                              setNewEmployee({ ...newEmployee, benefits: e.target.value })
-                            }
+                            onChange={(e) => setNewEmployee({ ...newEmployee, benefits: e.target.value })}
                           />
                         </div>
-                        <div>
-                          <Label htmlFor="role">Função</Label>
+                        <div className="col-span-2">
+                          <Label htmlFor="role">Função *</Label>
                           <Select
                             value={newEmployee.role}
-                            onValueChange={(value) =>
-                              setNewEmployee({ ...newEmployee, role: value as AppRole })
-                            }
+                            onValueChange={(value) => setNewEmployee({ ...newEmployee, role: value as AppRole })}
                           >
                             <SelectTrigger>
-                              <SelectValue />
+                              <SelectValue placeholder="Selecione a função" />
                             </SelectTrigger>
                             <SelectContent>
-                              {APP_ROLE_VALUES.filter((role) => role !== "admin").map((role) => (
+                              {/* Exibe APENAS as roles que você quer que sejam ATRIBUÍDAS */}
+                              {APP_ROLE_VALUES.filter((role) => ROLES_TO_DISPLAY.includes(role) || role === 'admin' || role === 'gestor_master').map((role) => (
                                 <SelectItem key={role} value={role}>
                                   {ROLE_LABELS[role]}
                                 </SelectItem>
@@ -931,34 +922,33 @@ export default function GestaoFuncionarios() {
                             </SelectContent>
                           </Select>
                         </div>
-                        <div className="col-span-2 flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            id="is_authenticated_user"
-                            checked={newEmployee.is_authenticated_user}
-                            onChange={(e) =>
-                              setNewEmployee({
-                                ...newEmployee,
-                                is_authenticated_user: e.target.checked,
-                              })
-                            }
-                            className="h-4 w-4"
-                          />
-                          <Label htmlFor="is_authenticated_user">
-                            Criar usuário com acesso ao sistema
-                          </Label>
+                        <div className="col-span-2">
+                          <div className="flex items-center space-x-2 pt-2">
+                            <input
+                              id="is_authenticated_user"
+                              type="checkbox"
+                              checked={newEmployee.is_authenticated_user}
+                              onChange={(e) => setNewEmployee({ ...newEmployee, is_authenticated_user: e.target.checked })}
+                              className="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary/50"
+                            />
+                            <Label htmlFor="is_authenticated_user" className="text-sm font-medium leading-none">
+                              Criar como usuário autenticado (Enviar email de convite/reset)
+                            </Label>
+                          </div>
                         </div>
                       </div>
+
                       <div className="flex gap-2 pt-4">
                         <Button
                           onClick={() => createEmployeeMutation.mutate(newEmployee)}
                           disabled={
                             createEmployeeMutation.isPending ||
                             !newEmployee.full_name ||
-                            !newEmployee.email
+                            !newEmployee.email ||
+                            !newEmployee.role
                           }
                         >
-                          Criar Funcionário
+                          {createEmployeeMutation.isPending ? "Criando..." : "Criar Funcionário"}
                         </Button>
                         <Button variant="outline" onClick={() => setIsCreating(false)}>
                           Cancelar
@@ -969,17 +959,11 @@ export default function GestaoFuncionarios() {
                 </CardContent>
               </>
             ) : selectedEmployee ? (
-              // 3. Detalhes do Funcionário / Formulário de Edição (Refatorado)
               <EmployeeDetails />
             ) : (
-              <div className="flex items-center justify-center h-full">
-                <div className="text-center space-y-2">
-                  <Users className="h-12 w-12 mx-auto text-muted-foreground" />
-                  <p className="text-muted-foreground">
-                    Selecione um funcionário para ver os detalhes
-                  </p>
-                </div>
-              </div>
+              <CardContent className="pt-6 h-full flex items-center justify-center">
+                <p className="text-muted-foreground">Selecione um funcionário para ver detalhes ou use o botão "Novo Funcionário" acima.</p>
+              </CardContent>
             )}
           </Card>
         </div>
