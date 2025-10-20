@@ -44,9 +44,16 @@ export default function MinhasTarefas() {
 
   const fetchTasks = async () => {
     setLoadingTasks(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setTasks([]);
+      setLoadingTasks(false);
+      return;
+    }
     const { data, error } = await supabase
       .from("tasks")
       .select("*")
+      .or(`requested_by.eq.${user.id},assigned_to.eq.${user.id}`)
       .order("due_date", { ascending: true });
 
     if (error) {
@@ -61,10 +68,16 @@ export default function MinhasTarefas() {
   };
 
   const fetchNotifications = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setNotifications([]);
+      return;
+    }
     const { data, error } = await supabase
       .from("task_notifications")
       .select("*")
       .eq("read", false)
+      .eq("user_id", user.id)
       .order("created_at", { ascending: false });
 
     if (error) {
