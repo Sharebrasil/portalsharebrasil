@@ -259,7 +259,7 @@ export default function Aniversarios() {
               <div className="flex items-center justify-center py-12 text-muted-foreground">
                 Carregando aniversários...
               </div>
-            ) : sortedBirthdays.length === 0 ? (
+            ) : filteredBirthdays.length === 0 ? (
               <div className="flex items-center justify-center py-12 text-muted-foreground">
                 Nenhum aniversário registrado.
               </div>
