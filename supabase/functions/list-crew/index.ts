@@ -19,11 +19,11 @@ const supabaseUrl = Deno.env.get("SUPABASE_URL");
 const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
 
-if (!supabaseUrl || !serviceRoleKey || !anonKey) {
-  throw new Error("Missing Supabase configuration for list-crew function");
+if (!supabaseUrl || !anonKey) {
+  throw new Error("Missing Supabase configuration (SUPABASE_URL or SUPABASE_ANON_KEY)");
 }
 
-const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+const hasServiceRole = Boolean(serviceRoleKey && serviceRoleKey.length > 0);
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -46,15 +46,31 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Não autenticado" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const roles = ((userData.user as any)?.user_metadata?.roles ?? []) as string[];
-    const allowed = Array.isArray(roles) && roles.some((r) => ["admin", "gestor_master", "financeiro_master", "operacoes", "financeiro", "piloto_chefe"].includes(String(r)));
+    const jwtRoles = ((userData.user as any)?.app_metadata?.roles ?? (userData.user as any)?.user_metadata?.roles ?? []) as string[];
+
+    let allowed = Array.isArray(jwtRoles) && jwtRoles.some((r) => ["admin", "gestor_master", "financeiro_master", "operacoes", "financeiro", "piloto_chefe"].includes(String(r)));
+
     if (!allowed) {
-      return new Response(JSON.stringify({ error: "Sem permissão" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      try {
+        const { data: userRolesData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", userData.user.id);
+        const dbRoles = (userRolesData ?? []).map((r: any) => String(r.role));
+        allowed = dbRoles.some((r) => ["admin", "gestor_master", "financeiro_master", "operacoes", "financeiro", "piloto_chefe"].includes(r));
+      } catch {}
+    }
+
+    if (!allowed) {
+      return new Response(JSON.stringify({ error: "forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const targetRoles = ["tripulante", "piloto_chefe"];
+    const readerClient = hasServiceRole
+      ? createClient(supabaseUrl, serviceRoleKey!)
+      : supabase;
 
-    const { data: roleAssignments, error: rolesError } = await supabaseAdmin
+    const { data: roleAssignments, error: rolesError } = await readerClient
       .from("user_roles")
       .select("user_id, role")
       .in("role", targetRoles);
@@ -68,7 +84,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ crew: [] as CrewMember[] }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const { data: profiles, error: profilesError } = await supabaseAdmin
+    const { data: profiles, error: profilesError } = await readerClient
       .from("user_profiles")
       .select("id, full_name, email, phone, avatar_url")
       .in("id", userIds);
