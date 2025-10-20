@@ -210,7 +210,7 @@ export default function Aniversarios() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
+          <Card onClick={() => setFilter("month")} className="cursor-pointer">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
