@@ -720,6 +720,19 @@ export default function EmissaoRecibo() {
                 <Input id="valor" type="number" placeholder="0,00" step="0.01" value={valor} onChange={(e) => setValor(e.target.value)} />
               </div>
               <div className="space-y-2">
+                <Label>Tipo de Recibo</Label>
+                <RadioGroup value={receiptType} onValueChange={(v)=>setReceiptType(v as any)} className="grid grid-cols-2 gap-3">
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem id="tipo-reembolso" value="reembolso" />
+                    <Label htmlFor="tipo-reembolso" className="cursor-pointer">Solicitação de reembolso</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem id="tipo-pagamento" value="pagamento" />
+                    <Label htmlFor="tipo-pagamento" className="cursor-pointer">Pagamento realizado</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="observacoes">Observações (opcional)</Label>
                 <Textarea id="observacoes" placeholder="Observações adicionais" rows={2} value={observacoes} onChange={(e) => setObservacoes(e.target.value)} />
               </div>
