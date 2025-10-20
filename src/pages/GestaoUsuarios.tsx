@@ -6,9 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
+import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { UserPlus, Shield, Trash2 } from "lucide-react";
+import { UserPlus, Shield, Trash2, Loader2 } from "lucide-react";
 
 type Role = 'admin' | 'tripulante' | 'financeiro' | 'financeiro_master' | 'operacoes' | 'piloto_chefe' | 'cotista' | 'gestor_master' ;
 
@@ -39,26 +40,15 @@ export default function GerenciarUsuarios() {
   const [fullName, setFullName] = useState("");
   const [selectedRole, setSelectedRole] = useState<Role>('tripulante');
   const [loading, setLoading] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
+
+  const { isAdmin: isAdminRole, isGestorMaster, isLoading: isRolesLoading } = useUserRole();
+  const isAllowed = isAdminRole || isGestorMaster;
 
   useEffect(() => {
-    checkAdminStatus();
-    loadUsers();
-  }, []);
-
-  const checkAdminStatus = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { data } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .in('role', ['admin', 'gestor_master'])
-      .maybeSingle();
-
-    setIsAdmin(!!data);
-  };
+    if (isAllowed) {
+      void loadUsers();
+    }
+  }, [isAllowed]);
 
   const loadUsers = async () => {
     const { data: profiles } = await supabase
@@ -135,7 +125,17 @@ export default function GerenciarUsuarios() {
     }
   };
 
-  if (!isAdmin) {
+  if (isRolesLoading) {
+    return (
+      <Layout>
+        <div className="p-6 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!isAllowed) {
     return (
       <Layout>
         <div className="p-6">
