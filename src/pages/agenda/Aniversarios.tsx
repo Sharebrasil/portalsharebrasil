@@ -155,12 +155,12 @@ export default function Aniversarios() {
     });
   }, [processedBirthdays, today]);
 
-  const birthdaysNextSevenDays = useMemo(() => {
+  const listNextSevenDays = useMemo(() => {
     return processedBirthdays.filter((birthday) => {
       if (!birthday.nextOccurrence) return false;
       const diff = differenceInCalendarDays(startOfDay(birthday.nextOccurrence), today);
       return diff >= 0 && diff <= 7;
-    }).length;
+    });
   }, [processedBirthdays, today]);
 
   const sortedBirthdays = useMemo(() => {
