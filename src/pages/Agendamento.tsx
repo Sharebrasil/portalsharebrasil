@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
-import { Plus, Calendar as CalendarIcon, List, Plane, Clock, Users } from "lucide-react";
+import { Plus, Calendar as CalendarIcon, List, Plane, Clock, Users, CheckCircle, XCircle } from "lucide-react";
 import { FlightScheduleDialog } from "@/components/agendamento/AgendamentoDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +9,59 @@ import { useQuery } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "sonner";
+
+function StatusUpdateButtons({ scheduleId, currentStatus, onUpdate }: { scheduleId: string; currentStatus: string; onUpdate: () => void }) {
+  const [loading, setLoading] = useState(false);
+
+  const updateStatus = async (newStatus: string) => {
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from("flight_schedules")
+        .update({ status: newStatus })
+        .eq("id", scheduleId);
+
+      if (error) throw error;
+
+      toast.success(`Status alterado para ${newStatus}`);
+      onUpdate();
+    } catch (error) {
+      console.error("Erro ao atualizar status:", error);
+      toast.error("Erro ao atualizar status");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (currentStatus === "confirmado") {
+    return (
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => updateStatus("pendente")}
+        disabled={loading}
+        className="gap-2"
+      >
+        <XCircle className="h-4 w-4" />
+        Cancelar Confirmação
+      </Button>
+    );
+  }
+
+  return (
+    <Button
+      variant="default"
+      size="sm"
+      onClick={() => updateStatus("confirmado")}
+      disabled={loading}
+      className="gap-2 bg-green-600 hover:bg-green-700"
+    >
+      <CheckCircle className="h-4 w-4" />
+      Confirmar
+    </Button>
+  );
+}
 
 export default function Agendamentos() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -193,7 +246,7 @@ export default function Agendamentos() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Plane className="h-5 w-5" />
-              Lista de Agendamentos ({(schedules || []).filter((s: any) => statusTab === 'pendentes' ? s.status !== 'confirmado' : true).length})
+              Lista de Agendamentos ({(schedules || []).filter((s: any) => statusTab === 'pendentes' ? s.status === 'pendente' : true).length})
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -204,16 +257,16 @@ export default function Agendamentos() {
             ) : schedules && schedules.length > 0 ? (
               <div className="space-y-4">
                 {(schedules || [])
-                  .filter((s: any) => statusTab === 'pendentes' ? s.status !== 'confirmado' : true)
+                  .filter((s: any) => statusTab === 'pendentes' ? s.status === 'pendente' : true)
                   .map((schedule: any) => (
                   <Card key={schedule.id} className="hover:shadow-primary transition-shadow">
                     <CardContent className="p-6">
                       <div className="flex items-start justify-between">
-                        <div className="flex gap-4">
+                        <div className="flex gap-4 flex-1">
                           <div className="p-3 bg-primary/10 rounded-lg">
                             <Plane className="h-6 w-6 text-primary" />
                           </div>
-                          <div className="space-y-3">
+                          <div className="space-y-3 flex-1">
                             <div className="flex items-center gap-3">
                               <h3 className="font-bold text-lg">{schedule.aircraft?.registration || "N/A"}</h3>
                               <Badge variant="outline" className={getStatusBadge(schedule.status).className}>
@@ -221,7 +274,7 @@ export default function Agendamentos() {
                               </Badge>
                               <Badge variant="outline">{getFlightTypeBadge(schedule.flight_type)}</Badge>
                             </div>
-                            
+
                             <div className="grid grid-cols-4 gap-6 text-sm">
                               <div>
                                 <p className="text-muted-foreground mb-1">Data</p>
@@ -262,8 +315,9 @@ export default function Agendamentos() {
                             )}
                           </div>
                         </div>
-                        
-                        <div className="flex gap-2">
+
+                        <div className="flex flex-col gap-2">
+                          <StatusUpdateButtons scheduleId={schedule.id} currentStatus={schedule.status} onUpdate={refetch} />
                           <Button variant="outline" size="sm">
                             Editar
                           </Button>
