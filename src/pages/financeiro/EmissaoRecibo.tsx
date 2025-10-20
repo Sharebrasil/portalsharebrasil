@@ -514,11 +514,15 @@ export default function EmissaoRecibo() {
       "Para maior clareza e segurança das partes, firmo o presente recibo, que permanecerá condicionado ao cumprimento integral da obrigação de pagamento até a data de quitação."
     ].join("\n\n");
     const declaracaoTexto = receiptType === "pagamento" ? declaracaoPagamento : obsReembolsoBloco;
-    const declLines = wrapText(declaracaoTexto, width - 60, font, 7);
-    declLines.forEach((line, idx) => {
-      page.drawText(line, { x: MARGIN_X, y: tableY - (idx * 9), size: 7, font });
-    });
-    tableY -= (declLines.length * 9) + 15;
+    const paragraphs = declaracaoTexto.split("\n\n");
+    for (let pIndex = 0; pIndex < paragraphs.length; pIndex++) {
+      const lines = wrapText(paragraphs[pIndex], width - 60, font, 7);
+      lines.forEach((line, idx) => {
+        page.drawText(line, { x: MARGIN_X, y: tableY - (idx * 9), size: 7, font });
+      });
+      tableY -= (lines.length * 9) + 10; // espaço entre parágrafos
+    }
+    tableY -= 5;
 
     const issueDate = (dataEmissao && dataEmissao.length >= 10) ? dataEmissao : new Date().toISOString().slice(0, 10);
     const issueDateFormatted = new Date(issueDate).toLocaleDateString("pt-BR");
