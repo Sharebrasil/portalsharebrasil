@@ -530,8 +530,8 @@ export default function EmissaoRecibo() {
     }
     tableY -= 5;
 
-    const issueDate = (dataEmissao && dataEmissao.length >= 10) ? dataEmissao : formatDateLocalYYYYMMDD(new Date());
-    const issueDateFormatted = formatDateDisplay(issueDate);
+    const todayLocal = formatDateLocalYYYYMMDD(new Date());
+    const issueDateFormatted = formatDateDisplay(todayLocal);
     const cityText = company?.city || pagadorCidade || "";
     const dataCidadeText = `${cityText}, ${issueDateFormatted}`;
     page.drawText(dataCidadeText, { x: MARGIN_X, y: tableY, size: 8, font });
