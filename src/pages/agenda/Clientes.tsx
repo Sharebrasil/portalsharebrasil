@@ -66,6 +66,19 @@ interface AircraftOption {
   model: string;
 }
 
+const toFolder = (s: string) => (s || 'sem_cliente')
+  .normalize('NFKD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .replace(/[^a-zA-Z0-9-_]/g, '_');
+
+const ensureTravelReportsFolder = async (name: string) => {
+  const folder = toFolder(name);
+  const emptyBlob = new Blob([''], { type: 'text/plain' });
+  await supabase.storage
+    .from('travel-reports')
+    .upload(`${folder}/.keep`, emptyBlob, { upsert: true, contentType: 'text/plain' });
+};
+
 export default function Clientes() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -287,6 +300,17 @@ export default function Clientes() {
 
         if (error) throw error;
 
+        const prevActive = String((editingCliente.status as any) || '').toLowerCase();
+        const newActive = String((updatedData as any).status || '').toLowerCase();
+        const becameActive = !(prevActive === 'ativo' || prevActive === 'active' || prevActive === '') && (newActive === 'ativo' || newActive === 'active' || newActive === '');
+        if (becameActive) {
+          try {
+            await ensureTravelReportsFolder(updatedData.company_name);
+          } catch (e) {
+            console.warn('Falha ao criar pasta do cliente (ativação):', e);
+          }
+        }
+
         toast({
           title: "Sucesso",
           description: "Cliente atualizado com sucesso",
@@ -297,6 +321,19 @@ export default function Clientes() {
           .insert([updatedData]);
 
         if (error) throw error;
+
+        const isActive = String((updatedData as any).status || '').toLowerCase() === 'ativo' || String((updatedData as any).status || '').toLowerCase() === 'active';
+        if (isActive) {
+          try {
+            const folder = toFolder(updatedData.company_name);
+            const emptyBlob = new Blob([''], { type: 'text/plain' });
+            await supabase.storage
+              .from('travel-reports')
+              .upload(`${folder}/.keep`, emptyBlob, { upsert: true, contentType: 'text/plain' });
+          } catch (e) {
+            console.warn('Não foi possível criar a pasta do cliente em travel-reports:', e);
+          }
+        }
 
         toast({
           title: "Sucesso",
@@ -372,10 +409,29 @@ export default function Clientes() {
               Gerencie o cadastro de clientes e cotistas
             </p>
           </div>
-          <Button onClick={() => handleOpenDialog()} className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            Novo Cadastro
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={async () => {
+              try {
+                const actives = clientes.filter((c) => {
+                  const s = String(c.status ?? '').toLowerCase();
+                  return s === 'active' || s === 'ativo' || s === '';
+                });
+                for (const c of actives) {
+                  await ensureTravelReportsFolder(c.company_name);
+                }
+                toast({ title: 'Pastas criadas', description: `${actives.length} clientes ativos processados.` });
+              } catch (e) {
+                toast({ title: 'Erro ao criar pastas', description: 'Tente novamente mais tarde.', variant: 'destructive' });
+              }
+            }} className="flex items-center gap-2">
+              <Folder className="h-4 w-4" />
+              Criar Pastas Ativos
+            </Button>
+            <Button onClick={() => handleOpenDialog()} className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              Novo Cadastro
+            </Button>
+          </div>
         </div>
 
         {/* Cards de Resumo */}

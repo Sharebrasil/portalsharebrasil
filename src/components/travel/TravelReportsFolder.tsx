@@ -9,6 +9,7 @@ import { toast } from "sonner";
 interface Client {
   id: string;
   company_name: string;
+  status?: string | null;
 }
 
 interface TravelReport {
@@ -30,16 +31,19 @@ export function TravelReportsFolder() {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [reports, setReports] = useState<TravelReport[]>([]);
   const [loading, setLoading] = useState(false);
+  const [history, setHistory] = useState<any[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
   useEffect(() => {
     loadClients();
+    loadHistory();
   }, []);
 
   const loadClients = async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from('clients')
-      .select('id, company_name')
+      .select('id, company_name, status')
       .order('company_name');
 
     if (error) {
@@ -49,6 +53,51 @@ export function TravelReportsFolder() {
       setClients(data || []);
     }
     setLoading(false);
+  };
+
+  const isActive = (status?: string | null) => {
+    const s = String(status ?? '').toLowerCase();
+    return s === 'ativa' || s === 'active' || s === '';
+  };
+
+  const loadHistory = async () => {
+    try {
+      setLoadingHistory(true);
+      const { data, error } = await (supabase as any)
+        .from('travel_report_history')
+        .select('id, numero_relatorio, cliente, pdf_path, created_at')
+        .like('pdf_path', '%.pdf')
+        .order('created_at', { ascending: false });
+      if (!error) setHistory(data || []);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  const viewHistory = async (item: any) => {
+    try {
+      const { data } = await supabase.storage.from('report-history').createSignedUrl(item.pdf_path, 60 * 60 * 24 * 7);
+      const url = data?.signedUrl;
+      if (url) window.open(url, '_blank');
+    } catch (e) {
+      toast.error('Não foi possível abrir o PDF');
+    }
+  };
+
+  const downloadHistory = async (item: any) => {
+    try {
+      const { data } = await supabase.storage.from('report-history').createSignedUrl(item.pdf_path, 60 * 60 * 24 * 7);
+      const url = data?.signedUrl;
+      if (!url) return;
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${String(item.numero_relatorio || 'relatorio').replace(/\\/g, '-').replace(/\//g, '-')}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (e) {
+      toast.error('Não foi possível baixar o PDF');
+    }
   };
 
   const loadReportsByClient = async (clientId: string) => {
@@ -218,45 +267,84 @@ export function TravelReportsFolder() {
     );
   }
 
+  const activeClients = clients.filter((c) => isActive(c.status));
+
   return (
-    <Card className="bg-gradient-card border-border shadow-card">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <FolderOpen className="h-5 w-5 text-primary" />
-          Pastas por Cliente
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        {loading ? (
-          <p className="text-center py-8 text-muted-foreground">Carregando...</p>
-        ) : clients.length === 0 ? (
-          <p className="text-center py-8 text-muted-foreground">
-            Nenhum cliente cadastrado
-          </p>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {clients.map((client) => (
-              <button
-                key={client.id}
-                onClick={() => handleClientClick(client)}
-                className="flex items-center gap-3 p-4 rounded-lg border border-border hover:bg-accent hover:border-primary transition-smooth text-left group"
-              >
-                <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-smooth">
-                  <FolderOpen className="h-6 w-6 text-primary" />
+    <div className="space-y-6">
+      <Card className="bg-gradient-card border-border shadow-card">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FolderOpen className="h-5 w-5 text-primary" />
+            Pastas por Cliente (ativos)
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <p className="text-center py-8 text-muted-foreground">Carregando...</p>
+          ) : activeClients.length === 0 ? (
+            <p className="text-center py-8 text-muted-foreground">
+              Nenhum cliente ativo
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {activeClients.map((client) => (
+                <button
+                  key={client.id}
+                  onClick={() => handleClientClick(client)}
+                  className="flex items-center gap-3 p-4 rounded-lg border border-border hover:bg-accent hover:border-primary transition-smooth text-left group"
+                >
+                  <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-smooth">
+                    <FolderOpen className="h-6 w-6 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-foreground group-hover:text-primary transition-smooth">
+                      {client.company_name}
+                    </h4>
+                    <p className="text-sm text-muted-foreground">
+                      Clique para ver relatórios
+                    </p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="bg-gradient-card border-border shadow-card">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5 text-primary" />
+            Histórico de PDFs
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loadingHistory ? (
+            <p className="text-center py-8 text-muted-foreground">Carregando...</p>
+          ) : history.length === 0 ? (
+            <p className="text-center py-8 text-muted-foreground">Nenhum PDF gerado</p>
+          ) : (
+            <div className="space-y-2">
+              {history.map((item: any) => (
+                <div key={item.id} className="flex items-center justify-between p-3 rounded-lg border border-border">
+                  <div>
+                    <div className="font-semibold text-foreground">{item.numero_relatorio}</div>
+                    <div className="text-sm text-muted-foreground">{item.cliente} • {new Date(item.created_at).toLocaleDateString('pt-BR')}</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={() => viewHistory(item)}>
+                      <Eye className="h-4 w-4 mr-1" /> Visualizar
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => downloadHistory(item)}>
+                      <Download className="h-4 w-4 mr-1" /> Baixar
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <h4 className="font-semibold text-foreground group-hover:text-primary transition-smooth">
-                    {client.company_name}
-                  </h4>
-                  <p className="text-sm text-muted-foreground">
-                    Clique para ver relatórios
-                  </p>
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }

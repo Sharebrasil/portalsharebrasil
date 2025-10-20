@@ -100,7 +100,7 @@ export default function RelatorioViagem() {
   const loadCurrentUser = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    const { data: user_profiles } = await supabase.from('profiles').select('full_name').eq('id', user.id).single();
+    const { data: user_profiles } = await supabase.from('user_profiles').select('full_name').eq('id', user.id).single();
     setCurrentFullName((user_profiles as any)?.full_name || user.email || '');
   };
 
@@ -122,7 +122,7 @@ export default function RelatorioViagem() {
       .ilike('numero_relatorio', `%/${yy}`)
       .order('created_at', { ascending: false })
       .limit(1);
-    
+   
     let max = 0;
     if (data && data[0]) {
       const match = data[0].numero_relatorio.match(/REL\s*(\d+)/i);
@@ -135,6 +135,7 @@ export default function RelatorioViagem() {
     setCurrentReport({
       numero: '',
       cliente: '',
+      cliente_id: '',
       aeronave: '',
       tripulante: '',
       tripulante2: '',
@@ -204,7 +205,7 @@ export default function RelatorioViagem() {
 
   const addDespesa = () => {
     setCurrentReport({
-      ...currentReport,
+     ...currentReport,
       despesas: [...currentReport.despesas, { categoria: '', descricao: '', valor: '', pago_por: '', comprovante_url: '' }]
     });
   };
@@ -245,7 +246,7 @@ export default function RelatorioViagem() {
 
     if (status === 'finalized') {
       const missing = [];
-      if (!currentReport.cliente) missing.push('Cliente');
+      if (!currentReport.cliente_id) missing.push('Cliente');
       if (!currentReport.aeronave) missing.push('Aeronave');
       if (!currentReport.tripulante) missing.push('Tripulante');
       if (!currentReport.destino) missing.push('Trecho');
@@ -256,7 +257,8 @@ export default function RelatorioViagem() {
     }
 
     if (!currentReport.numero) {
-      currentReport.numero = await generateReportNumber(currentReport.cliente);
+      const clientName = (clients.find((c:any)=>c.id===currentReport.cliente_id)?.company_name) || '';
+      currentReport.numero = await generateReportNumber(clientName);
     }
 
     if (status === 'draft') {
@@ -264,7 +266,7 @@ export default function RelatorioViagem() {
       return;
     }
 
-    const pdfBlob = await generatePDF(currentReport, { download: false });
+    const pdfBlob = await generatePDF({ ...currentReport, cliente: (clients.find((c:any)=>c.id===currentReport.cliente_id)?.company_name) || currentReport.cliente }, { download: false });
     if (!pdfBlob) {
       toast({ title: "Erro ao gerar PDF", variant: "destructive" });
       return;
@@ -272,7 +274,7 @@ export default function RelatorioViagem() {
 
     triggerDownload(pdfBlob, `${currentReport.numero}-relatorio-viagem.pdf`);
 
-    const folder = toFolder(currentReport.cliente);
+    const folder = toFolder((clients.find((c:any)=>c.id===currentReport.cliente_id)?.company_name) || currentReport.cliente);
     const pdfPath = `${folder}/${String(currentReport.numero).replace(/[\\/]/g, '-')}.pdf`;
 
     const { error: uploadErr } = await supabase.storage
@@ -287,7 +289,7 @@ export default function RelatorioViagem() {
     const { data: { user } } = await supabase.auth.getUser();
     const payload = {
       numero_relatorio: currentReport.numero,
-      cliente: currentReport.cliente,
+      cliente: (clients.find((c:any)=>c.id===currentReport.cliente_id)?.company_name) || currentReport.cliente,
       aeronave: currentReport.aeronave,
       tripulante: currentReport.tripulante,
       destination: currentReport.destino,
@@ -301,8 +303,10 @@ export default function RelatorioViagem() {
       user_id: user?.id
     };
 
+    payload.cotista = currentReport.cliente_id;
+
     const { data: dbRow } = await (supabase as any)
-      .from('travel_reports')
+     .from('travel_reports')
       .upsert([payload], { onConflict: 'numero_relatorio' })
       .select()
       .single();
@@ -310,7 +314,7 @@ export default function RelatorioViagem() {
     await (supabase as any).from('travel_report_history').insert([{
       report_id: dbRow?.id,
       numero_relatorio: currentReport.numero,
-      cliente: currentReport.cliente,
+      cliente: (clients.find((c:any)=>c.id===currentReport.cliente_id)?.company_name) || currentReport.cliente,
       pdf_path: pdfPath,
       metadata: { status: 'submitted', destination: currentReport.destino }
     }]);
@@ -339,7 +343,7 @@ export default function RelatorioViagem() {
           allowTaint: true,
           logging: false,
           letterRendering: true
-        },
+       },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
         pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
       };
@@ -380,7 +384,7 @@ export default function RelatorioViagem() {
             .report-container { border: 2px solid #22c55e; padding: 20px; border-radius: 8px; }
             .header { display: grid; grid-template-columns: 160px 1fr 160px; align-items: center; gap: 6px; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 2px solid #22c55e; }
             .logo-box { width: 160px; display: flex; align-items: center; justify-content: center; }
-            .logo-box img { max-width: 100%; max-height: 120px; object-fit: contain; }
+          �� .logo-box img { max-width: 100%; max-height: 120px; object-fit: contain; }
             .header-title { text-align: center; }
             .header-title h1 { color: #1e3a8a; font-size: 20px; font-weight: bold; margin-bottom: 4px; }
             .info-section { background: white; padding: 15px; margin-bottom: 15px; }
@@ -407,7 +411,7 @@ export default function RelatorioViagem() {
         <div class="report-container">
             <div class="header">
                 <div class="logo-box"><img src="${window.location.origin}/logo.share.png" alt="Logo" /></div>
-                <div class="header-title">
+              �� <div class="header-title">
                     <h1>Relatório de Despesa de Viagem</h1>
                     <div>${report.numero} - ${report.cliente}</div>
                 </div>
@@ -468,7 +472,7 @@ export default function RelatorioViagem() {
                 </div>
             `).join('')}
         </div>
-    </body>
+   </body>
     </html>`;
   };
 
@@ -503,10 +507,10 @@ export default function RelatorioViagem() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-sm font-medium">Cliente *</label>
-              <Select value={currentReport.cliente} onValueChange={(v) => handleInputChange('cliente', v)}>
+              <Select value={currentReport.cliente_id} onValueChange={(v) => handleInputChange('cliente_id', v)}>
                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>
-                  {clients.map((c) => <SelectItem key={c.id} value={c.company_name}>{c.company_name}</SelectItem>)}
+      ��         <SelectContent>
+                  {clients.map((c) => <SelectItem key={c.id} value={c.id}>{c.company_name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -543,7 +547,7 @@ export default function RelatorioViagem() {
             </div>
             <div>
               <label className="text-sm font-medium">Data Início</label>
-              <Input type="date" value={currentReport.data_inicio} onChange={(e) => handleInputChange('data_inicio', e.target.value)} />
+             <Input type="date" value={currentReport.data_inicio} onChange={(e) => handleInputChange('data_inicio', e.target.value)} />
             </div>
             <div>
               <label className="text-sm font-medium">Data Fim</label>
@@ -604,7 +608,7 @@ export default function RelatorioViagem() {
           {loadingHistory ? <p>Carregando...</p> : (
             <div className="grid gap-4">
               {history.map((item) => (
-                <div key={item.id} className="flex items-center justify-between p-4 border rounded">
+               <div key={item.id} className="flex items-center justify-between p-4 border rounded">
                   <div>
                     <p className="font-medium">{item.numero_relatorio} - {item.cliente}</p>
                     <p className="text-sm text-muted-foreground">{new Date(item.created_at).toLocaleDateString('pt-BR')}</p>

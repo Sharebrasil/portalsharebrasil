@@ -66,7 +66,7 @@ function StatusUpdateButtons({ scheduleId, currentStatus, onUpdate }: { schedule
 export default function Agendamentos() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedAircraft, setSelectedAircraft] = useState("all");
-  const [statusTab, setStatusTab] = useState<"pendentes" | "todos">("pendentes");
+  const [statusTab, setStatusTab] = useState<"pendentes" | "todos">("todos");
 
   const { data: schedules, isLoading, refetch } = useQuery({
     queryKey: ["flight-schedules", selectedAircraft],
@@ -121,7 +121,7 @@ export default function Agendamentos() {
 
   const getFlightTypeBadge = (type: string) => {
     const types: Record<string, string> = {
-      executivo: "executivo",
+      
       treinamento: "treinamento",
       manutencao: "manutenção",
       particular: "particular",

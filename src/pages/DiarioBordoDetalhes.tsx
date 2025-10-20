@@ -468,7 +468,7 @@ export default function DiarioBordoDetalhes() {
           </div>
         </Card>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-auto max-h-[60vh]">
           <table className="w-full border-collapse border border-gray-300 text-xs">
             <thead>
               <tr>
