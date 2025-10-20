@@ -251,7 +251,7 @@ export default function Aniversarios() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Cake className="h-5 w-5" />
-              Aniversariantes deste Mês
+              {filter === "next7" ? "Aniversários - Próximos 7 dias" : filter === "all" ? "Todos os Aniversários" : "Aniversariantes deste Mês"}
             </CardTitle>
           </CardHeader>
           <CardContent>
