@@ -193,12 +193,6 @@ export function Header() {
                 Gestão de Funcionários
               </DropdownMenuItem>
             )}
-            <DropdownMenuItem className="text-foreground hover:bg-accent cursor-pointer">
-              Informações Pessoais
-            </DropdownMenuItem>
-            <DropdownMenuItem className="text-foreground hover:bg-accent cursor-pointer">
-              Dados Bancários
-            </DropdownMenuItem>
             {canAccessSalaryManagement && (
               <DropdownMenuItem
                 className="text-foreground hover:bg-accent cursor-pointer"
@@ -214,9 +208,6 @@ export function Header() {
               Férias
             </DropdownMenuItem>
             <DropdownMenuSeparator className="bg-border" />
-            <DropdownMenuItem className="text-foreground hover:bg-accent cursor-pointer">
-              Anexos de Documentos
-            </DropdownMenuItem>
             <DropdownMenuItem className="text-foreground hover:bg-accent cursor-pointer">
               Holerites
             </DropdownMenuItem>
