@@ -148,11 +148,11 @@ export default function Aniversarios() {
 
   const today = useMemo(() => startOfDay(new Date()), []);
 
-  const birthdaysThisMonth = useMemo(() => {
+  const listThisMonth = useMemo(() => {
     return processedBirthdays.filter((birthday) => {
       if (!birthday.currentYearDate) return false;
       return isSameMonth(birthday.currentYearDate, today);
-    }).length;
+    });
   }, [processedBirthdays, today]);
 
   const birthdaysNextSevenDays = useMemo(() => {
