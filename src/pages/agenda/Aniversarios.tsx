@@ -69,7 +69,7 @@ const getBirthdayCategoryLabel = (category: string | null) => {
     case "hotel":
       return "Hotel";
     default:
-      return "Contato";
+      return "";
   }
 };
 
