@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Bell, Plus } from "lucide-react";
 import { toast } from "sonner";
 import TaskDialog from "@/components/tasks/TaskDialog";
@@ -44,9 +45,16 @@ export default function MinhasTarefas() {
 
   const fetchTasks = async () => {
     setLoadingTasks(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setTasks([]);
+      setLoadingTasks(false);
+      return;
+    }
     const { data, error } = await supabase
       .from("tasks")
       .select("*")
+      .or(`requested_by.eq.${user.id},assigned_to.eq.${user.id}`)
       .order("due_date", { ascending: true });
 
     if (error) {
@@ -61,10 +69,16 @@ export default function MinhasTarefas() {
   };
 
   const fetchNotifications = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setNotifications([]);
+      return;
+    }
     const { data, error } = await supabase
       .from("task_notifications")
       .select("*")
       .eq("read", false)
+      .eq("user_id", user.id)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -93,6 +107,20 @@ export default function MinhasTarefas() {
   const handleEdit = (task: Task) => {
     setEditingTask(task);
     setIsDialogOpen(true);
+  };
+
+  const toggleTask = async (task: Task, checked: boolean) => {
+    const nextStatus: Task["status"] = checked ? "concluida" : "pendente";
+    const { error } = await supabase
+      .from("tasks")
+      .update({ status: nextStatus })
+      .eq("id", task.id);
+    if (error) {
+      console.error("Erro ao atualizar tarefa:", error);
+      toast.error("Erro ao atualizar tarefa");
+      return;
+    }
+    setTasks((prev) => prev.map((t) => (t.id === task.id ? { ...t, status: nextStatus } : t)));
   };
 
   const handleSave = () => {
@@ -199,15 +227,15 @@ export default function MinhasTarefas() {
             </Card>
           ) : (
             tasks.map((task) => (
-              <Card
-                key={task.id}
-                className="cursor-pointer p-4 transition-shadow hover:shadow-lg"
-                onClick={() => handleEdit(task)}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="mb-2 flex flex-wrap items-center gap-2">
-                      <h3 className="text-lg font-semibold">{task.title}</h3>
+              <Card key={task.id} className="p-3">
+                <div className="flex items-start gap-3">
+                  <Checkbox
+                    checked={task.status === 'concluida'}
+                    onCheckedChange={(v) => toggleTask(task, Boolean(v))}
+                  />
+                  <div className="flex-1 cursor-pointer" onClick={() => handleEdit(task)}>
+                    <div className="mb-1 flex flex-wrap items-center gap-2">
+                      <h3 className={`text-base font-semibold ${task.status === 'concluida' ? 'line-through text-muted-foreground' : ''}`}>{task.title}</h3>
                       <Badge className={getPriorityColor(task.priority)}>
                         {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
                       </Badge>
@@ -216,7 +244,7 @@ export default function MinhasTarefas() {
                       </Badge>
                     </div>
                     {task.description ? (
-                      <p className="mb-2 text-sm text-muted-foreground">{task.description}</p>
+                      <p className="mb-1 text-sm text-muted-foreground">{task.description}</p>
                     ) : null}
                     {task.due_date ? (
                       <p className="text-xs text-muted-foreground">
