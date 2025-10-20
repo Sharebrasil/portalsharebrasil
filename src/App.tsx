@@ -38,6 +38,7 @@ import ValeCombustivel from "./pages/ValeCombustivel";
 import ValeRefeicao from "./pages/ValeRefeicao";
 import PortalCliente from "./pages/PortalCliente";
 import PortalClienteDashboard from "./pages/PortalClienteDashboard";
+import PortalClienteColaborador from "./pages/PortalClienteColaborador";
 import Aerodromos from "./pages/Aerodromos";
 import Aeronaves from "./pages/Aeronaves";
 import GestaoSalarios from "./pages/GestaoSalarios";
