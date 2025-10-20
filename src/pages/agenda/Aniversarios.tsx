@@ -234,7 +234,7 @@ export default function Aniversarios() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card onClick={() => navigate("/agenda/contatos")} className="cursor-pointer">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
