@@ -9,12 +9,14 @@ import { fetchFlightSchedulesWithDetails, type FlightScheduleWithDetails } from 
 import { FlightPlanForm } from "@/components/plano-voo/FlightPlanForm";
 import { FlightPlanDialog } from "@/components/plano-voo/FlightPlanDialog";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function PlanoVoo() {
   const [schedules, setSchedules] = useState<FlightScheduleWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(null);
   const [deletingPlanId, setDeletingPlanId] = useState<string | null>(null);
+  const [deletingScheduleId, setDeletingScheduleId] = useState<string | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   useEffect(() => {
@@ -89,6 +91,36 @@ export default function PlanoVoo() {
     }
   };
 
+  const handleDeleteSchedule = async (scheduleId: string) => {
+    const confirmed = window.confirm("Tem certeza que deseja excluir este agendamento? Isso também removerá planos e checklists associados.");
+    if (!confirmed) return;
+    setDeletingScheduleId(scheduleId);
+    try {
+      const { data: plans } = await supabase
+        .from("flight_plans")
+        .select("id")
+        .eq("flight_schedule_id", scheduleId);
+
+      const planIds = (plans ?? []).map((p: any) => p.id);
+      if (planIds.length) {
+        await supabase.from("flight_checklists").delete().in("flight_plan_id", planIds);
+        await supabase.from("flight_plans").delete().in("id", planIds);
+      }
+
+      const { error } = await supabase.from("flight_schedules").delete().eq("id", scheduleId);
+      if (error) throw error;
+
+      if (selectedScheduleId === scheduleId) setSelectedScheduleId(null);
+      toast.success("Agendamento excluído com sucesso");
+      void fetchConfirmedSchedules(false);
+    } catch (error) {
+      console.error("Erro ao excluir agendamento:", error);
+      toast.error("Erro ao excluir agendamento");
+    } finally {
+      setDeletingScheduleId(null);
+    }
+  };
+
   if (loading) {
     return (
       <Layout>
@@ -137,7 +169,15 @@ export default function PlanoVoo() {
                       </p>
                     </div>
                   </div>
-                  <Badge className="bg-success text-white">Confirmado</Badge>
+                  <Badge className={
+                    schedule.status === "confirmado"
+                      ? "bg-success text-white"
+                      : schedule.status === "pendente"
+                      ? "bg-yellow-500 text-black"
+                      : "bg-muted text-foreground"
+                  }>
+                    {schedule.status?.charAt(0).toUpperCase() + schedule.status?.slice(1)}
+                  </Badge>
                 </div>
 
                 <div className="space-y-2">
@@ -194,6 +234,21 @@ export default function PlanoVoo() {
                     Criar Plano de Voo
                   </Button>
                 )}
+
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="destructive"
+                    onClick={() => void handleDeleteSchedule(schedule.id)}
+                    disabled={deletingScheduleId === schedule.id}
+                  >
+                    {deletingScheduleId === schedule.id ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4 mr-2" />
+                    )}
+                    Excluir Agendamento
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}
