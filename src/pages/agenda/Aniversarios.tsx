@@ -22,6 +22,7 @@ import {
   setYear,
   startOfDay,
 } from "date-fns";
+import { useNavigate } from "react-router-dom";
 
 type BirthdayRow = Database["public"]["Tables"]["birthdays"]["Row"];
 
