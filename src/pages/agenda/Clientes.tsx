@@ -66,6 +66,11 @@ interface AircraftOption {
   model: string;
 }
 
+const toFolder = (s: string) => (s || 'sem_cliente')
+  .normalize('NFKD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .replace(/[^a-zA-Z0-9-_]/g, '_');
+
 export default function Clientes() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -297,6 +302,19 @@ export default function Clientes() {
           .insert([updatedData]);
 
         if (error) throw error;
+
+        const isActive = String((updatedData as any).status || '').toLowerCase() === 'ativo' || String((updatedData as any).status || '').toLowerCase() === 'active';
+        if (isActive) {
+          try {
+            const folder = toFolder(updatedData.company_name);
+            const emptyBlob = new Blob([''], { type: 'text/plain' });
+            await supabase.storage
+              .from('travel-reports')
+              .upload(`${folder}/.keep`, emptyBlob, { upsert: true, contentType: 'text/plain' });
+          } catch (e) {
+            console.warn('Não foi possível criar a pasta do cliente em travel-reports:', e);
+          }
+        }
 
         toast({
           title: "Sucesso",
