@@ -98,8 +98,11 @@ export default function GestaoCTM() {
   }, {} as Record<string, Record<string, CTMData[]>>);
 
   const groupedKeys = Object.keys(groupedData);
-  const activeAircraft = aircraft.filter((a) => (a.status ?? "ativo").toLowerCase() === "ativo");
-  const inactiveAircraft = aircraft.filter((a) => (a.status ?? "ativo").toLowerCase() !== "ativo");
+  const normalizeStatus = (s: string | null | undefined) => (s ?? "").toString().trim().toLowerCase();
+  const isActiveStatus = (s: string | null | undefined) => ["ativo", "ativa", "active"].includes(normalizeStatus(s));
+  const isInactiveStatus = (s: string | null | undefined) => ["inativo", "inativa", "inactive"].includes(normalizeStatus(s));
+  const activeAircraft = aircraft.filter((a) => isActiveStatus(a.status));
+  const inactiveAircraft = aircraft.filter((a) => isInactiveStatus(a.status));
 
   if (loading) {
     return (
