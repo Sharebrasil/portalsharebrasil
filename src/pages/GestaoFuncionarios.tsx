@@ -419,7 +419,7 @@ export default function GestaoFuncionarios() {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              {APP_ROLE_VALUES.map((role) => (
+                              {APP_ROLE_VALUES.filter((role) => role !== "admin").map((role) => (
                                 <SelectItem key={role} value={role}>
                                   {ROLE_LABELS[role]}
                                 </SelectItem>
