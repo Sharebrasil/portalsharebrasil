@@ -131,7 +131,7 @@ export default function GestaoFuncionarios() {
     queryFn: async () => {
       const { data: profiles, error: profilesError } = await supabase
         .from("user_profiles")
-        .select("*, app_role") // Se app_role estiver na tabela profiles
+        .select("*")
         .order("full_name", { ascending: true });
 
       if (profilesError) throw profilesError;
