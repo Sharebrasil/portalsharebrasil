@@ -81,6 +81,8 @@ export default function Aniversarios() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingBirthday, setEditingBirthday] = useState<BirthdayRow | null>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const [filter, setFilter] = useState<"month" | "next7" | "all">("month");
 
   const [formData, setFormData] = useState({
     nome: "",
