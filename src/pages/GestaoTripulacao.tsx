@@ -15,6 +15,7 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/h
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { User, Plane, Calendar, Award, AlertTriangle, Plus, Edit, Trash2, Phone, Mail, MapPin, Clock, FileText, Eye } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 interface CrewMember {
   id: string;
   full_name: string;
@@ -63,6 +64,7 @@ interface FlightSchedule {
   client_id?: string;
 }
 export default function GestaoDeTripulacao() {
+  const navigate = useNavigate();
   const [crewMembers, setCrewMembers] = useState<CrewMember[]>([]);
   const [selectedCrew, setSelectedCrew] = useState<CrewMember | null>(null);
   const [flightHours, setFlightHours] = useState<CrewFlightHours[]>([]);
@@ -275,7 +277,7 @@ export default function GestaoDeTripulacao() {
 
                 {/* Botões de Ação */}
                 <div className="grid grid-cols-2 gap-2 pt-2">
-                  <Button variant="outline" size="sm" onClick={() => setSelectedCrew(crew)} className="gap-2">
+                  <Button variant="outline" size="sm" onClick={() => navigate(`/tripulacao/${crew.id}?tab=dados`)} className="gap-2">
                     <Eye size={14} />
                     Detalhes
                   </Button>
