@@ -507,8 +507,14 @@ export default function EmissaoRecibo() {
     }
 
     const valorExtensoText = valorExtenso || numberToCurrencyWordsPtBr(amountNum);
-    const declaracaoText = `Declaração: Recebemos de ${pagadorNome.toUpperCase()}, a importância de ${valorExtensoText.toLowerCase()}, referente aos itens listados acima. Para maior clareza, firmo o presente recibo para que produza seus efeitos, dando plena, geral e irrevogável quitação pelo valor recebido.`;
-    const declLines = wrapText(declaracaoText, width - 60, font, 7);
+    const declaracaoPagamento = `Declaração: Recebemos de ${pagadorNome.toUpperCase()}, a importância de ${valorExtensoText.toLowerCase()}, referente aos itens listados acima. Para maior clareza, firmo o presente recibo para que produza seus efeitos, dando plena, geral e irrevogável quitação pelo valor recebido.`;
+    const obsReembolsoBloco = [
+      "OBS: Declaro, para os devidos fins, que o presente recibo é emitido antecipadamente a título de solicitação de reembolso referente às despesas efetuadas por esta empresa em benefício do cliente acima identificado.",
+      "Ressalta-se que o presente documento somente terá validade e produzirá seus efeitos legais após a efetiva quitação do valor nele indicado, mediante comprovação do respectivo pagamento.",
+      "Para maior clareza e segurança das partes, firmo o presente recibo, que permanecerá condicionado ao cumprimento integral da obrigação de pagamento até a data de quitação."
+    ].join("\n\n");
+    const declaracaoTexto = receiptType === "pagamento" ? declaracaoPagamento : obsReembolsoBloco;
+    const declLines = wrapText(declaracaoTexto, width - 60, font, 7);
     declLines.forEach((line, idx) => {
       page.drawText(line, { x: MARGIN_X, y: tableY - (idx * 9), size: 7, font });
     });
