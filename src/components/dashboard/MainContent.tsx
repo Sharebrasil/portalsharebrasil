@@ -73,6 +73,18 @@ export function MainContent() {
     return task.due_date === today && task.status !== 'concluida';
   });
 
+  const toggleTask = async (task: any, checked: boolean) => {
+    try {
+      await supabase
+        .from("tasks")
+        .update({ status: checked ? "concluida" : "pendente" })
+        .eq("id", task.id);
+      fetchTasks();
+    } catch (e) {
+      console.error("Erro ao atualizar tarefa", e);
+    }
+  };
+
   const scheduledFlights: any[] = [];
 
   return (
@@ -152,9 +164,12 @@ export function MainContent() {
             ) : (
               todayTasks.slice(0, 3).map((task) => (
                 <div key={task.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
-                  <Checkbox />
+                  <Checkbox
+                    checked={task.status === 'concluida'}
+                    onCheckedChange={(v) => toggleTask(task, Boolean(v))}
+                  />
                   <div className="flex-1">
-                    <p className="font-medium text-foreground">{task.title}</p>
+                    <p className={`font-medium ${task.status === 'concluida' ? 'line-through text-muted-foreground' : 'text-foreground'}`}>{task.title}</p>
                     <p className="text-sm text-muted-foreground">
                       Prioridade: {task.priority}
                     </p>
