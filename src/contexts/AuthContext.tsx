@@ -118,6 +118,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           return;
         }
 
+        const err = error as any;
+        const msg: string | undefined = err?.message || err?.error_description || err?.toString?.();
+        if (msg && /invalid\s*refresh\s*token/i.test(msg)) {
+          try {
+            await supabase.auth.signOut();
+          } catch {}
+        }
         console.error("Failed to initialize authentication", serializeError(error));
         await applyAuthState(null);
       } finally {

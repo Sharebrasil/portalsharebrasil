@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Calendar, CheckSquare, Plane, Clock, Users, FileText, ArrowRight, User, Check } from "lucide-react";
+import { Calendar, CheckSquare, Plane, Clock, Users, FileText, ArrowRight, Check } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -59,11 +59,11 @@ export function MainContent() {
       gradient: "from-secondary to-accent",
     },
     {
-      title: "Meu Perfil",
-      description: "Informações pessoais e documentos",
-      icon: User,
-      action: () => navigate("/perfil"),
-      gradient: "from-primary-dark to-primary",
+      title: "Portal do Cliente",
+      description: "Área do cliente com CNPJ e matrícula",
+      icon: Plane,
+      action: () => navigate("/portal-cliente"),
+      gradient: "from-custom-cyan to-primary",
     },
   ];
 

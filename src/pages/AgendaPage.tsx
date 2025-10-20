@@ -23,7 +23,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import type { Contact, ContactFormData } from "@/types/agenda";
-import type { TablesInsert } from "@/integrations/supabase/types";
+import type { TablesInsert, Enums } from "@/integrations/supabase/types";
 
 type SupabaseContactRow = {
   id: string;
@@ -58,39 +58,49 @@ const currencyFormatter = new Intl.NumberFormat("pt-BR", {
 
 const mapCategoryFromSupabase = (value?: string | null): Contact["categoria"] => {
   switch (value) {
-    case "clientes":
-    case "cliente":
-      return "clientes";
+    case "Colaboradores":
     case "colaboradores":
     case "colaborador":
     case "funcionario":
       return "colaboradores";
+    case "Fornecedores":
     case "fornecedores":
     case "fornecedor":
       return "fornecedores";
+    case "Hoteis":
     case "hoteis":
     case "hotel":
       return "hoteis";
+    case "Cotista":
+    case "clientes":
+    case "cliente":
     default:
       return "clientes";
   }
 };
 
-const mapCategoryToSupabaseType = (category: Contact["categoria"]): string => {
+type ContactTypeEnum = Enums<'contact_type'>;
+
+const localToContactType = (category: Contact["categoria"]): ContactTypeEnum => {
   switch (category) {
-    case "clientes":
-      return "cliente";
     case "colaboradores":
-      return "funcionario";
+      return "Colaboradores";
+    case "fornecedores":
+      return "Fornecedores";
+    case "hoteis":
+      return "Hoteis";
+    case "clientes":
     default:
-      return "outro";
+      return "Cotista";
   }
 };
 
 const buildContactPayload = (data: Partial<ContactFormData>): TablesInsert<'contacts'> => {
+  const mappedType = localToContactType(data.categoria ?? "clientes");
   const payload: TablesInsert<'contacts'> = {
-    name: data.nome || "", // Ensure name is always present
-    type: mapCategoryToSupabaseType(data.categoria || "clientes"), // Ensure type is always present
+    name: data.nome || "",
+    type: mappedType,
+    category: mappedType,
   };
 
   if (data.nome !== undefined) payload.name = data.nome;
@@ -101,10 +111,6 @@ const buildContactPayload = (data: Partial<ContactFormData>): TablesInsert<'cont
   if (data.observacoes !== undefined) payload.notes = data.observacoes || null;
   if (data.endereco !== undefined) payload.address = data.endereco || null;
   if (data.cidade !== undefined) payload.city = data.cidade || null;
-  if (data.categoria !== undefined) {
-    payload.category = data.categoria;
-    payload.type = mapCategoryToSupabaseType(data.categoria);
-  }
 
   return payload;
 };

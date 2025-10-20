@@ -36,6 +36,8 @@ import TripulanteDetalhes from "./pages/TripulanteDetalhes";
 import ValeAlimentacao from "./pages/ValeAlimentacao";
 import ValeCombustivel from "./pages/ValeCombustivel";
 import ValeRefeicao from "./pages/ValeRefeicao";
+import PortalCliente from "./pages/PortalCliente";
+import PortalClienteDashboard from "./pages/PortalClienteDashboard";
 import Aerodromos from "./pages/Aerodromos";
 import Aeronaves from "./pages/Aeronaves";
 import GestaoSalarios from "./pages/GestaoSalarios";
@@ -82,6 +84,8 @@ const App = () => {
               <Route path="/tarefas" element={renderProtected(<Tarefas />)} />
               <Route path="/minhas-tarefas" element={renderProtected(<MinhasTarefas />)} />
               <Route path="/perfil" element={renderProtected(<Perfil />)} />
+              <Route path="/portal-cliente" element={renderProtected(<PortalCliente />)} />
+              <Route path="/portal-cliente/dashboard" element={renderProtected(<PortalClienteDashboard />)} />
               <Route path="/tripulacao" element={renderProtected(<GestaoTripulacao />)} />
               <Route path="/tripulacao/:id" element={renderProtected(<TripulanteDetalhes />)} />
               <Route path="/admin/usuarios" element={renderProtected(<GestaoUsuarios />)} />
