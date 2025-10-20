@@ -374,18 +374,32 @@ export default function Clientes() {
           </Button>
         </div>
 
-        {/* Card de Resumo */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <Building className="h-8 w-8 text-primary" />
-              <div>
-                <p className="text-2xl font-bold">{clientes.length}</p>
-                <p className="text-sm text-muted-foreground">Total de Clientes</p>
+        {/* Cards de Resumo */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card onClick={() => setShowInactive(false)} className="cursor-pointer">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <Building className="h-8 w-8 text-primary" />
+                <div>
+                  <p className="text-2xl font-bold">{activeClientes.length}</p>
+                  <p className="text-sm text-muted-foreground">Total de Clientes</p>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+
+          <Card onClick={() => setShowInactive(true)} className="cursor-pointer">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <Folder className="h-8 w-8 text-muted-foreground" />
+                <div>
+                  <p className="text-2xl font-bold">{inactiveClientes.length}</p>
+                  <p className="text-sm text-muted-foreground">Clientes Inativos</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Filtros e Busca */}
         <Card>
@@ -531,7 +545,7 @@ export default function Clientes() {
                   <div className="flex items-center gap-2"><Building className="h-4 w-4 text-muted-foreground" /><span>Contato Financeiro: {viewingCliente.financial_contact}</span></div>
                 )}
                 {!viewingCliente.phone && !viewingCliente.email && !viewingCliente.address && !viewingCliente.city && !viewingCliente.uf && !viewingCliente.financial_contact && (
-                  <p className="text-muted-foreground">Nenhuma informação de contato.</p>
+                  <p className="text-muted-foreground">Nenhuma informa��ão de contato.</p>
                 )}
               </CardContent>
             </Card>
