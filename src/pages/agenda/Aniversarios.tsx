@@ -174,6 +174,21 @@ export default function Aniversarios() {
     });
   }, [processedBirthdays]);
 
+  const birthdaysThisMonth = listThisMonth.length;
+  const birthdaysNextSevenDays = listNextSevenDays.length;
+
+  const filteredBirthdays = useMemo(() => {
+    switch (filter) {
+      case "next7":
+        return sortedBirthdays.filter((b) => listNextSevenDays.includes(b));
+      case "all":
+        return sortedBirthdays;
+      case "month":
+      default:
+        return sortedBirthdays.filter((b) => listThisMonth.includes(b));
+    }
+  }, [filter, sortedBirthdays, listNextSevenDays, listThisMonth]);
+
   return (
     <Layout>
       <div className="p-6 space-y-6">
