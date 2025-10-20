@@ -303,6 +303,8 @@ export default function RelatorioViagem() {
       user_id: user?.id
     };
 
+    payload.cotista = currentReport.cliente_id;
+
     const { data: dbRow } = await (supabase as any)
      .from('travel_reports')
       .upsert([payload], { onConflict: 'numero_relatorio' })
@@ -382,7 +384,7 @@ export default function RelatorioViagem() {
             .report-container { border: 2px solid #22c55e; padding: 20px; border-radius: 8px; }
             .header { display: grid; grid-template-columns: 160px 1fr 160px; align-items: center; gap: 6px; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 2px solid #22c55e; }
             .logo-box { width: 160px; display: flex; align-items: center; justify-content: center; }
-            .logo-box img { max-width: 100%; max-height: 120px; object-fit: contain; }
+          �� .logo-box img { max-width: 100%; max-height: 120px; object-fit: contain; }
             .header-title { text-align: center; }
             .header-title h1 { color: #1e3a8a; font-size: 20px; font-weight: bold; margin-bottom: 4px; }
             .info-section { background: white; padding: 15px; margin-bottom: 15px; }
@@ -409,7 +411,7 @@ export default function RelatorioViagem() {
         <div class="report-container">
             <div class="header">
                 <div class="logo-box"><img src="${window.location.origin}/logo.share.png" alt="Logo" /></div>
-                <div class="header-title">
+              �� <div class="header-title">
                     <h1>Relatório de Despesa de Viagem</h1>
                     <div>${report.numero} - ${report.cliente}</div>
                 </div>
@@ -507,7 +509,7 @@ export default function RelatorioViagem() {
               <label className="text-sm font-medium">Cliente *</label>
               <Select value={currentReport.cliente_id} onValueChange={(v) => handleInputChange('cliente_id', v)}>
                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>
+      ��         <SelectContent>
                   {clients.map((c) => <SelectItem key={c.id} value={c.id}>{c.company_name}</SelectItem>)}
                 </SelectContent>
               </Select>
@@ -604,7 +606,7 @@ export default function RelatorioViagem() {
         <div className="space-y-4">
           <h2 className="text-xl font-semibold">Histórico de PDFs</h2>
           {loadingHistory ? <p>Carregando...</p> : (
-��           <div className="grid gap-4">
+            <div className="grid gap-4">
               {history.map((item) => (
                <div key={item.id} className="flex items-center justify-between p-4 border rounded">
                   <div>
