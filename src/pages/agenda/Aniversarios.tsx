@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, Cake, Users, Plus } from "lucide-react";
+import { Calendar, Cake, Users, Plus, Edit, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import type { Database } from "@/integrations/supabase/types";
@@ -250,7 +250,7 @@ export default function Aniversarios() {
                 {sortedBirthdays.map((birthday) => (
                   <div
                     key={birthday.id}
-                    className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-accent transition-colors"
+                    className="group relative flex items-center justify-between p-4 border border-border rounded-lg hover:bg-accent transition-colors"
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
@@ -268,6 +268,50 @@ export default function Aniversarios() {
                       <div className="flex items-center gap-2 justify-end">
                         <Badge variant="outline">{getBirthdayCategoryLabel(birthday.category)}</Badge>
                       </div>
+                    </div>
+
+                    <div className="absolute right-3 top-3 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => {
+                          setEditingBirthday(birthday);
+                          setFormData({
+                            nome: birthday.nome,
+                            data_aniversario: (birthday.data_aniversario || "").slice(0, 10),
+                            empresa: birthday.empresa || "",
+                            category: birthday.category || "cliente",
+                          });
+                          setIsDialogOpen(true);
+                        }}
+                        aria-label="Editar aniversário"
+                        title="Editar aniversário"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        onClick={async () => {
+                          const confirmed = window.confirm(`Excluir aniversário de ${birthday.nome}?`);
+                          if (!confirmed) return;
+                          try {
+                            const { error } = await supabase.from("birthdays").delete().eq("id", birthday.id);
+                            if (error) throw error;
+                            toast({ title: "Excluído", description: "Aniversário excluído com sucesso" });
+                            loadBirthdays();
+                          } catch (err) {
+                            console.error("Erro ao excluir aniversário:", err);
+                            toast({ title: "Erro", description: "Não foi possível excluir", variant: "destructive" });
+                          }
+                        }}
+                        aria-label="Excluir aniversário"
+                        title="Excluir aniversário"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
                 ))}
@@ -352,18 +396,29 @@ export default function Aniversarios() {
                     return;
                   }
 
-                  const { error } = await supabase
-                    .from("birthdays")
-                    .insert([formData]);
-
-                  if (error) throw error;
-
-                  toast({
-                    title: "Sucesso",
-                    description: "Aniversário cadastrado com sucesso",
-                  });
+                  if (editingBirthday) {
+                    const { error } = await supabase
+                      .from("birthdays")
+                      .update({
+                        nome: formData.nome,
+                        data_aniversario: formData.data_aniversario,
+                        empresa: formData.empresa,
+                        category: formData.category,
+                        updated_at: new Date().toISOString(),
+                      })
+                      .eq("id", editingBirthday.id);
+                    if (error) throw error;
+                    toast({ title: "Atualizado", description: "Aniversário atualizado com sucesso" });
+                  } else {
+                    const { error } = await supabase
+                      .from("birthdays")
+                      .insert([formData]);
+                    if (error) throw error;
+                    toast({ title: "Sucesso", description: "Aniversário cadastrado com sucesso" });
+                  }
 
                   setIsDialogOpen(false);
+                  setEditingBirthday(null);
                   loadBirthdays();
                 } catch (error) {
                   console.error("Erro ao salvar aniversário:", error);
