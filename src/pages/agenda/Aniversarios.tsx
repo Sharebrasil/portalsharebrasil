@@ -283,9 +283,11 @@ export default function Aniversarios() {
                     </div>
                     <div className="text-right">
                       <div className="text-lg font-bold text-primary">{birthday.displayDate}</div>
-                      <div className="flex items-center gap-2 justify-end">
-                        <Badge variant="outline">{getBirthdayCategoryLabel(birthday.category)}</Badge>
-                      </div>
+                      {getBirthdayCategoryLabel(birthday.category) && (
+                        <div className="flex items-center gap-2 justify-end">
+                          <Badge variant="outline">{getBirthdayCategoryLabel(birthday.category)}</Badge>
+                        </div>
+                      )}
                     </div>
 
                     <div className="absolute right-3 top-3 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
