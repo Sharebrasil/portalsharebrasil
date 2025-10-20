@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
-import { Plus, Calendar as CalendarIcon, List, Plane, Clock, Users, CheckCircle, XCircle } from "lucide-react";
+import { Plus, Calendar as CalendarIcon, List, Plane, Clock, Users, CheckCircle, XCircle, Trash2, Pencil, Loader2 } from "lucide-react";
 import { FlightScheduleDialog } from "@/components/agendamento/AgendamentoDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
@@ -65,6 +65,9 @@ function StatusUpdateButtons({ scheduleId, currentStatus, onUpdate }: { schedule
 
 export default function Agendamentos() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingSchedule, setEditingSchedule] = useState<any | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedAircraft, setSelectedAircraft] = useState("all");
   const [statusTab, setStatusTab] = useState<"pendentes" | "todos">("todos");
 
@@ -318,10 +321,54 @@ export default function Agendamentos() {
 
                         <div className="flex flex-col gap-2">
                           <StatusUpdateButtons scheduleId={schedule.id} currentStatus={schedule.status} onUpdate={refetch} />
-                          <Button variant="outline" size="sm">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-2"
+                            onClick={() => {
+                              setEditingSchedule(schedule);
+                              setIsEditDialogOpen(true);
+                            }}
+                          >
+                            <Pencil className="h-4 w-4" />
                             Editar
                           </Button>
-                          <Button variant="destructive" size="sm">
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            className="gap-2"
+                            onClick={async () => {
+                              const confirmed = window.confirm("Tem certeza que deseja excluir este agendamento? Isso também removerá planos de voo relacionados.");
+                              if (!confirmed) return;
+                              setDeletingId(schedule.id);
+                              try {
+                                const { data: plans } = await supabase
+                                  .from("flight_plans")
+                                  .select("id")
+                                  .eq("flight_schedule_id", schedule.id);
+                                const planIds = (plans || []).map((p: any) => p.id);
+                                if (planIds.length) {
+                                  await supabase.from("flight_checklists").delete().in("flight_plan_id", planIds);
+                                  await supabase.from("flight_plans").delete().in("id", planIds);
+                                }
+                                const { error } = await supabase.from("flight_schedules").delete().eq("id", schedule.id);
+                                if (error) throw error;
+                                toast.success("Agendamento excluído com sucesso");
+                                refetch();
+                              } catch (err) {
+                                console.error("Erro ao excluir agendamento:", err);
+                                toast.error("Erro ao excluir agendamento");
+                              } finally {
+                                setDeletingId(null);
+                              }
+                            }}
+                            disabled={deletingId === schedule.id}
+                          >
+                            {deletingId === schedule.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
                             Excluir
                           </Button>
                         </div>
@@ -344,10 +391,23 @@ export default function Agendamentos() {
           </CardContent>
         </Card>
 
-        <FlightScheduleDialog 
-          open={isDialogOpen} 
+        <FlightScheduleDialog
+          open={isDialogOpen}
           onOpenChange={setIsDialogOpen}
           onSuccess={refetch}
+        />
+        <FlightScheduleDialog
+          open={isEditDialogOpen}
+          onOpenChange={(open) => {
+            setIsEditDialogOpen(open);
+            if (!open) setEditingSchedule(null);
+          }}
+          onSuccess={() => {
+            refetch();
+            setIsEditDialogOpen(false);
+            setEditingSchedule(null);
+          }}
+          scheduleId={editingSchedule?.id}
         />
       </div>
     </Layout>
