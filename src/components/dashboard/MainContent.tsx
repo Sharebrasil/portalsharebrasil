@@ -58,6 +58,13 @@ export function MainContent() {
       action: () => setTaskDialogOpen(true),
       gradient: "from-secondary to-accent",
     },
+    {
+      title: "Portal do Cliente",
+      description: "Área do cliente com CNPJ e matrícula",
+      icon: Plane,
+      action: () => navigate("/portal-cliente"),
+      gradient: "from-custom-cyan to-primary",
+    },
   ];
 
   const todayTasks = tasks.filter(task => {
