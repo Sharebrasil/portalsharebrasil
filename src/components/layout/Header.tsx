@@ -215,10 +215,7 @@ export function Header() {
               Holerites
             </DropdownMenuItem>
             <DropdownMenuItem className="text-foreground hover:bg-accent cursor-pointer">
-              Atestados
-            </DropdownMenuItem>
-            <DropdownMenuSeparator className="bg-border" />
-            <DropdownMenuItem
+             
               className="text-destructive hover:bg-destructive/10 cursor-pointer"
               onSelect={(event) => {
                 event.preventDefault();
