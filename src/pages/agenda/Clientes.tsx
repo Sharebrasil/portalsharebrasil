@@ -71,6 +71,14 @@ const toFolder = (s: string) => (s || 'sem_cliente')
   .replace(/[\u0300-\u036f]/g, '')
   .replace(/[^a-zA-Z0-9-_]/g, '_');
 
+const ensureTravelReportsFolder = async (name: string) => {
+  const folder = toFolder(name);
+  const emptyBlob = new Blob([''], { type: 'text/plain' });
+  await supabase.storage
+    .from('travel-reports')
+    .upload(`${folder}/.keep`, emptyBlob, { upsert: true, contentType: 'text/plain' });
+};
+
 export default function Clientes() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
