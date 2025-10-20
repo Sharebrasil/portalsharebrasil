@@ -20,33 +20,45 @@ const PortalCliente = () => {
     setIsLoading(true);
 
     try {
-      const { data: clients, error: clientError } = await supabase
-        .from("clients")
-        .select("id, cnpj, company_name, aircraft_id")
-        .like("cnpj", `${cnpj}%`);
-
-      if (clientError) throw clientError;
-
-      if (!clients || clients.length === 0) {
-        toast.error("Cliente não encontrado");
-        return;
-      }
-
       const { data: aircraft, error: aircraftError } = await supabase
         .from("aircraft")
         .select("id, registration")
         .eq("registration", registration.toUpperCase())
-        .single();
+        .maybeSingle();
 
-      if (aircraftError || !aircraft) {
+      if (aircraftError) {
+        console.error("Erro ao buscar aeronave:", aircraftError);
+        toast.error("Erro ao buscar aeronave");
+        return;
+      }
+
+      if (!aircraft) {
         toast.error("Aeronave não encontrada");
         return;
       }
 
-      const clientWithAircraft = clients.find((c: any) => c.aircraft_id === aircraft.id);
+      const { data: clients, error: clientError } = await supabase
+        .from("clients")
+        .select("id, cnpj, company_name, aircraft_id");
+
+      if (clientError) {
+        console.error("Erro ao buscar clientes:", clientError);
+        toast.error("Erro ao buscar cliente");
+        return;
+      }
+
+      if (!clients || clients.length === 0) {
+        toast.error("Nenhum cliente cadastrado");
+        return;
+      }
+
+      const clientWithAircraft = clients.find((c: any) => {
+        const cleanCnpj = c.cnpj.replace(/[^\d]/g, '');
+        return cleanCnpj.startsWith(cnpj) && c.aircraft_id === aircraft.id;
+      });
 
       if (!clientWithAircraft) {
-        toast.error("Cliente não tem acesso a essa aeronave");
+        toast.error("CNPJ ou aeronave incorretos");
         return;
       }
 
