@@ -89,6 +89,7 @@ export default function Clientes() {
     financial_contact: "",
     observations: "",
     aircraft_id: "",
+    status: "ativo",
   });
   const [aircraftOptions, setAircraftOptions] = useState<AircraftOption[]>([]);
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -160,6 +161,7 @@ export default function Clientes() {
         financial_contact: cliente.financial_contact || "",
         observations: cliente.observations || "",
         aircraft_id: cliente.aircraft_id || "",
+        status: (cliente.status as string | null) ?? "ativo",
       });
       setLogoPreview(cliente.logo_url || null);
     } else {
@@ -176,6 +178,7 @@ export default function Clientes() {
         financial_contact: "",
         observations: "",
         aircraft_id: "",
+        status: "ativo",
       });
       setLogoPreview(null);
     }
@@ -271,6 +274,7 @@ export default function Clientes() {
         financial_contact: formData.financial_contact,
         observations: formData.observations,
         aircraft_id: formData.aircraft_id || null,
+        status: (formData as any).status ?? "ativo",
         logo_url: logoUrl,
         documents: [...existingDocs, ...newDocs],
       };
@@ -756,6 +760,19 @@ export default function Clientes() {
                         {a.registration} - {a.model}
                       </SelectItem>
                     ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="status">Status</Label>
+                <Select value={(formData as any).status} onValueChange={(v) => setFormData({ ...formData, status: v })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ativo">Ativo</SelectItem>
+                    <SelectItem value="inativo">Inativo</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, TrendingDown, Receipt, History, Trash2 } from "lucide-react";
+import { Plus, TrendingDown, Receipt, History, Trash2, Edit } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,65 +16,234 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
-interface Expense {
+interface Transaction {
   id: string;
-  name: string;
-  value: number;
   description: string;
-  category: string;
-  date: Date;
+  amount: number;
+  transaction_date: string;
+  created_at: string;
 }
 
-interface BenefitCalculatorProps {
+interface BenefitCard {
+  id: string;
+  month: number;
+  year: number;
+  initial_balance: number;
+}
+
+interface BenefitCalculatorRealProps {
+  title: string;
+  cardType: 'alimentacao' | 'combustivel';
+}
+
+const MONTHS = [
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+];
+
+// Legacy interface for backward compatibility
+interface BenefitCalculatorLegacyProps {
   title: string;
   month: string;
   initialBalance: number;
-  onInitialBalanceChange: (value: number) => void;
+  onInitialBalanceChange: (balance: number) => void;
 }
 
-export function BenefitCalculator({ 
-  title, 
-  month, 
-  initialBalance, 
-  onInitialBalanceChange 
-}: BenefitCalculatorProps) {
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [isAddingExpense, setIsAddingExpense] = useState(false);
-  const [newExpense, setNewExpense] = useState({
-    name: "",
-    value: "",
+// Wrapper component for legacy interface
+export function BenefitCalculator({ title, month, initialBalance, onInitialBalanceChange }: BenefitCalculatorLegacyProps) {
+  // Determine card type from title
+  const cardType: 'alimentacao' | 'combustivel' = title.toLowerCase().includes('combustível') || title.toLowerCase().includes('combustivel')
+    ? 'combustivel'
+    : 'alimentacao';
+
+  return <BenefitCalculatorReal title={title} cardType={cardType} />;
+}
+
+export function BenefitCalculatorReal({ title, cardType }: BenefitCalculatorRealProps) {
+  const [currentCard, setCurrentCard] = useState<BenefitCard | null>(null);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [initialBalance, setInitialBalance] = useState(500);
+  const [isEditingBalance, setIsEditingBalance] = useState(false);
+  const [newTransaction, setNewTransaction] = useState({
     description: "",
-    category: "",
+    amount: "",
+    transaction_date: new Date().toISOString().split('T')[0],
   });
 
-  const totalSpent = expenses.reduce((sum, expense) => sum + expense.value, 0);
-  const availableBalance = initialBalance - totalSpent;
-  const usagePercentage = initialBalance > 0 ? (totalSpent / initialBalance) * 100 : 0;
+  useEffect(() => {
+    loadBenefitCard();
+  }, [selectedMonth, selectedYear, cardType]);
 
-  const addExpense = () => {
-    if (newExpense.name && newExpense.value) {
-      const expense: Expense = {
-        id: Date.now().toString(),
-        name: newExpense.name,
-        value: parseFloat(newExpense.value),
-        description: newExpense.description,
-        category: newExpense.category || "Geral",
-        date: new Date(),
-      };
-      
-      setExpenses(prev => [...prev, expense]);
-      setNewExpense({ name: "", value: "", description: "", category: "" });
-      setIsAddingExpense(false);
+  useEffect(() => {
+    if (currentCard) {
+      loadTransactions();
+    }
+  }, [currentCard]);
+
+  const loadBenefitCard = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from('benefit_cards')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('card_type', cardType)
+      .eq('month', selectedMonth)
+      .eq('year', selectedYear)
+      .maybeSingle();
+
+    if (error && error.code !== 'PGRST116') {
+      toast.error('Erro ao carregar cartão benefício');
+      return;
+    }
+
+    if (data) {
+      setCurrentCard(data);
+      setInitialBalance(Number(data.initial_balance));
+    } else {
+      // Create new card
+      const { data: newCard, error: createError } = await supabase
+        .from('benefit_cards')
+        .insert({
+          user_id: user.id,
+          card_type: cardType,
+          month: selectedMonth,
+          year: selectedYear,
+          initial_balance: 500
+        })
+        .select()
+        .single();
+
+      if (createError) {
+        toast.error('Erro ao criar cartão benefício');
+        return;
+      }
+
+      setCurrentCard(newCard);
+      setInitialBalance(500);
     }
   };
 
-  const removeExpense = (id: string) => {
-    setExpenses(prev => prev.filter(expense => expense.id !== id));
+  const loadTransactions = async () => {
+    if (!currentCard) return;
+
+    const { data, error } = await supabase
+      .from('benefit_transactions')
+      .select('*')
+      .eq('benefit_card_id', currentCard.id)
+      .order('transaction_date', { ascending: false });
+
+    if (error) {
+      toast.error('Erro ao carregar transações');
+      return;
+    }
+
+    setTransactions(data || []);
   };
+
+  const updateInitialBalance = async () => {
+    if (!currentCard) return;
+
+    const { error } = await supabase
+      .from('benefit_cards')
+      .update({ initial_balance: initialBalance })
+      .eq('id', currentCard.id);
+
+    if (error) {
+      toast.error('Erro ao atualizar saldo inicial');
+      return;
+    }
+
+    toast.success('Saldo inicial atualizado');
+    setIsEditingBalance(false);
+    loadBenefitCard();
+  };
+
+  const addTransaction = async () => {
+    if (!currentCard || !newTransaction.description || !newTransaction.amount) return;
+
+    const { error } = await supabase
+      .from('benefit_transactions')
+      .insert({
+        benefit_card_id: currentCard.id,
+        description: newTransaction.description,
+        amount: parseFloat(newTransaction.amount),
+        transaction_date: newTransaction.transaction_date,
+      });
+
+    if (error) {
+      toast.error('Erro ao adicionar gasto');
+      return;
+    }
+
+    toast.success('Gasto adicionado');
+    setNewTransaction({
+      description: "",
+      amount: "",
+      transaction_date: new Date().toISOString().split('T')[0],
+    });
+    loadTransactions();
+  };
+
+  const removeTransaction = async (id: string) => {
+    const { error } = await supabase
+      .from('benefit_transactions')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      toast.error('Erro ao remover gasto');
+      return;
+    }
+
+    toast.success('Gasto removido');
+    loadTransactions();
+  };
+
+  const totalSpent = transactions.reduce((sum, t) => sum + Number(t.amount), 0);
+  const availableBalance = initialBalance - totalSpent;
+  const usagePercentage = initialBalance > 0 ? (totalSpent / initialBalance) * 100 : 0;
 
   return (
     <div className="space-y-6">
+      {/* Month/Year Selector */}
+      <Card className="bg-gradient-card border-border shadow-card">
+        <CardContent className="pt-6">
+          <div className="flex gap-4 items-end">
+            <div className="flex-1">
+              <Label>Mês</Label>
+              <Select value={selectedMonth.toString()} onValueChange={(v) => setSelectedMonth(parseInt(v))}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {MONTHS.map((month, idx) => (
+                    <SelectItem key={idx} value={(idx + 1).toString()}>
+                      {month}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex-1">
+              <Label>Ano</Label>
+              <Input
+                type="number"
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Card Principal */}
       <Card className="bg-gradient-to-br from-success to-success/80 text-white shadow-elevated border-0">
         <CardHeader className="flex flex-row items-start justify-between">
@@ -83,15 +252,8 @@ export function BenefitCalculator({
               <Receipt className="mr-2 h-6 w-6" />
               {title}
             </CardTitle>
-            <p className="text-white/90 mt-1">{month}</p>
+            <p className="text-white/90 mt-1">{MONTHS[selectedMonth - 1]} {selectedYear}</p>
           </div>
-          <Button 
-            variant="outline" 
-            size="icon"
-            className="bg-white/20 border-white/30 text-white hover:bg-white/30"
-          >
-            <Receipt className="h-4 w-4" />
-          </Button>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
@@ -100,14 +262,14 @@ export function BenefitCalculator({
               R$ {availableBalance.toFixed(2).replace('.', ',')}
             </p>
           </div>
-          
+
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-white/90">Progresso de uso</span>
               <span className="text-white font-medium">{usagePercentage.toFixed(1)}%</span>
             </div>
-            <Progress 
-              value={usagePercentage} 
+            <Progress
+              value={usagePercentage}
               className="h-2 bg-white/20"
             />
           </div>
@@ -126,17 +288,17 @@ export function BenefitCalculator({
               <span className="text-2xl font-bold text-foreground">
                 R$ {initialBalance.toFixed(2).replace('.', ',')}
               </span>
-              <Dialog>
+              <Dialog open={isEditingBalance} onOpenChange={setIsEditingBalance}>
                 <DialogTrigger asChild>
                   <Button variant="ghost" size="sm" className="text-xs">
-                    Editar
+                    <Edit className="h-3 w-3" />
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Definir Saldo Inicial</DialogTitle>
+                    <DialogTitle>Editar Saldo Inicial</DialogTitle>
                     <DialogDescription>
-                      Insira o valor do saldo inicial do cartão benefício
+                      Insira o novo valor do saldo inicial
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4">
@@ -147,11 +309,11 @@ export function BenefitCalculator({
                         type="number"
                         step="0.01"
                         value={initialBalance}
-                        onChange={(e) => onInitialBalanceChange(parseFloat(e.target.value) || 0)}
+                        onChange={(e) => setInitialBalance(parseFloat(e.target.value) || 0)}
                         className="mt-1"
                       />
                     </div>
-                    <Button className="w-full">Salvar</Button>
+                    <Button onClick={updateInitialBalance} className="w-full">Salvar</Button>
                   </div>
                 </DialogContent>
               </Dialog>
@@ -184,12 +346,12 @@ export function BenefitCalculator({
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="expenseName">Seu Nome</Label>
+              <Label htmlFor="transactionDate">Data</Label>
               <Input
-                id="expenseName"
-                placeholder="Digite seu nome"
-                value={newExpense.name}
-                onChange={(e) => setNewExpense(prev => ({ ...prev, name: e.target.value }))}
+                id="transactionDate"
+                type="date"
+                value={newTransaction.transaction_date}
+                onChange={(e) => setNewTransaction(prev => ({ ...prev, transaction_date: e.target.value }))}
                 className="bg-background border-border"
               />
             </div>
@@ -201,8 +363,8 @@ export function BenefitCalculator({
                 type="number"
                 step="0.01"
                 placeholder="0,00"
-                value={newExpense.value}
-                onChange={(e) => setNewExpense(prev => ({ ...prev, value: e.target.value }))}
+                value={newTransaction.amount}
+                onChange={(e) => setNewTransaction(prev => ({ ...prev, amount: e.target.value }))}
                 className="bg-background border-border"
               />
             </div>
@@ -211,28 +373,17 @@ export function BenefitCalculator({
               <Label htmlFor="expenseDescription">Descrição</Label>
               <Textarea
                 id="expenseDescription"
-                placeholder="Descreva o que foi comprado..."
-                value={newExpense.description}
-                onChange={(e) => setNewExpense(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Descreva o gasto..."
+                value={newTransaction.description}
+                onChange={(e) => setNewTransaction(prev => ({ ...prev, description: e.target.value }))}
                 className="bg-background border-border min-h-[80px]"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="expenseCategory">Categoria</Label>
-              <Input
-                id="expenseCategory"
-                placeholder="Ex: Alimentação, Lanche, etc."
-                value={newExpense.category}
-                onChange={(e) => setNewExpense(prev => ({ ...prev, category: e.target.value }))}
-                className="bg-background border-border"
-              />
-            </div>
-
-            <Button 
-              onClick={addExpense} 
+            <Button
+              onClick={addTransaction}
               className="w-full bg-success hover:bg-success/90 text-white"
-              disabled={!newExpense.name || !newExpense.value}
+              disabled={!newTransaction.description || !newTransaction.amount}
             >
               <Plus className="mr-2 h-4 w-4" />
               Adicionar Gasto
@@ -245,11 +396,11 @@ export function BenefitCalculator({
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center text-foreground">
               <History className="mr-2 h-5 w-5 text-primary" />
-              Histórico de Gastos ({expenses.length})
+              Histórico de Gastos ({transactions.length})
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {expenses.length === 0 ? (
+            {transactions.length === 0 ? (
               <div className="text-center py-8">
                 <Receipt className="mx-auto h-12 w-12 text-muted-foreground/50 mb-3" />
                 <p className="text-muted-foreground font-medium">Nenhum gasto registrado</p>
@@ -257,36 +408,32 @@ export function BenefitCalculator({
               </div>
             ) : (
               <div className="space-y-3 max-h-96 overflow-y-auto">
-                {expenses.map((expense, index) => (
-                  <div key={expense.id}>
+                {transactions.map((transaction, index) => (
+                  <div key={transaction.id}>
                     <div className="flex items-start justify-between p-3 rounded-lg border border-border hover:bg-accent transition-colors">
                       <div className="flex-1">
                         <div className="flex items-center justify-between mb-1">
-                          <p className="font-medium text-foreground">{expense.name}</p>
+                          <p className="font-medium text-foreground">{transaction.description}</p>
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => removeExpense(expense.id)}
+                            onClick={() => removeTransaction(transaction.id)}
                             className="text-destructive hover:text-destructive p-1 h-auto"
                           >
                             <Trash2 className="h-3 w-3" />
                           </Button>
                         </div>
-                        <p className="text-sm text-muted-foreground mb-2">{expense.description}</p>
                         <div className="flex items-center justify-between">
-                          <Badge variant="outline" className="text-xs">
-                            {expense.category}
-                          </Badge>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(transaction.transaction_date).toLocaleDateString('pt-BR')}
+                          </p>
                           <p className="font-bold text-destructive">
-                            R$ {expense.value.toFixed(2).replace('.', ',')}
+                            R$ {Number(transaction.amount).toFixed(2).replace('.', ',')}
                           </p>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {expense.date.toLocaleDateString('pt-BR')}
-                        </p>
                       </div>
                     </div>
-                    {index < expenses.length - 1 && <Separator className="my-2" />}
+                    {index < transactions.length - 1 && <Separator className="my-2" />}
                   </div>
                 ))}
               </div>
