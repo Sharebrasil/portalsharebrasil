@@ -5,10 +5,127 @@ import type { Database } from './types';
 const SUPABASE_URL = "https://yelanwtucirrxbskwjxc.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InllbGFud3R1Y2lycnhic2t3anhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc0NDcyNjAsImV4cCI6MjA3MzAyMzI2MH0.uyrfsLjgZfW4uWAZ7XO_nfMwhgChx1ehzvWgdA4Q7h8";
 
+// A fetch ponyfill using XMLHttpRequest to bypass any window.fetch instrumentation
+function xhrFetch(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
+  const url = typeof input === 'string' || input instanceof URL ? String(input) : (input as Request).url;
+
+  return new Promise((resolve, reject) => {
+    try {
+      const xhr = new XMLHttpRequest();
+      xhr.open((init.method || 'GET').toUpperCase(), url, true);
+
+      // Credentials: omit by default for cross-origin safety
+      xhr.withCredentials = init.credentials === 'include';
+
+      // Apply headers
+      const applyHeader = (k: string, v: string) => {
+        try { xhr.setRequestHeader(k, v); } catch {}
+      };
+      if (init.headers) {
+        if (init.headers instanceof Headers) {
+          init.headers.forEach((v, k) => applyHeader(k, v));
+        } else if (Array.isArray(init.headers)) {
+          for (const [k, v] of init.headers) applyHeader(k, String(v));
+        } else {
+          for (const k of Object.keys(init.headers as Record<string, string>)) {
+            applyHeader(k, String((init.headers as Record<string, string>)[k]));
+          }
+        }
+      }
+
+      // Avoid caches
+      xhr.setRequestHeader('Cache-Control', 'no-store');
+
+      // Handle response
+      xhr.onreadystatechange = () => {
+        if (xhr.readyState === 4) {
+          const headers = new Headers();
+          const raw = xhr.getAllResponseHeaders();
+          if (raw) {
+            raw.trim().split(/\r?\n/).forEach((line) => {
+              const idx = line.indexOf(':');
+              if (idx > -1) {
+                const key = line.slice(0, idx).trim();
+                const val = line.slice(idx + 1).trim();
+                if (key) headers.append(key, val);
+              }
+            });
+          }
+
+          const bodyText = xhr.responseText ?? '';
+          const status = xhr.status === 1223 ? 204 : xhr.status; // IE quirk guard (harmless elsewhere)
+          const statusText = xhr.statusText || '';
+          const ok = status >= 200 && status < 300;
+
+          const response: Response = {
+            ok,
+            status,
+            statusText,
+            url: url,
+            headers,
+            redirected: false,
+            type: 'basic',
+            body: null as any,
+            bodyUsed: false,
+            clone: () => response,
+            arrayBuffer: async () => new TextEncoder().encode(bodyText).buffer,
+            blob: async () => new Blob([bodyText]),
+            formData: async () => {
+              const fd = new FormData();
+              try {
+                const json = JSON.parse(bodyText);
+                Object.entries(json).forEach(([k, v]) => fd.append(k, String(v)));
+              } catch {}
+              return fd;
+            },
+            json: async () => {
+              try { return JSON.parse(bodyText || 'null'); } catch (e) { throw e; }
+            },
+            text: async () => bodyText,
+          } as unknown as Response;
+
+          resolve(response);
+        }
+      };
+
+      xhr.onerror = () => reject(new TypeError('Network request failed'));
+      xhr.ontimeout = () => reject(new TypeError('Network request timed out'));
+
+      // Send body
+      const body = init.body as any;
+      if (body == null) {
+        xhr.send();
+      } else if (typeof body === 'string' || body instanceof Blob || body instanceof ArrayBuffer) {
+        xhr.send(body as any);
+      } else if (body instanceof URLSearchParams || body instanceof FormData) {
+        xhr.send(body as any);
+      } else {
+        // Fallback to JSON
+        try {
+          applyHeader('Content-Type', 'application/json');
+        } catch {}
+        xhr.send(JSON.stringify(body));
+      }
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  global: {
+    fetch: (input, init) => xhrFetch(input, {
+      ...init,
+      cache: 'no-store',
+      credentials: 'omit',
+      mode: 'cors',
+      redirect: 'follow',
+      referrerPolicy: 'no-referrer',
+    }),
+  },
   auth: {
     storage: localStorage,
     persistSession: true,
