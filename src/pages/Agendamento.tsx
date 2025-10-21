@@ -34,32 +34,45 @@ function StatusUpdateButtons({ scheduleId, currentStatus, onUpdate }: { schedule
     }
   };
 
-  if (currentStatus === "confirmado") {
-    return (
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => updateStatus("pendente")}
-        disabled={loading}
-        className="gap-2"
-      >
-        <XCircle className="h-4 w-4" />
-        Cancelar Confirmação
-      </Button>
-    );
-  }
-
   return (
-    <Button
-      variant="default"
-      size="sm"
-      onClick={() => updateStatus("confirmado")}
-      disabled={loading}
-      className="gap-2 bg-green-600 hover:bg-green-700"
-    >
-      <CheckCircle className="h-4 w-4" />
-      Confirmar
-    </Button>
+    <div className="flex flex-col gap-2">
+      {currentStatus !== "confirmado" && (
+        <Button
+          variant="default"
+          size="sm"
+          onClick={() => updateStatus("confirmado")}
+          disabled={loading}
+          className="gap-2 bg-green-600 hover:bg-green-700"
+        >
+          <CheckCircle className="h-4 w-4" />
+          Confirmar
+        </Button>
+      )}
+      {currentStatus !== "cancelado" && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => updateStatus("cancelado")}
+          disabled={loading}
+          className="gap-2 border-red-500 text-red-500 hover:bg-red-50"
+        >
+          <XCircle className="h-4 w-4" />
+          Cancelar
+        </Button>
+      )}
+      {currentStatus !== "pendente" && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => updateStatus("pendente")}
+          disabled={loading}
+          className="gap-2"
+        >
+          <Clock className="h-4 w-4" />
+          Voltar a Pendente
+        </Button>
+      )}
+    </div>
   );
 }
 
@@ -124,7 +137,6 @@ export default function Agendamentos() {
 
   const getFlightTypeBadge = (type: string) => {
     const types: Record<string, string> = {
-      
       treinamento: "treinamento",
       manutencao: "manutenção",
       particular: "particular",
@@ -201,15 +213,15 @@ export default function Agendamentos() {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-500/20">
+          <Card className="bg-gradient-to-br from-cyan-500/10 to-cyan-600/5 border-cyan-500/20">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Hoje</p>
                   <p className="text-3xl font-bold text-foreground">{stats.today}</p>
                 </div>
-                <div className="p-3 bg-purple-500/20 rounded-lg">
-                  <Users className="h-6 w-6 text-purple-500" />
+                <div className="p-3 bg-cyan-500/20 rounded-lg">
+                  <Users className="h-6 w-6 text-cyan-500" />
                 </div>
               </div>
             </CardContent>
@@ -285,30 +297,35 @@ export default function Agendamentos() {
                               </div>
                               <div>
                                 <p className="text-muted-foreground mb-1">Horário</p>
-                                <p className="font-medium">{schedule.flight_time} {schedule.estimated_duration && `(${schedule.estimated_duration})`}</p>
+                                <p className="font-medium">{schedule.flight_time || "-"} {schedule.estimated_duration && `(${schedule.estimated_duration})`}</p>
                               </div>
                               <div>
                                 <p className="text-muted-foreground mb-1">Rota</p>
-                                <p className="font-medium">{schedule.origin} → {schedule.destination}</p>
+                                <p className="font-medium">{schedule.origin} {schedule.destination ? `→ ${schedule.destination}` : ""}</p>
                               </div>
                               <div>
                                 <p className="text-muted-foreground mb-1">Passageiros</p>
-                                <p className="font-medium">{schedule.passengers}</p>
+                                <p className="font-medium">{schedule.passengers || "-"}</p>
                               </div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-6 text-sm">
                               <div>
+                                <p className="text-muted-foreground mb-1">Cliente</p>
+                                <p className="font-medium">{schedule.client?.company_name || "Não informado"}</p>
+                              </div>
+                              <div>
                                 <p className="text-muted-foreground mb-1">Tripulação</p>
                                 <p className="font-medium">{schedule.crew?.full_name || "Não atribuído"}</p>
                               </div>
-                              {schedule.contact && (
-                                <div>
-                                  <p className="text-muted-foreground mb-1">Contato</p>
-                                  <p className="font-medium">{schedule.contact}</p>
-                                </div>
-                              )}
                             </div>
+
+                            {schedule.contact && (
+                              <div className="text-sm">
+                                <p className="text-muted-foreground mb-1">Contato</p>
+                                <p className="font-medium">{schedule.contact}</p>
+                              </div>
+                            )}
 
                             {schedule.observations && (
                               <div>

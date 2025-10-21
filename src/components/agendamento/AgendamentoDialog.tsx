@@ -46,7 +46,7 @@ export function FlightScheduleDialog({ open, onOpenChange, onSuccess, scheduleId
     client_id: "",
     contact: "",
     passengers: "1",
-    flight_type: "executivo",
+    flight_type: "treinamento",
     origin: "",
     destination: "",
     crew_member_id: "",
@@ -80,7 +80,7 @@ export function FlightScheduleDialog({ open, onOpenChange, onSuccess, scheduleId
           client_id: data.client_id || "",
           contact: data.contact || "",
           passengers: String(data.passengers ?? "1"),
-          flight_type: data.flight_type || "executivo",
+          flight_type: data.flight_type || "treinamento",
           origin: data.origin || "",
           destination: data.destination || "",
           crew_member_id: data.crew_member_id || "",
@@ -122,8 +122,7 @@ export function FlightScheduleDialog({ open, onOpenChange, onSuccess, scheduleId
   };
 
   const handleSubmit = async () => {
-    if (!formData.aircraft_id || !formData.flight_date || !formData.flight_time || 
-        !formData.origin || !formData.destination) {
+    if (!formData.aircraft_id || !formData.flight_date || !formData.origin) {
       toast.error("Preencha todos os campos obrigatórios");
       return;
     }
@@ -136,14 +135,14 @@ export function FlightScheduleDialog({ open, onOpenChange, onSuccess, scheduleId
           .update({
             aircraft_id: formData.aircraft_id,
             flight_date: formData.flight_date,
-            flight_time: formData.flight_time,
+            flight_time: formData.flight_time || null,
             estimated_duration: formData.estimated_duration || null,
             client_id: formData.client_id || null,
             contact: formData.contact || null,
-            passengers: parseInt(formData.passengers),
+            passengers: formData.passengers ? parseInt(formData.passengers) : null,
             flight_type: formData.flight_type,
             origin: formData.origin,
-            destination: formData.destination,
+            destination: formData.destination || null,
             crew_member_id: formData.crew_member_id || null,
             status: formData.status,
             observations: formData.observations || null,
@@ -155,14 +154,14 @@ export function FlightScheduleDialog({ open, onOpenChange, onSuccess, scheduleId
         const { error } = await supabase.from("flight_schedules").insert({
           aircraft_id: formData.aircraft_id,
           flight_date: formData.flight_date,
-          flight_time: formData.flight_time,
+          flight_time: formData.flight_time || null,
           estimated_duration: formData.estimated_duration || null,
           client_id: formData.client_id || null,
           contact: formData.contact || null,
-          passengers: parseInt(formData.passengers),
+          passengers: formData.passengers ? parseInt(formData.passengers) : null,
           flight_type: formData.flight_type,
           origin: formData.origin,
-          destination: formData.destination,
+          destination: formData.destination || null,
           crew_member_id: formData.crew_member_id || null,
           status: formData.status,
           observations: formData.observations || null,
@@ -190,7 +189,7 @@ export function FlightScheduleDialog({ open, onOpenChange, onSuccess, scheduleId
       client_id: "",
       contact: "",
       passengers: "1",
-      flight_type: "executivo",
+      flight_type: "treinamento",
       origin: "",
       destination: "",
       crew_member_id: "",
@@ -245,7 +244,7 @@ export function FlightScheduleDialog({ open, onOpenChange, onSuccess, scheduleId
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="flight_time">Horário *</Label>
+              <Label htmlFor="flight_time">Horário</Label>
               <Input
                 id="flight_time"
                 type="time"
@@ -273,7 +272,7 @@ export function FlightScheduleDialog({ open, onOpenChange, onSuccess, scheduleId
             
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="client">Nome do Cliente *</Label>
+                <Label htmlFor="client">Nome do Cliente</Label>
                 <Select
                   value={formData.client_id}
                   onValueChange={(value) => setFormData(prev => ({ ...prev, client_id: value }))}
@@ -305,7 +304,7 @@ export function FlightScheduleDialog({ open, onOpenChange, onSuccess, scheduleId
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="passengers">Número de Passageiros *</Label>
+                <Label htmlFor="passengers">Número de Passageiros</Label>
                 <Input
                   id="passengers"
                   type="number"
@@ -326,7 +325,6 @@ export function FlightScheduleDialog({ open, onOpenChange, onSuccess, scheduleId
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-popover">
-                    <SelectItem value="executivo">✈️ Executivo</SelectItem>
                     <SelectItem value="treinamento">📚 Treinamento</SelectItem>
                     <SelectItem value="manutencao">🔧 Manutenção</SelectItem>
                     <SelectItem value="particular">👤 Particular</SelectItem>
@@ -353,7 +351,7 @@ export function FlightScheduleDialog({ open, onOpenChange, onSuccess, scheduleId
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="destination">Destino *</Label>
+                <Label htmlFor="destination">Destino</Label>
                 <Input
                   id="destination"
                   placeholder="Aeroporto/cidade de destino"
