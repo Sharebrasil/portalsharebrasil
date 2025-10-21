@@ -2,8 +2,8 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = "https://yelanwtucirrxbskwjxc.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InllbGFud3R1Y2lycnhic2t3anhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc0NDcyNjAsImV4cCI6MjA3MzAyMzI2MH0.uyrfsLjgZfW4uWAZ7XO_nfMwhgChx1ehzvWgdA4Q7h8";
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 // A fetch ponyfill using XMLHttpRequest to bypass any window.fetch instrumentation
 function xhrFetch(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
