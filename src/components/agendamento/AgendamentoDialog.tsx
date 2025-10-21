@@ -328,6 +328,7 @@ export function FlightScheduleDialog({ open, onOpenChange, onSuccess, scheduleId
                     <SelectItem value="treinamento">📚 Treinamento</SelectItem>
                     <SelectItem value="manutencao">🔧 Manutenção</SelectItem>
                     <SelectItem value="particular">👤 Particular</SelectItem>
+                    <SelectItem value="executivo">✈️ Executivo</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

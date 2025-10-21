@@ -140,6 +140,7 @@ export default function Agendamentos() {
       treinamento: "treinamento",
       manutencao: "manutenção",
       particular: "particular",
+      executivo: "executivo",
     };
     return types[type] || type;
   };
