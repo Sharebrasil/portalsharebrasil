@@ -9,6 +9,22 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // import { supabase } from "@/integrations/supabase/client";
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  // Ensure network requests bypass any caches and are CORS-safe even when a SW is present
+  global: {
+    fetch: (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof input === 'string' || input instanceof URL ? String(input) : (input as Request).url;
+      const nextInit: RequestInit = {
+        ...init,
+        // Always go to network for auth and DB requests
+        cache: 'no-store',
+        // Avoid sending cookies to third-party origins
+        credentials: 'omit',
+        mode: 'cors',
+        redirect: 'follow',
+      };
+      return fetch(input as any, nextInit);
+    },
+  },
   auth: {
     storage: localStorage,
     persistSession: true,
