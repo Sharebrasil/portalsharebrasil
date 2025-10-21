@@ -22,19 +22,19 @@ interface LogbookEntry {
   data: string;
   de: string;
   para: string;
-  ac: string; // horário (HH:MM)
+  ac: string;
   dep: string;
   pou: string;
-  cor: string; // horário (HH:MM)
-  tvoo: string; // horário (HH:MM)
-  tdia: string; // horário (HH:MM)
-  tnoit: string; // horário (HH:MM)
-  total: string; // horário (HH:MM)
-  ifr: string; // horário (HH:MM)
+  cor: string;
+  tvoo: string;
+  tdia: string;
+  tnoit: string;
+  total: string;
+  ifr: string;
   pousos: string;
   abast: string;
   fuel: string;
-  ctm: string; // CTM único valor numérico
+  ctm: string;
   pic: string;
   sic: string;
   diarias: string;
@@ -58,8 +58,16 @@ export default function DiarioBordoDetalhes() {
   const [entries, setEntries] = useState<LogbookEntry[]>([]);
   const [newRowIndex, setNewRowIndex] = useState<number | null>(null);
 
+  const canEdit = roles.some(role =>
+    role === "admin" || role === "piloto_chefe" || role === "gestor_master" || role === "operacoes" || role === "tripulante"
+  );
+
   const canConfirm = roles.some(role =>
     role === "admin" || role === "piloto_chefe" || role === "gestor_master"
+  );
+
+  const canEditClosed = roles.some(role =>
+    role === "admin" || role === "gestor_master"
   );
 
   const { data: aircraft } = useQuery({
@@ -195,6 +203,11 @@ export default function DiarioBordoDetalhes() {
   };
 
   const addNewRow = () => {
+    if (!canEdit) {
+      toast.error("Você não tem permissão para adicionar entradas");
+      return;
+    }
+
     const newEntry: LogbookEntry = {
       data: '',
       de: '',
@@ -233,6 +246,11 @@ export default function DiarioBordoDetalhes() {
   const saveEntry = async (index: number) => {
     if (!logbookMonth) {
       toast.error("Diário de bordo não encontrado");
+      return;
+    }
+
+    if (!canEdit && !canEditClosed) {
+      toast.error("Você não tem permissão para salvar entradas");
       return;
     }
 
@@ -391,6 +409,8 @@ export default function DiarioBordoDetalhes() {
   const cellPrev = Math.ceil(cellEnd / 10) * 10;
   const cellDisp = Math.max(0, Number((cellPrev - cellEnd).toFixed(2)));
 
+  const canAddOrEdit = isClosed ? canEditClosed : canEdit;
+
   return (
     <Layout>
       <div className="container mx-auto p-6 space-y-4">
@@ -405,9 +425,12 @@ export default function DiarioBordoDetalhes() {
             <h1 className="text-2xl font-bold">
               DIÁRIO {monthName} {selectedYear} {aircraft?.registration}
             </h1>
+            {isClosed && (
+              <span className="px-3 py-1 bg-red-500 text-white text-sm font-bold rounded">FECHADO</span>
+            )}
           </div>
           <div className="flex gap-2">
-            <Select value={selectedMonth} onValueChange={setSelectedMonth} disabled={isClosed}>
+            <Select value={selectedMonth} onValueChange={setSelectedMonth} disabled={isClosed && !canEditClosed}>
               <SelectTrigger className="w-32">
                 <SelectValue />
               </SelectTrigger>
@@ -419,7 +442,7 @@ export default function DiarioBordoDetalhes() {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={selectedYear} onValueChange={setSelectedYear} disabled={isClosed}>
+            <Select value={selectedYear} onValueChange={setSelectedYear} disabled={isClosed && !canEditClosed}>
               <SelectTrigger className="w-24">
                 <SelectValue />
               </SelectTrigger>
@@ -431,10 +454,10 @@ export default function DiarioBordoDetalhes() {
                 ))}
               </SelectContent>
             </Select>
-            {!isClosed && (
+            {canAddOrEdit && (
               <Button onClick={addNewRow}>
                 <Plus className="h-4 w-4 mr-2" />
-                Novo Voo
+                Adicionar Trecho
               </Button>
             )}
             {!isClosed && canConfirm && entries.length > 0 && (
@@ -445,25 +468,30 @@ export default function DiarioBordoDetalhes() {
           </div>
         </div>
 
-        <Card className="p-4 bg-[rgba(10,19,50,1)] border border-gray-700 rounded-xl">
-          <div className="grid grid-cols-4 gap-4 text-sm font-medium">
-            <div>
-              <div>AERONAVE: {aircraft?.registration}</div>
-              <div>MODELO: {aircraft?.model}</div>
-              <div>CONS. MÉD: {aircraft?.fuel_consumption} L/H</div>
+        <Card className="p-6 bg-gradient-to-br from-blue-700 to-blue-900 border-0 rounded-md shadow-lg">
+          <div className="grid grid-cols-2 gap-6 text-sm text-white">
+            <div className="space-y-1">
+              <div className="font-bold">AERONAVE: <span className="font-normal">{aircraft?.registration}</span></div>
+              <div className="font-bold">MODELO: <span className="font-normal">{aircraft?.model}</span></div>
+              <div className="font-bold">CONS. MÉD: <span className="font-normal">{aircraft?.fuel_consumption} L/H</span></div>
             </div>
-            <div>
-              <div className="font-bold">C��LULA</div>
-              <div>ANTER.: {cellStart} H</div>
-              <div>ATUAL.: {cellEnd} H</div>
-              <div>P.REV.: {cellPrev} H</div>
-              <div>DISP.: <span className="text-destructive font-semibold">{cellDisp} H</span></div>
-            </div>
-            <div>
-              <div className="font-bold">HORÍMETRO</div>
-              <div>INÍCIO: {logbookMonth.hobbs_hours_start || 0} H</div>
-              <div>FINAL: {logbookMonth.hobbs_hours_end || 0} H</div>
-              <div>ATIVO: {(logbookMonth.hobbs_hours_end || 0) - (logbookMonth.hobbs_hours_start || 0)} H</div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <div className="text-green-300 font-bold mb-2">ANTER.:</div>
+                <div className="text-2xl font-bold">{cellStart.toFixed(1)} H</div>
+              </div>
+              <div className="space-y-1">
+                <div className="text-green-300 font-bold mb-2">ATUAL:</div>
+                <div className="text-2xl font-bold">{cellEnd.toFixed(1)} H</div>
+              </div>
+              <div className="space-y-1">
+                <div className="text-red-300 font-bold mb-2">PREV.:</div>
+                <div className="text-2xl font-bold text-red-300">{cellPrev.toFixed(1)} H</div>
+              </div>
+              <div className="space-y-1">
+                <div className="text-red-400 font-bold mb-2">DISP.:</div>
+                <div className="text-2xl font-bold text-red-400">{cellDisp.toFixed(1)} H</div>
+              </div>
             </div>
           </div>
         </Card>
@@ -472,33 +500,32 @@ export default function DiarioBordoDetalhes() {
           <table className="w-full border-collapse border border-gray-300 text-xs">
             <thead>
               <tr>
-                <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">DATA</th>
-                <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">DE</th>
-                <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">PARA</th>
-                <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">AC</th>
-                <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">DEP</th>
-                <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">POU</th>
-                <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">COR</th>
-                <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">T VOO</th>
-                <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">T DIA</th>
-                <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">T NOITE</th>
-                <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">TOTAL</th>
-                <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">IFR</th>
-                <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">POUSOS</th>
-                <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">ABAST</th>
-                <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)]">FUEL</th>
-                <th className="border border-gray-300 p-1 bg-[rgba(2,54,34,1)]" colSpan={1}>CTM</th>
-                <th className="border border-gray-300 p-1 bg-[rgba(2,54,34,1)]" colSpan={2}>CANAC</th>
-                <th rowSpan={2} className="border border-gray-300 p-1">DIÁRIAS</th>
-                <th className="border border-gray-300 p-1 bg-[rgba(2,54,34,1)]" colSpan={3}>CONTROLE COTISTA</th>
+                <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)] text-white">DATA</th>
+                <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)] text-white">DE</th>
+                <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)] text-white">PARA</th>
+                <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)] text-white">AC</th>
+                <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)] text-white">DEP</th>
+                <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)] text-white">POU</th>
+                <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)] text-white">COR</th>
+                <th colSpan={4} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)] text-white">TEMPO DE VOO</th>
+                <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)] text-white">IFR</th>
+                <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)] text-white">POUSOS</th>
+                <th colSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)] text-white">COMBUSTÍVEL</th>
+                <th colSpan={2} className="border border-gray-300 p-1 bg-[rgba(2,54,34,1)] text-white">CANAC</th>
+                <th rowSpan={2} className="border border-gray-300 p-1 bg-gray-600 text-white">DIÁRIAS</th>
+                <th colSpan={3} className="border border-gray-300 p-1 bg-[rgba(2,54,34,1)] text-white">CANAC</th>
               </tr>
               <tr>
-                <th className="border border-gray-300 p-1 text-[10px] bg-[rgba(4,56,88,1)]">CTM</th>
-                <th className="border border-gray-300 p-1">PIC</th>
-                <th className="border border-gray-300 p-1">SIC</th>
-                <th className="border border-gray-300 p-1 text-[10px] bg-[rgba(4,56,88,1)]">EXTRAS</th>
-                <th className="border border-gray-300 p-1 text-[10px] bg-[rgba(4,56,88,1)]">VOO PARA</th>
-                <th className="border border-gray-300 p-1 text-[10px] bg-[rgba(4,56,88,1)]">CONF</th>
+                <th className="border border-gray-300 p-1 text-[10px] bg-[rgba(4,56,88,1)] text-white">T VOO</th>
+                <th className="border border-gray-300 p-1 text-[10px] bg-[rgba(4,56,88,1)] text-white">T DIA</th>
+                <th className="border border-gray-300 p-1 text-[10px] bg-[rgba(4,56,88,1)] text-white">T NOITE</th>
+                <th className="border border-gray-300 p-1 text-[10px] bg-[rgba(4,56,88,1)] text-white">TOTAL</th>
+                <th className="border border-gray-300 p-1 text-[10px] bg-[rgba(4,56,88,1)] text-white">ABAST</th>
+                <th className="border border-gray-300 p-1 text-[10px] bg-[rgba(4,56,88,1)] text-white">FUEL</th>
+                <th className="border border-gray-300 p-1 text-[10px] bg-[rgba(4,56,88,1)] text-white">CÉLULA</th>
+                <th className="border border-gray-300 p-1 text-[10px] bg-[rgba(4,56,88,1)] text-white">PIC</th>
+                <th className="border border-gray-300 p-1 text-[10px] bg-[rgba(4,56,88,1)] text-white">SIC</th>
+                <th className="border border-gray-300 p-1 text-[10px] bg-[rgba(4,56,88,1)] text-white">DIARIAS</th>
               </tr>
             </thead>
             <tbody>
@@ -509,7 +536,7 @@ export default function DiarioBordoDetalhes() {
                       type="date"
                       value={entry.data}
                       onChange={(e) => updateEntry(index, 'data', e.target.value)}
-                      disabled={isClosed}
+                      disabled={!canAddOrEdit}
                       className="h-7 text-xs"
                     />
                   </td>
@@ -517,7 +544,7 @@ export default function DiarioBordoDetalhes() {
                     <Input
                       value={entry.de}
                       onChange={(e) => updateEntry(index, 'de', e.target.value)}
-                      disabled={isClosed}
+                      disabled={!canAddOrEdit}
                       className="h-7 text-xs w-16"
                     />
                   </td>
@@ -525,7 +552,7 @@ export default function DiarioBordoDetalhes() {
                     <Input
                       value={entry.para}
                       onChange={(e) => updateEntry(index, 'para', e.target.value)}
-                      disabled={isClosed}
+                      disabled={!canAddOrEdit}
                       className="h-7 text-xs w-16"
                     />
                   </td>
@@ -534,10 +561,10 @@ export default function DiarioBordoDetalhes() {
                       type="text"
                       inputMode="numeric"
                       placeholder="00:00"
-                      pattern="^\\d{1,2}:\\d{2}$"
+                      pattern="^\d{1,2}:\d{2}$"
                       value={entry.ac}
                       onChange={(e) => updateEntry(index, 'ac', e.target.value)}
-                      disabled={isClosed}
+                      disabled={!canAddOrEdit}
                       className="h-7 text-xs w-16"
                     />
                   </td>
@@ -546,7 +573,7 @@ export default function DiarioBordoDetalhes() {
                       type="time"
                       value={entry.dep}
                       onChange={(e) => updateEntry(index, 'dep', e.target.value)}
-                      disabled={isClosed}
+                      disabled={!canAddOrEdit}
                       className="h-7 text-xs w-20"
                     />
                   </td>
@@ -555,7 +582,7 @@ export default function DiarioBordoDetalhes() {
                       type="time"
                       value={entry.pou}
                       onChange={(e) => updateEntry(index, 'pou', e.target.value)}
-                      disabled={isClosed}
+                      disabled={!canAddOrEdit}
                       className="h-7 text-xs w-20"
                     />
                   </td>
@@ -564,10 +591,10 @@ export default function DiarioBordoDetalhes() {
                       type="text"
                       inputMode="numeric"
                       placeholder="00:00"
-                      pattern="^\\d{1,2}:\\d{2}$"
+                      pattern="^\d{1,2}:\d{2}$"
                       value={entry.cor}
                       onChange={(e) => updateEntry(index, 'cor', e.target.value)}
-                      disabled={isClosed}
+                      disabled={!canAddOrEdit}
                       className="h-7 text-xs w-16"
                     />
                   </td>
@@ -576,10 +603,10 @@ export default function DiarioBordoDetalhes() {
                       type="text"
                       inputMode="numeric"
                       placeholder="01:30"
-                      pattern="^\\d{1,2}:\\d{2}$"
+                      pattern="^\d{1,2}:\d{2}$"
                       value={entry.tvoo}
                       onChange={(e) => updateEntry(index, 'tvoo', e.target.value)}
-                      disabled={isClosed}
+                      disabled={!canAddOrEdit}
                       className="h-7 text-xs w-16"
                     />
                   </td>
@@ -588,10 +615,10 @@ export default function DiarioBordoDetalhes() {
                       type="text"
                       inputMode="numeric"
                       placeholder="01:30"
-                      pattern="^\\d{1,2}:\\d{2}$"
+                      pattern="^\d{1,2}:\d{2}$"
                       value={entry.tdia}
                       onChange={(e) => updateEntry(index, 'tdia', e.target.value)}
-                      disabled={isClosed}
+                      disabled={!canAddOrEdit}
                       className="h-7 text-xs w-16"
                     />
                   </td>
@@ -600,10 +627,10 @@ export default function DiarioBordoDetalhes() {
                       type="text"
                       inputMode="numeric"
                       placeholder="01:30"
-                      pattern="^\\d{1,2}:\\d{2}$"
+                      pattern="^\d{1,2}:\d{2}$"
                       value={entry.tnoit}
                       onChange={(e) => updateEntry(index, 'tnoit', e.target.value)}
-                      disabled={isClosed}
+                      disabled={!canAddOrEdit}
                       className="h-7 text-xs w-16"
                     />
                   </td>
@@ -612,10 +639,10 @@ export default function DiarioBordoDetalhes() {
                       type="text"
                       inputMode="numeric"
                       placeholder="01:30"
-                      pattern="^\\d{1,2}:\\d{2}$"
+                      pattern="^\d{1,2}:\d{2}$"
                       value={entry.total}
                       onChange={(e) => updateEntry(index, 'total', e.target.value)}
-                      disabled={isClosed}
+                      disabled={!canAddOrEdit}
                       className="h-7 text-xs w-16"
                     />
                   </td>
@@ -624,10 +651,10 @@ export default function DiarioBordoDetalhes() {
                       type="text"
                       inputMode="numeric"
                       placeholder="00:00"
-                      pattern="^\\d{1,2}:\\d{2}$"
+                      pattern="^\d{1,2}:\d{2}$"
                       value={entry.ifr}
                       onChange={(e) => updateEntry(index, 'ifr', e.target.value)}
-                      disabled={isClosed}
+                      disabled={!canAddOrEdit}
                       className="h-7 text-xs w-16"
                     />
                   </td>
@@ -636,7 +663,7 @@ export default function DiarioBordoDetalhes() {
                       type="number"
                       value={entry.pousos}
                       onChange={(e) => updateEntry(index, 'pousos', e.target.value)}
-                      disabled={isClosed}
+                      disabled={!canAddOrEdit}
                       className="h-7 text-xs w-12"
                     />
                   </td>
@@ -646,7 +673,7 @@ export default function DiarioBordoDetalhes() {
                       step="0.1"
                       value={entry.abast}
                       onChange={(e) => updateEntry(index, 'abast', e.target.value)}
-                      disabled={isClosed}
+                      disabled={!canAddOrEdit}
                       className="h-7 text-xs w-16"
                     />
                   </td>
@@ -656,7 +683,7 @@ export default function DiarioBordoDetalhes() {
                       step="0.1"
                       value={entry.fuel}
                       onChange={(e) => updateEntry(index, 'fuel', e.target.value)}
-                      disabled={isClosed}
+                      disabled={!canAddOrEdit}
                       className="h-7 text-xs w-16"
                     />
                   </td>
@@ -666,7 +693,7 @@ export default function DiarioBordoDetalhes() {
                       step="0.1"
                       value={entry.ctm}
                       onChange={(e) => updateEntry(index, 'ctm', e.target.value)}
-                      disabled={isClosed}
+                      disabled={!canAddOrEdit}
                       className="h-7 text-xs w-16"
                     />
                   </td>
@@ -674,7 +701,7 @@ export default function DiarioBordoDetalhes() {
                     <Input
                       value={entry.pic}
                       onChange={(e) => updateEntry(index, 'pic', e.target.value)}
-                      disabled={isClosed}
+                      disabled={!canAddOrEdit}
                       list="crew-canac-list"
                       placeholder="CANAC"
                       className="h-7 text-xs w-20"
@@ -684,7 +711,7 @@ export default function DiarioBordoDetalhes() {
                     <Input
                       value={entry.sic}
                       onChange={(e) => updateEntry(index, 'sic', e.target.value)}
-                      disabled={isClosed}
+                      disabled={!canAddOrEdit}
                       list="crew-canac-list"
                       placeholder="CANAC"
                       className="h-7 text-xs w-20"
@@ -695,7 +722,7 @@ export default function DiarioBordoDetalhes() {
                       type="checkbox"
                       checked={Number(entry.diarias) === 1}
                       onChange={(e) => updateEntry(index, 'diarias', e.target.checked ? '1' : '0')}
-                      disabled={isClosed}
+                      disabled={!canAddOrEdit}
                       className="h-4 w-4"
                       aria-label="Diária PIC"
                       title="Marque para contabilizar 1 diária para o PIC"
@@ -705,7 +732,7 @@ export default function DiarioBordoDetalhes() {
                     <Input
                       value={entry.extras}
                       onChange={(e) => updateEntry(index, 'extras', e.target.value)}
-                      disabled={isClosed}
+                      disabled={!canAddOrEdit}
                       className="h-7 text-xs w-20"
                     />
                   </td>
@@ -713,7 +740,7 @@ export default function DiarioBordoDetalhes() {
                     <Select
                       value={entry.voo_para || undefined}
                       onValueChange={(val) => updateEntry(index, 'voo_para', val === '__none__' ? '' : val)}
-                      disabled={isClosed}
+                      disabled={!canAddOrEdit}
                     >
                       <SelectTrigger className="h-7 text-xs w-full">
                         <SelectValue placeholder="-" />
@@ -742,7 +769,7 @@ export default function DiarioBordoDetalhes() {
                         size="sm"
                         variant={entry.confere ? "default" : "outline"}
                         onClick={() => toggleConfirm(index)}
-                        disabled={!canConfirm || isClosed}
+                        disabled={!canConfirm || (isClosed && !canEditClosed)}
                         className="h-7 w-7 p-0"
                       >
                         {entry.confere && <Check className="h-4 w-4" />}
