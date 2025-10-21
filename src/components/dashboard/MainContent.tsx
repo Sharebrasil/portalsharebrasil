@@ -8,6 +8,7 @@ import aviationHero from "@/assets/aviation-hero.jpg";
 import TaskDialog from "@/components/tasks/TaskDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 
 export function MainContent() {
   const navigate = useNavigate();
@@ -85,7 +86,35 @@ export function MainContent() {
     }
   };
 
-  const scheduledFlights: any[] = [];
+  const { data: scheduledFlights = [] } = useQuery({
+    queryKey: ["scheduled-flights-dashboard"],
+    queryFn: async () => {
+      const today = new Date().toISOString().split('T')[0];
+      const { data, error } = await supabase
+        .from("flight_schedules")
+        .select(`
+          id,
+          flight_date,
+          flight_time,
+          origin,
+          destination,
+          status,
+          aircraft:aircraft_id(registration),
+          client:client_id(company_name),
+          crew:crew_member_id(full_name)
+        `)
+        .gte("flight_date", today)
+        .order("flight_date", { ascending: true })
+        .order("flight_time", { ascending: true })
+        .limit(5);
+
+      if (error) {
+        console.error("Erro ao carregar voos agendados:", error);
+        return [];
+      }
+      return data || [];
+    },
+  });
 
   return (
     <main className="flex-1 p-6 space-y-6 bg-gradient-subtle">
@@ -190,15 +219,87 @@ export function MainContent() {
               <Plane className="mr-2 h-5 w-5 text-primary" />
               Voos Agendados
             </CardTitle>
-            <Button variant="outline" size="sm" className="border-border hover:bg-accent">
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-border hover:bg-accent"
+              onClick={() => navigate("/agendamento")}
+            >
               Ver todos
             </Button>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="text-center py-8 text-muted-foreground">
-              <Plane className="mx-auto h-12 w-12 mb-2 opacity-50" />
-              <p>Nenhum voo agendado</p>
-            </div>
+            {scheduledFlights.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Plane className="mx-auto h-12 w-12 mb-2 opacity-50" />
+                <p>Nenhum voo agendado</p>
+              </div>
+            ) : (
+              scheduledFlights.map((flight: any) => (
+                <div
+                  key={flight.id}
+                  className="p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer border border-border hover:border-primary"
+                  onClick={() => navigate("/agendamento")}
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Plane className="h-4 w-4 text-primary" />
+                      <span className="font-semibold text-foreground">
+                        {flight.aircraft?.registration || "N/A"}
+                      </span>
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className={
+                        flight.status === 'confirmado'
+                          ? 'bg-success/20 text-success border-success'
+                          : flight.status === 'pendente'
+                          ? 'bg-warning/20 text-warning border-warning'
+                          : 'bg-destructive/20 text-destructive border-destructive'
+                      }
+                    >
+                      {flight.status}
+                    </Badge>
+                  </div>
+
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <ArrowRight className="h-3 w-3" />
+                      <span className="font-medium text-foreground">{flight.origin}</span>
+                      {flight.destination && (
+                        <>
+                          <span>→</span>
+                          <span className="font-medium text-foreground">{flight.destination}</span>
+                        </>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Users className="h-3 w-3" />
+                      <span>{flight.client?.company_name || "Cliente não informado"}</span>
+                    </div>
+
+                    <div className="flex items-center gap-4 text-muted-foreground">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-3 w-3" />
+                        <span>{new Date(flight.flight_date).toLocaleDateString("pt-BR")}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-3 w-3" />
+                        <span>{flight.flight_time || "-"}</span>
+                      </div>
+                    </div>
+
+                    {flight.crew?.full_name && (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Users className="h-3 w-3" />
+                        <span className="text-xs">Tripulação: {flight.crew.full_name}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
           </CardContent>
         </Card>
       </div>
