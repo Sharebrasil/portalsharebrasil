@@ -1,6 +1,6 @@
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { isAppRole, type AppRole } from "@/lib/roles";
 
 interface AuthContextValue {
@@ -32,6 +32,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const loadRoles = useCallback(async (userId: string | null): Promise<AppRole[]> => {
     if (!userId) {
+      setRoles([]);
+      return [];
+    }
+
+    if (!isSupabaseConfigured()) {
       setRoles([]);
       return [];
     }
@@ -101,6 +106,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       setIsLoading(true);
+
+      if (!isSupabaseConfigured()) {
+        await applyAuthState(null);
+        if (isMounted) setIsLoading(false);
+        return;
+      }
+
       try {
         const { data, error } = await supabase.auth.getSession();
 
@@ -136,30 +148,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     void initialize();
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      if (!isMounted) {
-        return;
-      }
-
-      (async () => {
-        try {
-          await applyAuthState(newSession ?? null);
-        } catch (error) {
-          if (!isMounted) {
-            return;
-          }
-
-          console.error("Failed to handle auth state change", serializeError(error));
-          await applyAuthState(null);
+    let subscription: { unsubscribe: () => void } | null = null;
+    if (isSupabaseConfigured()) {
+      const { data } = supabase.auth.onAuthStateChange((_event, newSession) => {
+        if (!isMounted) {
+          return;
         }
-      })();
-    });
+
+        (async () => {
+          try {
+            await applyAuthState(newSession ?? null);
+          } catch (error) {
+            if (!isMounted) {
+              return;
+            }
+
+            console.error("Failed to handle auth state change", serializeError(error));
+            await applyAuthState(null);
+          }
+        })();
+      });
+      subscription = data.subscription;
+    }
 
     return () => {
       isMounted = false;
-      subscription.unsubscribe();
+      subscription?.unsubscribe();
     };
   }, [loadRoles]);
 
