@@ -121,6 +121,16 @@ export interface CreateManagedUserInput {
 }
 
 export const createManagedUser = async (input: CreateManagedUserInput) => {
+  console.log("Calling create-user function with:", {
+    email: input.email,
+    roles: input.roles,
+    fullName: input.fullName,
+    tipo: input.tipo
+  });
+
+  const { data: session } = await supabase.auth.getSession();
+  console.log("Session exists:", !!session?.session);
+
   const { data, error } = await supabase.functions.invoke("create-user", {
     body: {
       email: input.email,
@@ -131,7 +141,10 @@ export const createManagedUser = async (input: CreateManagedUserInput) => {
     },
   });
 
+  console.log("Function response:", { data, error });
+
   if (error) {
+    console.error("Function error:", error);
     throw new Error(error.message ?? "Erro ao criar usuário.");
   }
 
