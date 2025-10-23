@@ -5,25 +5,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 import { Loader2, Lock, Mail, Plane, Eye, EyeOff } from "lucide-react";
 
 const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { session, isLoading: authLoading, refreshRoles } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberEmail, setRememberEmail] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (!authLoading && session) {
-      navigate("/", { replace: true });
-    }
-  }, [authLoading, navigate, session]);
 
   useEffect(() => {
     const savedEmail = localStorage.getItem("login_email");
@@ -36,9 +27,7 @@ const Login = () => {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (isSubmitting) {
-      return;
-    }
+    if (isSubmitting) return;
 
     if (!email.trim() || !password) {
       toast({
@@ -58,35 +47,24 @@ const Login = () => {
         localStorage.removeItem("login_email");
       }
 
-      const { error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      });
+      // 🚫 Sem Supabase — login livre (admin)
+      // Aqui você pode adicionar uma verificação simples, se quiser.
+      // Exemplo: if (email !== "admin@site.com" || password !== "1234") return erro
+      // Para login livre, qualquer combinação é aceita.
 
-      if (error) {
-        throw error;
-      }
-
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (user) {
-        await refreshRoles(user.id);
-      }
+      localStorage.setItem("isAdmin", "true");
 
       toast({
         title: "Login realizado",
-        description: "Bem-vindo novamente ao portal.",
+        description: "Bem-vindo, administrador.",
       });
-    } catch (error) {
-      const description = error instanceof Error
-        ? error.message
-        : "Não foi possível realizar o login.";
 
+      // Redireciona para a home ou dashboard
+      navigate("/", { replace: true });
+    } catch (error) {
       toast({
         title: "Erro no login",
-        description,
+        description: "Não foi possível realizar o login.",
         variant: "destructive",
       });
     } finally {
@@ -116,7 +94,9 @@ const Login = () => {
             alt="Share Brasil logo"
             className="h-16 w-auto"
           />
-          <h1 className="mt-6 text-3xl font-semibold text-[#5dd5ff]">Share Brasil</h1>
+          <h1 className="mt-6 text-3xl font-semibold text-[#5dd5ff]">
+            Share Brasil
+          </h1>
           <p className="mt-1 text-sm text-white/60">Portal Colaborador</p>
         </div>
 
@@ -204,7 +184,9 @@ const Login = () => {
           </Button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-white/55">Bem-vindo de volta ao nosso sistema</p>
+        <p className="mt-6 text-center text-sm text-white/55">
+          Bem-vindo de volta ao nosso sistema
+        </p>
       </div>
     </div>
   );
