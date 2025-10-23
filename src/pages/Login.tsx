@@ -6,13 +6,12 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Lock, Mail, Plane, Eye, EyeOff } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, signIn } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberEmail, setRememberEmail] = useState(false);
@@ -55,30 +54,25 @@ const Login = () => {
         localStorage.removeItem("login_email");
       }
 
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password: password,
-      });
+      const { error } = await signIn(email.trim(), password);
 
       if (error) {
         console.error("Login error:", error);
         toast({
           title: "Erro no login",
-          description: error.message === "Invalid login credentials"
+          description: error === "Invalid credentials"
             ? "Email ou senha incorretos."
-            : error.message,
+            : error,
           variant: "destructive",
         });
         return;
       }
 
-      if (data.user) {
-        toast({
-          title: "Login realizado",
-          description: "Bem-vindo de volta!",
-        });
-        navigate("/", { replace: true });
-      }
+      toast({
+        title: "Login realizado",
+        description: "Bem-vindo de volta!",
+      });
+      navigate("/", { replace: true });
     } catch (error) {
       console.error("Login exception:", error);
       toast({
