@@ -37,7 +37,6 @@ const Login = () => {
       });
       return;
     }
-
     setIsSubmitting(true);
 
     try {
