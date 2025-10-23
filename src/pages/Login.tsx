@@ -6,15 +6,24 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Lock, Mail, Plane, Eye, EyeOff } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberEmail, setRememberEmail] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      navigate("/", { replace: true });
+    }
+  }, [user, navigate]);
 
   useEffect(() => {
     const savedEmail = localStorage.getItem("login_email");
@@ -46,21 +55,32 @@ const Login = () => {
         localStorage.removeItem("login_email");
       }
 
-      // 🚫 Sem Supabase — login livre (admin)
-      // Aqui você pode adicionar uma verificação simples, se quiser.
-      // Exemplo: if (email !== "admin@site.com" || password !== "1234") return erro
-      // Para login livre, qualquer combinação é aceita.
-
-      localStorage.setItem("isAdmin", "true");
-
-      toast({
-        title: "Login realizado",
-        description: "Bem-vindo, administrador.",
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password: password,
       });
 
-      // Redireciona para a home ou dashboard
-      navigate("/", { replace: true });
+      if (error) {
+        console.error("Login error:", error);
+        toast({
+          title: "Erro no login",
+          description: error.message === "Invalid login credentials"
+            ? "Email ou senha incorretos."
+            : error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (data.user) {
+        toast({
+          title: "Login realizado",
+          description: "Bem-vindo de volta!",
+        });
+        navigate("/", { replace: true });
+      }
     } catch (error) {
+      console.error("Login exception:", error);
       toast({
         title: "Erro no login",
         description: "Não foi possível realizar o login.",
