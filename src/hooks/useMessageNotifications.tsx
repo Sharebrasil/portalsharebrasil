@@ -5,18 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 export const useMessageNotifications = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-
-  let roles: string[] = [];
-  let user = null;
-
-  try {
-    const authContext = useAuth();
-    roles = authContext.roles;
-    user = authContext.user;
-  } catch (e) {
-    // Auth context not available, skip notifications
-    return;
-  }
+  const { roles, user } = useAuth();
 
   useEffect(() => {
     if (!isSupabaseConfigured) return;
