@@ -91,20 +91,3 @@ async function checkIfMessageIsForUser(message: any, userId: string, userRolesLi
 
   return false;
 }
-
-async function checkIfMessageIsForUser(message: any, userId: string, userRolesList: string[]): Promise<boolean> {
-  // Message for all users
-  if (message.target_type === 'all') return true;
-
-  // Message for specific user
-  if (message.target_type === 'user' && message.target_user_id === userId) {
-    return true;
-  }
-
-  // Message for specific roles
-  if (message.target_type === 'role' && message.target_roles && message.target_roles.length > 0) {
-    return message.target_roles.some((role: any) => userRolesList.includes(role));
-  }
-
-  return false;
-}
