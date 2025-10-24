@@ -111,7 +111,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsLoading(true);
 
       try {
+        const isAutoAdmin = (import.meta.env.VITE_AUTO_ADMIN === 'true') || Boolean(import.meta.env.DEV);
+
         const token = auth.getStoredToken();
+
+        // Dev-only shortcut: if auto-admin is enabled and there's no stored token,
+        // set a temporary admin user and roles so the dashboard opens without a password.
+        if (isAutoAdmin && !token) {
+          const devUser: User = {
+            id: 'dev-admin',
+            email: 'admin@local',
+            full_name: 'Administrador',
+            created_at: new Date().toISOString(),
+          };
+
+          setUser(devUser);
+          setRoles(['admin']);
+          return;
+        }
 
         if (!token) {
           setUser(null);
