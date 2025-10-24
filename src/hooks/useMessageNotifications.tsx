@@ -5,10 +5,11 @@ import { useAuth } from '@/contexts/AuthContext';
 
 export const useMessageNotifications = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
   const { roles, user } = useAuth();
 
   useEffect(() => {
-    if (!isSupabaseConfigured) return;
+    if (!isSupabaseConfigured || !user) return;
 
     // Prefer user from AuthContext, fallback to Supabase if available
     if (user) {
@@ -74,23 +75,6 @@ export const useMessageNotifications = () => {
     };
   }, [currentUserId, roles]);
 };
-
-async function checkIfMessageIsForUser(message: any, userId: string, userRolesList: string[]): Promise<boolean> {
-  // Message for all users
-  if (message.target_type === 'all') return true;
-
-  // Message for specific user
-  if (message.target_type === 'user' && message.target_user_id === userId) {
-    return true;
-  }
-
-  // Message for specific roles
-  if (message.target_type === 'role' && message.target_roles && message.target_roles.length > 0) {
-    return message.target_roles.some((role: any) => userRolesList.includes(role));
-  }
-
-  return false;
-}
 
 async function checkIfMessageIsForUser(message: any, userId: string, userRolesList: string[]): Promise<boolean> {
   // Message for all users
