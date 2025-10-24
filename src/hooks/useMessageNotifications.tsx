@@ -34,7 +34,7 @@ export const useMessageNotifications = () => {
   }, [user]);
 
   useEffect(() => {
-    if (!isSupabaseConfigured || !currentUserId) return;
+    if (!isSupabaseConfigured || !currentUserId || !authContext) return;
 
     if (!supabase || typeof supabase.channel !== 'function') return;
 
