@@ -9,38 +9,35 @@ import TaskDialog from "@/components/tasks/TaskDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from '@/contexts/AuthContext';
 
 export function MainContent() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [tasks, setTasks] = useState<any[]>([]);
-  const [currentUserId, setCurrentUserId] = useState<string>("");
-  useEffect(() => {
-    fetchCurrentUser();
-    fetchTasks();
-  }, []);
 
-  const fetchCurrentUser = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      setCurrentUserId(user.id);
-    }
-  };
+  useEffect(() => {
+    fetchTasks();
+  }, [user]);
 
   const fetchTasks = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { data, error } = await supabase
-      .from("tasks")
-      .select("*")
-      .or(`assigned_to.eq.${user.id},requested_by.eq.${user.id}`)
-      .order("created_at", { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from("tasks")
+        .select("*")
+        .or(`assigned_to.eq.${user.id},requested_by.eq.${user.id}`)
+        .order("created_at", { ascending: false });
 
-    if (error) {
-      console.error("Erro ao carregar tarefas:", error);
-    } else {
-      setTasks(data || []);
+      if (error) {
+        console.error("Erro ao carregar tarefas:", error);
+      } else {
+        setTasks(data || []);
+      }
+    } catch (e) {
+      console.error(e);
     }
   };
 

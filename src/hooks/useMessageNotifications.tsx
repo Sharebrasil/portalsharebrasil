@@ -5,21 +5,36 @@ import { useAuth } from '@/contexts/AuthContext';
 
 export const useMessageNotifications = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const { roles } = useAuth();
+  const { roles, user } = useAuth();
 
   useEffect(() => {
-    if (!isSupabaseConfigured()) return;
-    // Get current user
+    if (!isSupabaseConfigured) return;
+
+    // Prefer user from AuthContext, fallback to Supabase if available
+    if (user) {
+      setCurrentUserId(user.id);
+      return;
+    }
+
+    // Get current user from supabase if supported
     const getCurrentUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) setCurrentUserId(user.id);
+      try {
+        if (!supabase || !supabase.auth || typeof supabase.auth.getUser !== 'function') return;
+        const result = await supabase.auth.getUser();
+        const userData = (result && (result as any).data && (result as any).data.user) || null;
+        if (userData) setCurrentUserId(userData.id);
+      } catch (e) {
+        // ignore
+      }
     };
 
-    getCurrentUser();
-  }, []);
+    void getCurrentUser();
+  }, [user]);
 
   useEffect(() => {
-    if (!isSupabaseConfigured() || !currentUserId) return;
+    if (!isSupabaseConfigured || !currentUserId) return;
+
+    if (!supabase || typeof supabase.channel !== 'function') return;
 
     // Subscribe to new messages
     const channel = supabase
@@ -55,10 +70,27 @@ export const useMessageNotifications = () => {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      if (supabase && typeof supabase.removeChannel === 'function') supabase.removeChannel(channel);
     };
   }, [currentUserId, roles]);
 };
+
+async function checkIfMessageIsForUser(message: any, userId: string, userRolesList: string[]): Promise<boolean> {
+  // Message for all users
+  if (message.target_type === 'all') return true;
+
+  // Message for specific user
+  if (message.target_type === 'user' && message.target_user_id === userId) {
+    return true;
+  }
+
+  // Message for specific roles
+  if (message.target_type === 'role' && message.target_roles && message.target_roles.length > 0) {
+    return message.target_roles.some((role: any) => userRolesList.includes(role));
+  }
+
+  return false;
+}
 
 async function checkIfMessageIsForUser(message: any, userId: string, userRolesList: string[]): Promise<boolean> {
   // Message for all users
