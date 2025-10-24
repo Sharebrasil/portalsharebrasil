@@ -32,18 +32,38 @@ const Login = () => {
     }
   }, []);
 
-  const handleSubmit = (event?: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event?: FormEvent<HTMLFormElement>) => {
     if (event) event.preventDefault();
     if (isSubmitting) return;
 
     setIsSubmitting(true);
-    toast({ title: 'Entrando...', description: 'Redirecionando...', });
 
-    // Simple flow: navigate to home. Real auth is handled elsewhere.
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      // Auto-create or sign up a single dev user so you can fill real DB data.
+      const defaultEmail = 'dev@local.test';
+      const defaultPassword = 'DevPass123!';
+      const defaultName = 'Usuário Dev';
+
+      const { error } = await signUp(defaultEmail, defaultPassword, defaultName);
+
+      if (error) {
+        // If signUp failed because user exists, try signing in
+        const { error: signInError } = await signIn(defaultEmail, defaultPassword);
+        if (signInError) {
+          toast({ title: 'Erro ao entrar', description: signInError, variant: 'destructive' });
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
+      toast({ title: 'Entrando...', description: 'Bem-vindo.' });
       navigate('/', { replace: true });
-    }, 300);
+    } catch (e) {
+      console.error('Auto login error', e);
+      toast({ title: 'Erro no login', description: 'Não foi possível efetuar o login.', variant: 'destructive' });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
