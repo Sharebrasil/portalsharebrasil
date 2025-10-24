@@ -18,6 +18,16 @@ export default defineConfig(({ mode }) => ({
     mode === 'development' &&
     componentTagger(),
   ].filter(Boolean),
+  optimizeDeps: {
+    // prevent Vite from pre-bundling server-only/node-only packages that break in the browser
+    exclude: [
+      'jsonwebtoken',
+      'jws',
+      'safe-buffer',
+      '@neondatabase/serverless',
+      '@vercel/node'
+    ]
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
