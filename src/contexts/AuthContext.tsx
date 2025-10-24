@@ -127,6 +127,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
           setUser(devUser);
           setRoles(['admin']);
+          setIsLoading(false);
           return;
         }
 
