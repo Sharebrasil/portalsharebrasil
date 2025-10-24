@@ -1,69 +1,27 @@
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Lock, Mail, Plane, Eye, EyeOff } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { Loader2, Plane } from "lucide-react";
 
 const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, signIn } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [rememberEmail, setRememberEmail] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      navigate("/", { replace: true });
-    }
-  }, [user, navigate]);
 
-  useEffect(() => {
-    const savedEmail = localStorage.getItem("login_email");
-    if (savedEmail) {
-      setEmail(savedEmail);
-      setRememberEmail(true);
-    }
-  }, []);
 
-  const handleSubmit = async (event?: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (event?: FormEvent<HTMLFormElement>) => {
     if (event) event.preventDefault();
     if (isSubmitting) return;
 
     setIsSubmitting(true);
+    toast({ title: 'Entrando...', description: 'Redirecionando...' });
 
-    try {
-      // Auto-create or sign up a single dev user so you can fill real DB data.
-      const defaultEmail = 'dev@local.test';
-      const defaultPassword = 'DevPass123!';
-      const defaultName = 'Usuário Dev';
-
-      const { error } = await signUp(defaultEmail, defaultPassword, defaultName);
-
-      if (error) {
-        // If signUp failed because user exists, try signing in
-        const { error: signInError } = await signIn(defaultEmail, defaultPassword);
-        if (signInError) {
-          toast({ title: 'Erro ao entrar', description: signInError, variant: 'destructive' });
-          setIsSubmitting(false);
-          return;
-        }
-      }
-
-      toast({ title: 'Entrando...', description: 'Bem-vindo.' });
-      navigate('/', { replace: true });
-    } catch (e) {
-      console.error('Auto login error', e);
-      toast({ title: 'Erro no login', description: 'Não foi possível efetuar o login.', variant: 'destructive' });
-    } finally {
+    setTimeout(() => {
       setIsSubmitting(false);
-    }
+      navigate('/', { replace: true });
+    }, 300);
   };
 
   return (
