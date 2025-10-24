@@ -1,8 +1,6 @@
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import { query } from './neon';
+// Client-side auth now uses server endpoints. Do not import server-only modules here.
 
-const JWT_SECRET = import.meta.env.JWT_SECRET || 'your-secret-key-change-in-production';
+const API_BASE = '/api/auth';
 
 export interface User {
   id: string;
