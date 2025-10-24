@@ -2,7 +2,6 @@ import { createContext, type ReactNode, useCallback, useContext, useEffect, useM
 import { isAppRole, type AppRole } from "@/lib/roles";
 import * as auth from "@/lib/auth";
 import type { User } from "@/lib/auth";
-import { query } from "@/lib/neon";
 
 interface AuthContextValue {
   user: User | null;
@@ -28,14 +27,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     try {
-      const rolesData = await query<{ role: string }>(
-        'SELECT role FROM user_roles WHERE user_id = $1',
-        [userId]
-      );
+      const res = await fetch(`/api/auth/roles?userId=${encodeURIComponent(userId)}`);
+      if (!res.ok) {
+        setRoles([]);
+        return [];
+      }
 
-      const roleList = rolesData
-        .map(r => r.role)
-        .filter((r): r is AppRole => isAppRole(r));
+      const data = await res.json();
+      const roleList = (data.roles || []).filter((r: string): r is AppRole => isAppRole(r));
 
       setRoles(roleList);
       return roleList;

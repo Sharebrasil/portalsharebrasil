@@ -1,88 +1,27 @@
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Lock, Mail, Plane, Eye, EyeOff } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { Loader2, Plane } from "lucide-react";
 
 const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, signIn } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [rememberEmail, setRememberEmail] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      navigate("/", { replace: true });
-    }
-  }, [user, navigate]);
 
-  useEffect(() => {
-    const savedEmail = localStorage.getItem("login_email");
-    if (savedEmail) {
-      setEmail(savedEmail);
-      setRememberEmail(true);
-    }
-  }, []);
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
+  const handleSubmit = (event?: FormEvent<HTMLFormElement>) => {
+    if (event) event.preventDefault();
     if (isSubmitting) return;
 
-    if (!email.trim() || !password) {
-      toast({
-        title: "Preencha os campos",
-        description: "Informe email e senha para continuar.",
-        variant: "destructive",
-      });
-      return;
-    }
     setIsSubmitting(true);
+    toast({ title: 'Entrando...', description: 'Redirecionando...' });
 
-    try {
-      if (rememberEmail) {
-        localStorage.setItem("login_email", email.trim());
-      } else {
-        localStorage.removeItem("login_email");
-      }
-
-      const { error } = await signIn(email.trim(), password);
-
-      if (error) {
-        console.error("Login error:", error);
-        toast({
-          title: "Erro no login",
-          description: error === "Invalid credentials"
-            ? "Email ou senha incorretos."
-            : error,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      toast({
-        title: "Login realizado",
-        description: "Bem-vindo de volta!",
-      });
-      navigate("/", { replace: true });
-    } catch (error) {
-      console.error("Login exception:", error);
-      toast({
-        title: "Erro no login",
-        description: "Não foi possível realizar o login.",
-        variant: "destructive",
-      });
-    } finally {
+    setTimeout(() => {
       setIsSubmitting(false);
-    }
+      navigate('/', { replace: true });
+    }, 300);
   };
 
   return (
@@ -113,76 +52,12 @@ const Login = () => {
           <p className="mt-1 text-sm text-white/60">Portal Colaborador</p>
         </div>
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="space-y-2">
-            <Label htmlFor="email" className="text-sm font-medium text-white/70">
-              Email
-            </Label>
-            <div className="relative">
-              <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" />
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                placeholder="seu@email.com"
-                autoComplete="email"
-                disabled={isSubmitting}
-                className="h-12 rounded-2xl border-transparent bg-white/5 pl-10 text-base text-white placeholder:text-white/40 focus-visible:bg-white/10 focus-visible:ring-2 focus-visible:ring-[#38d7ff] focus-visible:ring-offset-0"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="password" className="text-sm font-medium text-white/70">
-              Senha
-            </Label>
-            <div className="relative">
-              <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" />
-              <Input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                placeholder="Sua senha"
-                autoComplete="current-password"
-                disabled={isSubmitting}
-                className="h-12 rounded-2xl border-transparent bg-white/5 pl-10 pr-10 text-base text-white placeholder:text-white/40 focus-visible:bg-white/10 focus-visible:ring-2 focus-visible:ring-[#38d7ff] focus-visible:ring-offset-0"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                disabled={isSubmitting}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/45 hover:text-white/70 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
-              >
-                {showPassword ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
-              </button>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id="remember-email"
-              checked={rememberEmail}
-              onCheckedChange={(checked) => setRememberEmail(checked as boolean)}
-              disabled={isSubmitting}
-              className="border-white/30 bg-white/5"
-            />
-            <Label
-              htmlFor="remember-email"
-              className="text-sm font-medium text-white/70 cursor-pointer"
-            >
-              Lembrar email
-            </Label>
-          </div>
+        <form className="mt-8" onSubmit={handleSubmit}>
+          <div className="mb-4 text-center text-sm text-white/60">Clique em Entrar para acessar o sistema</div>
 
           <Button
-            type="submit"
+            type="button"
+            onClick={() => handleSubmit()}
             disabled={isSubmitting}
             className="h-12 w-full rounded-2xl bg-[#2ad1ff] text-base font-semibold text-[#02111f] shadow-[0_22px_45px_-18px_rgba(42,209,255,0.75)] transition-transform duration-200 hover:-translate-y-0.5 hover:bg-[#33d9ff] focus-visible:ring-2 focus-visible:ring-[#33d9ff] focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-70"
           >
