@@ -1,11 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { supabase, isSupabaseConfigured } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useAuth } from '@/contexts/AuthContext';
+import { AuthContext } from '@/contexts/AuthContext';
 
 export const useMessageNotifications = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const { roles, user } = useAuth();
+  const authContext = useContext(AuthContext);
+
+  // If AuthContext is not available, skip this hook
+  if (!authContext) {
+    return;
+  }
+
+  const { roles, user } = authContext;
 
   useEffect(() => {
     if (!isSupabaseConfigured) return;
