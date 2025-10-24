@@ -7,12 +7,7 @@ export const useMessageNotifications = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const authContext = useContext(AuthContext);
 
-  // If AuthContext is not available, skip this hook
-  if (!authContext) {
-    return;
-  }
-
-  const { roles, user } = authContext;
+  const { roles, user } = authContext || { roles: [], user: null };
 
   useEffect(() => {
     if (!isSupabaseConfigured) return;
