@@ -1,16 +1,25 @@
-import { useContext, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase, isSupabaseConfigured } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { AuthContext } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const useMessageNotifications = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const authContext = useContext(AuthContext);
 
-  const { roles, user } = authContext || { roles: [], user: null };
+  let roles: string[] = [];
+  let user = null;
+
+  try {
+    const authContext = useAuth();
+    roles = authContext.roles;
+    user = authContext.user;
+  } catch (e) {
+    // Not inside AuthProvider, skip notifications
+    return;
+  }
 
   useEffect(() => {
-    if (!isSupabaseConfigured || !authContext) return;
+    if (!isSupabaseConfigured) return;
 
     // Prefer user from AuthContext, fallback to Supabase if available
     if (user) {
