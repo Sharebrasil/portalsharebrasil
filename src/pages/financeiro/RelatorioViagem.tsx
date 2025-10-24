@@ -5,11 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Save, Folder, Plus, Trash2, Upload, Download, Eye, FileText, FolderOpen, Clock } from "lucide-react";
+import { ArrowLeft, Save, Folder, Plus, Trash2, Upload, Download, Eye, FileText } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
 import html2pdf from "html2pdf.js";
-import folderIcon from "@/assets/folder-icon.png";
 
 export default function RelatorioViagem() {
   const [reports, setReports] = useState<any[]>([]);
@@ -26,8 +25,6 @@ export default function RelatorioViagem() {
   const [loadingHistory, setLoadingHistory] = useState<boolean>(false);
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
   const [pdfModalUrl, setPdfModalUrl] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'folders' | 'client' | 'history'>('folders');
-  const [clientReports, setClientReports] = useState<any[]>([]);
 
   const CATEGORIAS_DESPESA = ["Combustível", "Hospedagem", "Alimentação", "Transporte", "Outros"];
   const PAGADORES = ["Tripulante 1", "Tripulante 2", "Cliente", "ShareBrasil"];
@@ -68,7 +65,7 @@ export default function RelatorioViagem() {
     document.body.appendChild(a);
     a.click();
     a.remove();
-    setTimeout(() => { try { URL.revokeObjectURL(url); } catch {} }, 1000);
+    setTimeout(() => { try { URL.revokeObjectURL(url); } catch { } }, 1000);
   };
 
   // Carregar dados
@@ -125,7 +122,7 @@ export default function RelatorioViagem() {
       .ilike('numero_relatorio', `%/${yy}`)
       .order('created_at', { ascending: false })
       .limit(1);
-    
+
     let max = 0;
     if (data && data[0]) {
       const match = data[0].numero_relatorio.match(/REL\s*(\d+)/i);
@@ -225,19 +222,19 @@ export default function RelatorioViagem() {
       const reader = new FileReader();
       reader.onload = () => {
         handleDespesaChange(index, 'comprovante_url', String(reader.result));
-        toast({ 
-          title: "Upload concluído!", 
+        toast({
+          title: "Upload concluído!",
           description: `Comprovante da despesa ${index + 1} adicionado com sucesso.`,
-          variant: "default" 
+          variant: "default"
         });
       };
       reader.readAsDataURL(file);
     } catch (error) {
       console.error('Erro no upload:', error);
-      toast({ 
-        title: "Erro no upload", 
+      toast({
+        title: "Erro no upload",
         description: "Não foi possível carregar o arquivo.",
-        variant: "destructive" 
+        variant: "destructive"
       });
     }
     setUploadingIndex(null);
@@ -333,18 +330,11 @@ export default function RelatorioViagem() {
       element.innerHTML = htmlContent;
 
       const opt = {
-        margin: [10, 10, 10, 10],
+        margin: 10,
         filename: `${report.numero}-relatorio-viagem.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { 
-          scale: 2, 
-          useCORS: true,
-          allowTaint: true,
-          logging: false,
-          letterRendering: true
-        },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
       };
 
       const worker: any = (html2pdf() as any).set(opt).from(element).toPdf();
@@ -375,102 +365,124 @@ export default function RelatorioViagem() {
     <!DOCTYPE html>
     <html>
     <head>
-        <meta charset="UTF-8">
-        <title>Relatório de Viagem - ${report.numero}</title>
-        <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            body { font-family: Arial, sans-serif; padding: 20px; color: #333; background: white; }
-            .report-container { border: 2px solid #22c55e; padding: 20px; border-radius: 8px; }
-            .header { display: grid; grid-template-columns: 160px 1fr 160px; align-items: center; gap: 6px; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 2px solid #22c55e; }
-            .logo-box { width: 160px; display: flex; align-items: center; justify-content: center; }
-            .logo-box img { max-width: 100%; max-height: 120px; object-fit: contain; }
-            .header-title { text-align: center; }
-            .header-title h1 { color: #1e3a8a; font-size: 20px; font-weight: bold; margin-bottom: 4px; }
-            .info-section { background: white; padding: 15px; margin-bottom: 15px; }
-            .info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px; }
-            .info-item { font-size: 13px; }
-            .info-item strong { color: #1e3a8a; }
-            .despesas-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 12px; }
-            .despesas-table th, .despesas-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            .despesas-table th { background-color: #f2f2f2; color: #1e3a8a; font-weight: bold; }
-            .totals-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-top: 20px; }
-            .totals-box { border: 1px solid #ccc; padding: 15px; border-radius: 4px; }
-            .totals-box h3 { color: #22c55e; margin-bottom: 10px; font-size: 14px; border-bottom: 1px dashed #22c55e; padding-bottom: 5px; }
-            .total-row { display: flex; justify-content: space-between; font-size: 13px; padding: 3px 0; }
-            .total-final { font-weight: bold; font-size: 16px; color: #1e3a8a; margin-top: 10px; border-top: 2px solid #22c55e; padding-top: 5px; }
-            .receipts-section { margin-top: 30px; border-top: 2px dashed #ccc; padding-top: 15px; page-break-before: always; }
-            .receipt-item { margin-bottom: 20px; border: 1px solid #eee; padding: 10px; border-radius: 4px; page-break-inside: avoid; }
-            .receipt-image { max-width: 100%; width: 100%; height: auto; max-height: 600px; display: block; margin: 10px auto; border: 1px solid #ddd; object-fit: contain; }
-            .signature-box { margin-top: 40px; display: flex; justify-content: space-around; text-align: center; }
-            .signature-line { border-bottom: 1px solid #333; width: 40%; margin-top: 50px; padding-bottom: 5px; font-size: 12px; }
-            .footer { margin-top: 30px; padding-top: 15px; border-top: 1px solid #ddd; text-align: center; font-size: 10px; color: #777; }
-        </style>
+      <meta charset="UTF-8">
+      <title>Relatório de Viagem - ${report.numero}</title>
+      <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; padding: 20px; color: #333; background: white; }
+        .report-container { border: 2px solid #22c55e; padding: 20px; border-radius: 8px; }
+        .header { display: grid; grid-template-columns: 160px 1fr 160px; align-items: center; gap: 6px; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 2px solid #22c55e; }
+        .logo-box { width: 160px; display: flex; align-items: center; justify-content: center; }
+        .logo-box img { max-width: 100%; max-height: 120px; object-fit: contain; }
+        .header-title { text-align: center; }
+        .header-title h1 { color: #1e3a8a; font-size: 20px; font-weight: bold; margin-bottom: 4px; }
+        .info-section { background: white; padding: 15px; margin-bottom: 15px; }
+        .info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px; }
+        .info-item { font-size: 13px; }
+        .info-item strong { color: #1e3a8a; }
+        .despesas-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 12px; }
+        .despesas-table th, .despesas-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        .despesas-table th { background-color: #f2f2f2; color: #1e3a8a; font-weight: bold; }
+        .totals-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-top: 20px; }
+        .totals-box { border: 1px solid #ccc; padding: 15px; border-radius: 4px; }
+        .totals-box h3 { color: #22c55e; margin-bottom: 10px; font-size: 14px; border-bottom: 1px dashed #22c55e; padding-bottom: 5px; }
+        .total-row { display: flex; justify-content: space-between; font-size: 13px; padding: 3px 0; }
+        .total-final { font-weight: bold; font-size: 16px; color: #1e3a8a; margin-top: 10px; border-top: 2px solid #22c55e; padding-top: 5px; }
+        .receipts-section { margin-top: 30px; border-top: 2px dashed #ccc; padding-top: 15px; }
+        .receipt-item { 
+            margin-bottom: 20px; 
+            border: 1px solid #eee; 
+            padding: 10px; 
+            border-radius: 4px; 
+            /* IMPEDE A QUEBRA DE PÁGINA ENTRE A LEGENDA E A IMAGEM */
+            page-break-inside: avoid; 
+        }
+        .receipt-caption { 
+            font-size: 11px; 
+            margin-bottom: 5px; 
+            font-weight: bold; 
+            color: #1e3a8a; 
+        }
+        .receipt-image { 
+            max-width: 100%; 
+            height: auto; 
+            max-height: 800px; 
+            display: block; 
+            margin-top: 10px; 
+            border: 1px solid #ddd; 
+            /* GARANTE QUE A IMAGEM TENTE FICAR INTEIRA NA PÁGINA */
+            page-break-after: avoid; 
+        }
+        .signature-box { margin-top: 40px; display: flex; justify-content: space-around; text-align: center; }
+        .signature-line { border-bottom: 1px solid #333; width: 40%; margin-top: 50px; padding-bottom: 5px; font-size: 12px; }
+        .footer { margin-top: 30px; padding-top: 15px; border-top: 1px solid #ddd; text-align: center; font-size: 10px; color: #777; }
+      </style>
     </head>
     <body>
-        <div class="report-container">
-            <div class="header">
-                <div class="logo-box"><img src="${window.location.origin}/logo.share.png" alt="Logo" /></div>
-                <div class="header-title">
-                    <h1>Relatório de Despesa de Viagem</h1>
-                    <div>${report.numero} - ${report.cliente}</div>
-                </div>
-            </div>
-            <div class="info-section">
-                <div class="info-grid">
-                    <div class="info-item"><strong>Cliente:</strong> ${report.cliente}</div>
-                    <div class="info-item"><strong>Aeronave:</strong> ${report.aeronave}</div>
-                    <div class="info-item"><strong>Tripulante:</strong> ${[report.tripulante, report.tripulante2].filter(v => v).join(' e ')}</div>
-                    <div class="info-item"><strong>Trecho:</strong> ${report.destino}</div>
-                    <div class="info-item"><strong>Período:</strong> ${formatDateBR(report.data_inicio)} a ${formatDateBR(report.data_fim)} (${calcDays()} dias)</div>
-                </div>
-                ${report.observacoes ? `<div><strong>Observações:</strong><p>${report.observacoes}</p></div>` : ''}
-            </div>
-            <table class="despesas-table">
-                <thead><tr><th>Categoria</th><th>Descrição</th><th>Valor (R$)</th><th>Pago Por</th></tr></thead>
-                <tbody>
-                    ${report.despesas.map((d: any) => `
-                        <tr>
-                            <td>${d.categoria}</td>
-                            <td>${d.descricao}</td>
-                            <td style="text-align:right;">${Number(d.valor || 0).toFixed(2).replace('.', ',')}</td>
-                            <td>${d.pago_por}</td>
-                        </tr>
-                    `).join('')}
-                </tbody>
-            </table>
-            <div class="totals-grid">
-                <div class="totals-box">
-                    <h3>Totais por Categoria (R$)</h3>
-                    <div class="total-row"><span>Combustível:</span> <span>${(report.total_combustivel || 0).toFixed(2).replace('.', ',')}</span></div>
-                    <div class="total-row"><span>Hospedagem:</span> <span>${(report.total_hospedagem || 0).toFixed(2).replace('.', ',')}</span></div>
-                    <div class="total-row"><span>Alimentação:</span> <span>${(report.total_alimentacao || 0).toFixed(2).replace('.', ',')}</span></div>
-                    <div class="total-row"><span>Transporte:</span> <span>${(report.total_transporte || 0).toFixed(2).replace('.', ',')}</span></div>
-                    <div class="total-row"><span>Outros:</span> <span>${(report.total_outros || 0).toFixed(2).replace('.', ',')}</span></div>
-                    <div class="total-final total-row"><span>TOTAL:</span> <span>${(report.valor_total || 0).toFixed(2).replace('.', ',')}</span></div>
-                </div>
-                <div class="totals-box">
-                    <h3>Totais por Pagador (R$)</h3>
-                    <div class="total-row"><span>Tripulante:</span> <span>${(report.total_tripulante || 0).toFixed(2).replace('.', ',')}</span></div>
-                    <div class="total-row"><span>Cliente:</span> <span>${(report.total_cliente || 0).toFixed(2).replace('.', ',')}</span></div>
-                    <div class="total-row"><span>ShareBrasil:</span> <span>${(report.total_share_brasil || 0).toFixed(2).replace('.', ',')}</span></div>
-                    <div class="total-final total-row"><span>TOTAL:</span> <span>${(report.valor_total || 0).toFixed(2).replace('.', ',')}</span></div>
-                </div>
-            </div>
-            <div class="signature-box">
-                <div class="signature-line">Assinatura Share Brasil</div>
-                <div class="signature-line">Assinatura Cliente</div>
-            </div>
-            <div class="footer">Gerado por ${currentFullName}</div>
+      <div class="report-container">
+        <div class="header">
+          <div class="logo-box"><img src="/logo.share.png" alt="Logo" /></div>
+          <div class="header-title">
+            <h1>Relatório de Despesa de Viagem</h1>
+            <div>${report.numero} - ${report.cliente}</div>
+          </div>
         </div>
-        <div class="receipts-section">
-            <h2>Comprovantes</h2>
-            ${report.despesas.filter((d: any) => d.comprovante_url).map((d: any, i: number) => `
-                <div class="receipt-item">
-                    <p><strong>Item ${i + 1}:</strong> ${d.descricao} - R$ ${Number(d.valor || 0).toFixed(2)}</p>
-                    <img class="receipt-image" src="${d.comprovante_url}" alt="Comprovante" />
-                </div>
+        <div class="info-section">
+          <div class="info-grid">
+            <div class="info-item"><strong>Cliente:</strong> ${report.cliente}</div>
+            <div class="info-item"><strong>Aeronave:</strong> ${report.aeronave}</div>
+            <div class="info-item"><strong>Tripulante:</strong> ${[report.tripulante, report.tripulante2].filter(v => v).join(' e ')}</div>
+            <div class="info-item"><strong>Trecho:</strong> ${report.destino}</div>
+            <div class="info-item"><strong>Período:</strong> ${formatDateBR(report.data_inicio)} a ${formatDateBR(report.data_fim)} (${calcDays()} dias)</div>
+          </div>
+          ${report.observacoes ? `<div><strong>Observações:</strong><p>${report.observacoes}</p></div>` : ''}
+        </div>
+        <table class="despesas-table">
+          <thead><tr><th>Categoria</th><th>Descrição</th><th>Valor (R$)</th><th>Pago Por</th></tr></thead>
+          <tbody>
+            ${report.despesas.map((d: any) => `
+              <tr>
+                <td>${d.categoria}</td>
+                <td>${d.descricao}</td>
+                <td style="text-align:right;">${Number(d.valor || 0).toFixed(2).replace('.', ',')}</td>
+                <td>${d.pago_por}</td>
+              </tr>
             `).join('')}
+          </tbody>
+        </table>
+        <div class="totals-grid">
+          <div class="totals-box">
+            <h3>Totais por Categoria (R$)</h3>
+            <div class="total-row"><span>Combustível:</span> <span>${(report.total_combustivel || 0).toFixed(2).replace('.', ',')}</span></div>
+            <div class="total-row"><span>Hospedagem:</span> <span>${(report.total_hospedagem || 0).toFixed(2).replace('.', ',')}</span></div>
+            <div class="total-row"><span>Alimentação:</span> <span>${(report.total_alimentacao || 0).toFixed(2).replace('.', ',')}</span></div>
+            <div class="total-row"><span>Transporte:</span> <span>${(report.total_transporte || 0).toFixed(2).replace('.', ',')}</span></div>
+            <div class="total-row"><span>Outros:</span> <span>${(report.total_outros || 0).toFixed(2).replace('.', ',')}</span></div>
+            <div class="total-final total-row"><span>TOTAL:</span> <span>${(report.valor_total || 0).toFixed(2).replace('.', ',')}</span></div>
+          </div>
+          <div class="totals-box">
+            <h3>Totais por Pagador (R$)</h3>
+            <div class="total-row"><span>Tripulante:</span> <span>${(report.total_tripulante || 0).toFixed(2).replace('.', ',')}</span></div>
+            <div class="total-row"><span>Cliente:</span> <span>${(report.total_cliente || 0).toFixed(2).replace('.', ',')}</span></div>
+            <div class="total-row"><span>ShareBrasil:</span> <span>${(report.total_share_brasil || 0).toFixed(2).replace('.', ',')}</span></div>
+            <div class="total-final total-row"><span>TOTAL:</span> <span>${(report.valor_total || 0).toFixed(2).replace('.', ',')}</span></div>
+          </div>
         </div>
+        <div class="signature-box">
+          <div class="signature-line">Assinatura Tripulante</div>
+          <div class="signature-line">Assinatura Cliente</div>
+        </div>
+        <div class="footer">Gerado por ${currentFullName}</div>
+      </div>
+      <div class="receipts-section">
+        <h2>Comprovantes</h2>
+        ${report.despesas.filter((d: any) => d.comprovante_url).map((d: any, i: number) => `
+          <div class="receipt-item">
+            <p class="receipt-caption">Comprovante ${i + 1}: ${d.categoria} - ${d.descricao} (R$ ${Number(d.valor || 0).toFixed(2).replace('.', ',')})</p>
+            <img class="receipt-image" src="${d.comprovante_url}" alt="Comprovante" />
+          </div>
+        `).join('')}
+      </div>
     </body>
     </html>`;
   };
@@ -486,36 +498,6 @@ export default function RelatorioViagem() {
     await (supabase as any).from('travel_report_history').delete().eq('id', item.id);
     refreshHistory();
     toast({ title: "PDF excluído", variant: "default" });
-  };
-
-  const getClientFolders = () => {
-    const clientMap = new Map<string, { name: string; count: number; lastReport?: any }>();
-    
-    history.forEach((item) => {
-      const clientName = item.cliente || 'Sem Cliente';
-      if (!clientMap.has(clientName)) {
-        clientMap.set(clientName, { name: clientName, count: 0 });
-      }
-      const current = clientMap.get(clientName)!;
-      current.count++;
-      if (!current.lastReport || new Date(item.created_at) > new Date(current.lastReport.created_at)) {
-        current.lastReport = item;
-      }
-    });
-
-    return Array.from(clientMap.values()).sort((a, b) => a.name.localeCompare(b.name));
-  };
-
-  const openClientFolder = (clientName: string) => {
-    const reports = history.filter(h => (h.cliente || 'Sem Cliente') === clientName);
-    setClientReports(reports);
-    setSelectedClient(clientName);
-    setViewMode('client');
-  };
-
-  const openHistoryFolder = () => {
-    setClientReports(history);
-    setViewMode('history');
   };
 
   if (isCreating && currentReport) {
@@ -626,142 +608,30 @@ export default function RelatorioViagem() {
   return (
     <Layout>
       <div className="p-6 space-y-6">
-        <div className="flex items-center justify-between mb-6">
-          {viewMode !== 'folders' && (
-            <Button variant="ghost" onClick={() => setViewMode('folders')}>
-              <ArrowLeft className="mr-2" /> Voltar
-            </Button>
-          )}
-          <h1 className="text-3xl font-bold">
-            {viewMode === 'folders' && 'Relatórios de Viagem'}
-            {viewMode === 'client' && `Relatórios - ${selectedClient}`}
-            {viewMode === 'history' && 'Histórico de Relatórios'}
-          </h1>
-          <Button onClick={createNewReport}>
-            <Plus className="mr-2" /> Novo Relatório
-          </Button>
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold">Relatórios de Viagem</h1>
+          <Button onClick={createNewReport}><Plus className="mr-2" /> Novo Relatório</Button>
         </div>
 
-        {/* Visualização de Pastas */}
-        {viewMode === 'folders' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {/* Pasta de Histórico */}
-            <div
-              onClick={openHistoryFolder}
-              className="group cursor-pointer p-6 rounded-xl border-2 border-border/50 bg-gradient-to-br from-card to-card/50 hover:border-primary/50 hover:shadow-xl transition-all duration-300 hover:scale-105"
-            >
-              <div className="flex flex-col items-center text-center space-y-4">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl group-hover:bg-primary/30 transition-all"></div>
-                  <div className="relative p-4 bg-gradient-to-br from-primary/10 to-primary/5 rounded-full">
-                    <Clock className="w-12 h-12 text-primary" />
-                  </div>
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-foreground">Histórico</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {history.length} {history.length === 1 ? 'relatório' : 'relatórios'}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">Todos os relatórios</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Pastas de Clientes */}
-            {loadingHistory ? (
-              <div className="col-span-full flex items-center justify-center py-12">
-                <p className="text-muted-foreground">Carregando...</p>
-              </div>
-            ) : (
-              getClientFolders().map((folder) => (
-                <div
-                  key={folder.name}
-                  onClick={() => openClientFolder(folder.name)}
-                  className="group cursor-pointer p-6 rounded-xl border-2 border-border/50 bg-gradient-to-br from-card to-card/50 hover:border-accent/50 hover:shadow-xl transition-all duration-300 hover:scale-105"
-                >
-                  <div className="flex flex-col items-center text-center space-y-4">
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-accent/20 rounded-full blur-xl group-hover:bg-accent/30 transition-all"></div>
-                      <img 
-                        src={folderIcon} 
-                        alt="Pasta" 
-                        className="relative w-20 h-20 object-contain drop-shadow-lg"
-                      />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-bold text-foreground line-clamp-1">{folder.name}</h3>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {folder.count} {folder.count === 1 ? 'relatório' : 'relatórios'}
-                      </p>
-                      {folder.lastReport && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Último: {new Date(folder.lastReport.created_at).toLocaleDateString('pt-BR')}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        )}
-
-        {/* Visualização de Relatórios do Cliente ou Histórico */}
-        {(viewMode === 'client' || viewMode === 'history') && (
-          <div className="space-y-4">
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold">Histórico de PDFs</h2>
+          {loadingHistory ? <p>Carregando...</p> : (
             <div className="grid gap-4">
-              {clientReports.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  Nenhum relatório encontrado
-                </div>
-              ) : (
-                clientReports.map((item) => (
-                  <div
-                    key={item.id}
-                    className="group flex items-center justify-between p-6 rounded-xl border-2 border-border/50 bg-gradient-to-r from-card to-card/50 hover:border-primary/50 hover:shadow-lg transition-all duration-300"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="p-3 bg-primary/10 rounded-lg">
-                        <FileText className="w-6 h-6 text-primary" />
-                      </div>
-                      <div>
-                        <p className="font-bold text-foreground text-lg">{item.numero_relatorio}</p>
-                        <p className="text-sm text-muted-foreground">{item.cliente}</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {new Date(item.created_at).toLocaleDateString('pt-BR', {
-                            day: '2-digit',
-                            month: 'long',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => openHistory(item)}
-                        className="hover:bg-primary/10 hover:text-primary hover:border-primary transition-all"
-                      >
-                        <Eye className="mr-2 w-4 h-4" /> Visualizar
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => deleteHistory(item)}
-                        className="hover:bg-destructive/10 hover:text-destructive hover:border-destructive transition-all"
-                      >
-                        <Trash2 className="mr-2 w-4 h-4" /> Excluir
-                      </Button>
-                    </div>
+              {history.map((item) => (
+                <div key={item.id} className="flex items-center justify-between p-4 border rounded">
+                  <div>
+                    <p className="font-medium">{item.numero_relatorio} - {item.cliente}</p>
+                    <p className="text-sm text-muted-foreground">{new Date(item.created_at).toLocaleDateString('pt-BR')}</p>
                   </div>
-                ))
-              )}
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => openHistory(item)}><Eye className="mr-2" /> Ver</Button>
+                    <Button variant="outline" size="sm" onClick={() => deleteHistory(item)}><Trash2 className="mr-2" /> Excluir</Button>
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </Layout>
   );
