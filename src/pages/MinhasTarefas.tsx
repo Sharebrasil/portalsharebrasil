@@ -54,7 +54,7 @@ export default function MinhasTarefas() {
     const { data, error } = await supabase
       .from("tasks")
       .select("*")
-      .or(`requested_by.eq.${user.id},assigned_to.eq.${user.id}`)
+      .or(`created_by.eq.${user.id},assigned_to.eq.${user.id}`)
       .order("due_date", { ascending: true });
 
     if (error) {
