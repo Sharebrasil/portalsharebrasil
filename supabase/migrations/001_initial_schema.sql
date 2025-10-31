@@ -217,19 +217,38 @@ CREATE INDEX IF NOT EXISTS idx_crew_flight_hours_aircraft_id ON public.crew_flig
 -- ============================================
 CREATE TABLE IF NOT EXISTS public.clients (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
-  name text NOT NULL,
+  name text,
   email text,
   phone text,
   address text,
-  company_name text,
+  company_name text NOT NULL,
   cnpj text UNIQUE,
+  inscricao_estadual text,
+  city text,
+  uf text,
+  financial_contact text,
+  observations text,
+  cnpj_card_url text,
+  aircraft_id uuid,
+  logo_url text,
+  documents jsonb DEFAULT '[]'::jsonb,
+  status text DEFAULT 'ativo',
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT clients_pkey PRIMARY KEY (id)
+  CONSTRAINT clients_pkey PRIMARY KEY (id),
+  CONSTRAINT clients_aircraft_id_fkey FOREIGN KEY (aircraft_id) REFERENCES aircraft (id) ON DELETE SET NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_clients_name ON public.clients USING btree (name);
 CREATE INDEX IF NOT EXISTS idx_clients_email ON public.clients USING btree (email);
+CREATE INDEX IF NOT EXISTS idx_clients_company_name ON public.clients USING btree (company_name);
+CREATE INDEX IF NOT EXISTS idx_clients_status ON public.clients USING btree (status);
+
+-- ============================================
+-- Trigger for clients updated_at
+-- ============================================
+CREATE TRIGGER clients_update_updated_at BEFORE UPDATE ON public.clients
+FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
 -- ============================================
 -- Table: contacts
