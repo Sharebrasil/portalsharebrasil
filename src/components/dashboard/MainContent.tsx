@@ -28,7 +28,7 @@ export function MainContent() {
       const { data, error } = await supabase
         .from("tasks")
         .select("*")
-        .or(`assigned_to.eq.${user.id},requested_by.eq.${user.id}`)
+        .or(`assigned_to.eq.${user.id},created_by.eq.${user.id}`)
         .order("created_at", { ascending: false });
 
       if (error) {
@@ -91,18 +91,15 @@ export function MainContent() {
         .from("flight_schedules")
         .select(`
           id,
-          flight_date,
-          flight_time,
-          origin,
-          destination,
+          scheduled_date,
+          departure_airport,
+          arrival_airport,
           status,
           aircraft:aircraft_id(registration),
-          client:client_id(company_name),
-          crew:crew_member_id(full_name)
+          client:client_id(company_name)
         `)
-        .gte("flight_date", today)
-        .order("flight_date", { ascending: true })
-        .order("flight_time", { ascending: true })
+        .gte("scheduled_date", today)
+        .order("scheduled_date", { ascending: true })
         .limit(5);
 
       if (error) {
