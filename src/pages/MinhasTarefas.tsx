@@ -54,7 +54,7 @@ export default function MinhasTarefas() {
     const { data, error } = await supabase
       .from("tasks")
       .select("*")
-      .or(`requested_by.eq.${user.id},assigned_to.eq.${user.id}`)
+      .or(`created_by.eq.${user.id},assigned_to.eq.${user.id}`)
       .order("due_date", { ascending: true });
 
     if (error) {
@@ -69,24 +69,8 @@ export default function MinhasTarefas() {
   };
 
   const fetchNotifications = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      setNotifications([]);
-      return;
-    }
-    const { data, error } = await supabase
-      .from("task_notifications")
-      .select("*")
-      .eq("read", false)
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      console.error("Erro ao carregar notificações:", error);
-      return;
-    }
-
-    setNotifications((data ?? []) as TaskNotification[]);
+    // Task notifications table doesn't exist yet - skip for now
+    setNotifications([]);
   };
 
   const markNotificationAsRead = async (id: string) => {

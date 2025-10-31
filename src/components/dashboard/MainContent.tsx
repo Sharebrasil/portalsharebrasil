@@ -28,7 +28,7 @@ export function MainContent() {
       const { data, error } = await supabase
         .from("tasks")
         .select("*")
-        .or(`assigned_to.eq.${user.id},requested_by.eq.${user.id}`)
+        .or(`assigned_to.eq.${user.id},created_by.eq.${user.id}`)
         .order("created_at", { ascending: false });
 
       if (error) {
@@ -91,18 +91,15 @@ export function MainContent() {
         .from("flight_schedules")
         .select(`
           id,
-          flight_date,
-          flight_time,
-          origin,
-          destination,
+          scheduled_date,
+          departure_airport,
+          arrival_airport,
           status,
           aircraft:aircraft_id(registration),
-          client:client_id(company_name),
-          crew:crew_member_id(full_name)
+          client:client_id(company_name)
         `)
-        .gte("flight_date", today)
-        .order("flight_date", { ascending: true })
-        .order("flight_time", { ascending: true })
+        .gte("scheduled_date", today)
+        .order("scheduled_date", { ascending: true })
         .limit(5);
 
       if (error) {
@@ -262,11 +259,11 @@ export function MainContent() {
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <ArrowRight className="h-3 w-3" />
-                      <span className="font-medium text-foreground">{flight.origin}</span>
-                      {flight.destination && (
+                      <span className="font-medium text-foreground">{flight.departure_airport || "N/A"}</span>
+                      {flight.arrival_airport && (
                         <>
                           <span>→</span>
-                          <span className="font-medium text-foreground">{flight.destination}</span>
+                          <span className="font-medium text-foreground">{flight.arrival_airport}</span>
                         </>
                       )}
                     </div>
@@ -276,23 +273,10 @@ export function MainContent() {
                       <span>{flight.client?.company_name || "Cliente não informado"}</span>
                     </div>
 
-                    <div className="flex items-center gap-4 text-muted-foreground">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-3 w-3" />
-                        <span>{new Date(flight.flight_date).toLocaleDateString("pt-BR")}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-3 w-3" />
-                        <span>{flight.flight_time || "-"}</span>
-                      </div>
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Calendar className="h-3 w-3" />
+                      <span>{new Date(flight.scheduled_date).toLocaleDateString("pt-BR")}</span>
                     </div>
-
-                    {flight.crew?.full_name && (
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Users className="h-3 w-3" />
-                        <span className="text-xs">Tripulação: {flight.crew.full_name}</span>
-                      </div>
-                    )}
                   </div>
                 </div>
               ))
