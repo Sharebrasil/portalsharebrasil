@@ -259,11 +259,11 @@ export function MainContent() {
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <ArrowRight className="h-3 w-3" />
-                      <span className="font-medium text-foreground">{flight.origin}</span>
-                      {flight.destination && (
+                      <span className="font-medium text-foreground">{flight.departure_airport || "N/A"}</span>
+                      {flight.arrival_airport && (
                         <>
                           <span>→</span>
-                          <span className="font-medium text-foreground">{flight.destination}</span>
+                          <span className="font-medium text-foreground">{flight.arrival_airport}</span>
                         </>
                       )}
                     </div>
@@ -273,23 +273,10 @@ export function MainContent() {
                       <span>{flight.client?.company_name || "Cliente não informado"}</span>
                     </div>
 
-                    <div className="flex items-center gap-4 text-muted-foreground">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-3 w-3" />
-                        <span>{new Date(flight.flight_date).toLocaleDateString("pt-BR")}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-3 w-3" />
-                        <span>{flight.flight_time || "-"}</span>
-                      </div>
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Calendar className="h-3 w-3" />
+                      <span>{new Date(flight.scheduled_date).toLocaleDateString("pt-BR")}</span>
                     </div>
-
-                    {flight.crew?.full_name && (
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Users className="h-3 w-3" />
-                        <span className="text-xs">Tripulação: {flight.crew.full_name}</span>
-                      </div>
-                    )}
                   </div>
                 </div>
               ))
