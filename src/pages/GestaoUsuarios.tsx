@@ -79,26 +79,30 @@ export default function GerenciarUsuarios() {
     setLoading(true);
 
     try {
-      const { data: { user }, error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName
-          }
-        }
+      // Use server endpoint to create user + profile + roles to avoid RLS issues
+      const { data: { session } } = await supabase.auth.getSession();
+      const accessToken = session?.access_token;
+
+      const resp = await fetch('/api/create-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: accessToken ? `Bearer ${accessToken}` : '',
+        },
+        body: JSON.stringify({
+          email,
+          password,
+          fullName,
+          roles: [selectedRole],
+        }),
       });
 
-      if (signUpError) throw signUpError;
-      if (!user) throw new Error('Usuário não criado');
+      const result = await resp.json();
+      if (!resp.ok) {
+        throw new Error(result.error || JSON.stringify(result));
+      }
 
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .insert([{ user_id: user.id, role: selectedRole }] as any);
-
-      if (roleError) throw roleError;
-
-      toast.success('Usuário criado com sucesso!');
+      toast.success('Usuário criado com sucesso! (autenticado pelo servidor)');
       setEmail("");
       setPassword("");
       setFullName("");

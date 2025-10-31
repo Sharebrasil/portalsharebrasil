@@ -51,6 +51,22 @@ type SupabaseHotelRow = {
   endereco: string | null;
 };
 
+type SupabaseClientRow = {
+  id: string;
+  cnpj: string | null;
+  observations: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  company_name: string | null;
+  address: string | null;
+  phone: string | null;
+  email: string | null;
+  city: string | null;
+  uf: string | null;
+  status: string | null;
+  aircraft_id: string | null;
+};
+
 const currencyFormatter = new Intl.NumberFormat("pt-BR", {
   style: "currency",
   currency: "BRL",
@@ -151,7 +167,7 @@ export default function AgendaPage() {
   const [editingContact, setEditingContact] = useState<Contact | undefined>();
   const [isHotelModalOpen, setIsHotelModalOpen] = useState(false);
   const [editingHotel, setEditingHotel] = useState<Contact | undefined>();
-  const [activeTab, setActiveTab] = useState<"colaboradores" | "fornecedores" | "hoteis">("colaboradores");
+  const [activeTab, setActiveTab] = useState<"colaboradores" | "fornecedores" | "hoteis" | "clientes">("colaboradores");
   const [hotelForm, setHotelForm] = useState({
     nome: "",
     telefone: "",
@@ -189,15 +205,40 @@ export default function AgendaPage() {
           hotelsQuery.or(`nome.ilike.${likePattern},cidade.ilike.${likePattern},telefone.ilike.${likePattern}`);
         }
 
-        const [contactsResult, hotelsResult] = await Promise.all([contactsQuery, hotelsQuery]);
+        const clientsQuery = supabase
+          .from("clients")
+          .select("id,cnpj,observations,created_at,updated_at,company_name,address,phone,email,city,uf,status,aircraft_id")
+          .order("company_name", { ascending: true });
+
+        if (likePattern) {
+          clientsQuery.or(`company_name.ilike.${likePattern},phone.ilike.${likePattern},email.ilike.${likePattern},city.ilike.${likePattern}`);
+        }
+
+        const [contactsResult, hotelsResult, clientsResult] = await Promise.all([contactsQuery, hotelsQuery, clientsQuery]);
 
         if (contactsResult.error) throw contactsResult.error;
         if (hotelsResult.error) throw hotelsResult.error;
+        if (clientsResult.error) throw clientsResult.error;
 
         const contactsData = (contactsResult.data as SupabaseContactRow[] | null)?.map(mapSupabaseContact) ?? [];
         const hotelsData = (hotelsResult.data as SupabaseHotelRow[] | null)?.map(mapSupabaseHotel) ?? [];
+        const clientsData = (clientsResult.data as SupabaseClientRow[] | null)?.map((row) => ({
+          id: row.id,
+          nome: row.company_name ?? "",
+          telefone: row.phone ?? "",
+          email: row.email ?? undefined,
+          empresa: row.company_name ?? undefined,
+          cargo: undefined,
+          categoria: "clientes",
+          observacoes: row.observations ?? undefined,
+          endereco: row.address ?? undefined,
+          cidade: row.city ?? undefined,
+          origin: "clients",
+          created_at: row.created_at ?? undefined,
+          updated_at: row.updated_at ?? undefined,
+        })) ?? [];
 
-        setContacts([...contactsData, ...hotelsData]);
+        setContacts([...contactsData, ...clientsData, ...hotelsData]);
       } catch (error) {
         console.error("Erro ao carregar contatos:", error);
         toast({
@@ -399,6 +440,7 @@ export default function AgendaPage() {
 
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="w-full">
           <TabsList className="mt-2">
+              <TabsTrigger value="clientes">Clientes</TabsTrigger>
             <TabsTrigger value="colaboradores">Colaboradores</TabsTrigger>
             <TabsTrigger value="fornecedores">Fornecedores</TabsTrigger>
             <TabsTrigger value="hoteis">Hotéis</TabsTrigger>

@@ -1,6 +1,6 @@
 export type ContactCategory = "clientes" | "colaboradores" | "fornecedores" | "hoteis";
 
-export type ContactOrigin = "contacts" | "hoteis";
+export type ContactOrigin = "contacts" | "hoteis" | "clients";
 
 export interface Contact {
   id: string;

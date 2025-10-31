@@ -5,6 +5,8 @@ import { neon } from '@neondatabase/serverless';
 
 const sql = neon(process.env.DATABASE_URL!);
 const JWT_SECRET = process.env.JWT_SECRET!;
+const SUPABASE_URL = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -79,28 +81,56 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'weak_password', details: strength });
     }
 
-    const rolesInput = body.roles ?? (body.role ? [body.role] : []);
+  const rolesInput = body.roles ?? (body.role ? [body.role] : []);
     const uniqueRoles = Array.from(new Set(rolesInput));
 
-    const hashedPassword = await bcrypt.hash(body.password, 10);
+    // Create auth user using Supabase admin (service role) if available
+    let createdUser: any = null;
 
-    const existingUser = await sql(
-      'SELECT id FROM users WHERE email = $1',
-      [body.email]
-    );
+    if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY && body.password) {
+      // Create user in Supabase Auth via Admin REST API
+      const resp = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/auth/v1/admin/users`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        },
+        body: JSON.stringify({
+          email: body.email,
+          password: body.password,
+          email_confirm: true,
+          user_metadata: { full_name: body.fullName || body.email },
+        }),
+      });
 
-    if (existingUser.length > 0) {
-      return res.status(400).json({ error: 'User already exists' });
+      const created = await resp.json();
+      if (!resp.ok) {
+        return res.status(400).json({ error: 'Failed to create auth user', details: created });
+      }
+      // created contains id and other fields
+      createdUser = { id: created.id, email: created.email, full_name: body.fullName || created.email };
+    } else {
+      // Fallback: create a row in users table (database-level user record)
+      const hashedPassword = await bcrypt.hash(body.password || Math.random().toString(36), 10);
+
+      const existingUser = await sql(
+        'SELECT id FROM users WHERE email = $1',
+        [body.email]
+      );
+
+      if (existingUser.length > 0) {
+        return res.status(400).json({ error: 'User already exists' });
+      }
+
+      const newUser = await sql(
+        `INSERT INTO users (email, password_hash, full_name, created_at)
+         VALUES ($1, $2, $3, NOW())
+         RETURNING id, email, full_name, created_at`,
+        [body.email, hashedPassword, body.fullName || body.email]
+      );
+
+      createdUser = newUser[0];
     }
-
-    const newUser = await sql(
-      `INSERT INTO users (email, password_hash, full_name, created_at)
-       VALUES ($1, $2, $3, NOW())
-       RETURNING id, email, full_name, created_at`,
-      [body.email, hashedPassword, body.fullName || body.email]
-    );
-
-    const createdUser = newUser[0];
 
     if (uniqueRoles.length > 0) {
       for (const role of uniqueRoles) {
