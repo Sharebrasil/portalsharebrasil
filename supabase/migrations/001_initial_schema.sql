@@ -105,9 +105,13 @@ CREATE TABLE IF NOT EXISTS public.hoteis (
   preco_single numeric(10, 2),
   preco_duplo numeric(10, 2),
   endereco text,
-  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
   CONSTRAINT hoteis_pkey PRIMARY KEY (id)
 );
+
+CREATE INDEX IF NOT EXISTS idx_hoteis_cidade ON public.hoteis USING btree (cidade);
+CREATE INDEX IF NOT EXISTS idx_hoteis_nome ON public.hoteis USING btree (nome);
 
 -- ============================================
 -- Table: crew_members
@@ -634,3 +638,53 @@ FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
 CREATE TRIGGER ctm_tracking_update_updated_at BEFORE UPDATE ON public.ctm_tracking
 FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+CREATE TRIGGER hoteis_update_updated_at BEFORE UPDATE ON public.hoteis
+FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+-- ============================================
+-- INSERT: Initial Hotels Data
+-- ============================================
+INSERT INTO "public"."hoteis" ("id", "nome", "telefone", "cidade", "preco_single", "preco_duplo", "endereco", "created_at") VALUES
+('172c81fc-9cf0-405d-83ec-de391241987d', 'HOTEL CNP BRASIL - CAMPO NOVO DO PARECIS', '65 9254-0732', NULL, NULL, NULL, 'Av. Brasil, 115 - Centro, Campo Novo do Parecis - MT, 78360-000', '2025-10-14 22:35:13.435619+00'),
+('17428294-3c82-4569-9acd-9d2c8eebf7f0', 'HOTEL BARRIL - PRIMAVERA DO LESTE', '(66) 3498-1247', NULL, NULL, NULL, 'Av. Cuiabá, 333 - Centro, Primavera do Leste - MT, 78850-000', '2025-10-14 22:35:13.435619+00'),
+('183fe9e8-0848-4832-a5ba-191685ae799d', 'PILÕES PALACE HOTEL - MINEIROS GO', '(64) 3661-1547', NULL, NULL, NULL, 'Rua 13, 13 Setor Centro e Oeste - Centro, Mineiros - GO, 75830-074', '2025-10-14 22:35:13.435619+00'),
+('285fcb38-98e2-41dc-94c1-315650f73d13', 'HOTEL BRAVO CITY - PRIMAVERA DO LESTE', '(66) 3498-1799', NULL, NULL, NULL, 'Av. São Paulo, 350 - Jardim Riva, Primavera do Leste - MT, 78850-000', '2025-10-14 22:35:13.435619+00'),
+('2ac9886f-50f3-4af6-a160-cb1e6571956c', 'HOTEL ÁGUAS VERDES - LUCAS DO RIO VERDE', '(65) 9986-5159', NULL, NULL, NULL, 'R. São Lourenço do Oeste, 1391 - 1391 - S - S - Alvorada, Lucas do Rio Verde - MT, 78455-000', '2025-10-14 22:35:13.435619+00'),
+('2b213c8b-4cda-4744-bb59-a6ac664cdd1c', 'Holiday Inn Anhembi', '11 2107-8844', NULL, '367.00', '390.00', 'R. Prof. Milton Rodriguez, 100 - São Paulo - SP', '2025-10-14 22:35:13.435619+00'),
+('3104d568-af6e-40a6-b086-132af6912c2a', 'HOTEL IMPERIAL PALACE - SORRISO', '(66) 99604-5101', NULL, NULL, NULL, 'Av, Perimetral Sudeste, 9675, Sorriso - MT, 78890-000', '2025-10-14 22:35:13.435619+00'),
+('32fbf82a-75a1-443f-992f-b03783f00af4', 'HOTEL IBIS GOIÂNIA', '(62) 2795-6050', NULL, NULL, NULL, 'R. 21, 154 - St. Oeste, Goiânia - GO, 74120-120', '2025-10-14 22:35:13.435619+00'),
+('357e9e1c-f2c3-43f3-a9e4-02456a23b951', 'Hotel Ibis Goiânia', '62 2795-6050', NULL, '300.00', '350.00', 'R. 21, 154 - St. Oeste - Goiânia - GO', '2025-10-14 22:35:13.435619+00'),
+('3975d4ad-43d1-4ea7-88e5-108e723baed0', 'ESTÂNCIA BAHIA - PT-OPC', '65 99944-1578', NULL, NULL, NULL, '', '2025-10-14 22:35:13.435619+00'),
+('39f624df-a5fd-4b98-8fed-e3e1d0744a5f', 'DALLAS PALACE HOTEL - CAMPO NOVO DO PARECIS', '(65) 3382-1385', NULL, NULL, NULL, 'Av. Brasil 854ne - Centro, Campo Novo do Parecis - MT, 78360-000', '2025-10-14 22:35:13.435619+00'),
+('3a0f3113-199a-49c0-8f1b-f30631056f35', 'Hotel Santos Dumont', '62 98246-2734', NULL, '220.00', '318.00', 'Av. Santos Dumont, 1001 - Goiânia - GO', '2025-10-14 22:35:13.435619+00'),
+('3f7a4d20-b9ca-4af4-a6c7-233e689311bc', 'HOTEL PIRATININGA - RONDONÓPOLIS', '(66) 3411-5800', NULL, NULL, NULL, 'R. Fernando Corrêa da Costa, 624 - Centro, Rondonópolis', '2025-10-14 22:35:13.435619+00'),
+('4b54a953-d82e-4765-a502-70326f6680e9', 'HOTEL AVENIDA - MATUPÁ', '(66) 3595-2275', NULL, NULL, NULL, 'R. 2, 3901 - ZC1-002, Matupá - MT, 78525-000', '2025-10-14 22:35:13.435619+00'),
+('500a17ab-2c41-4374-9ce3-ee04f2b83419', 'HOTEL VITÓRIA RÉGIA - RIO VERDE GO', '(64) 3611-4100', NULL, NULL, NULL, 'R. Rosulino Ferreira Guimarães, 621 - Centro, Rio Verde - GO, 75901-265', '2025-10-14 22:35:13.435619+00'),
+('5f417335-75be-41fc-84c8-fca6543c3f18', 'HOTEL BIANCH - PRIMAVERA DO LESTE', '(66) 3498-1862', NULL, NULL, NULL, 'Av São João, 785 - centro - Primavera do Leste - MT', '2025-10-14 22:35:13.435619+00'),
+('716a7737-ff76-4d4b-838d-bc19705e5ff0', 'HOTEL SANTOS DUMONT - GOIÂNIA', '(62) 98246-2734', NULL, NULL, NULL, 'Av. Santos Dumont, 1001 - Santa Genoveva, Goiânia - GO, 74672-420', '2025-10-14 22:35:13.435619+00'),
+('7984c3a6-8f5f-463e-9f1b-bb8b3eb4a0b4', 'PLAZA HOTEL - ÁGUA BOA', '(66) 99621-4502', NULL, NULL, NULL, 'R. Três, 292 - Centro, Água Boa - MT, 78635-000', '2025-10-14 22:35:13.435619+00'),
+('84287178-45af-4594-a0f4-7ffd6f65767e', 'Plaza Hotel', '66 99621-4502', NULL, '205.00', '310.00', 'R. Três, 292 - Centro - Água Boa - MT', '2025-10-14 22:35:13.435619+00'),
+('87b86fdb-38e8-4456-b647-10ac8fe902ea', 'PLAZA HOTEL - MINEIROS GO', '(64) 9950-2853', NULL, NULL, NULL, 'BR-364 - Zona Rural, Mineiros - GO, 75830-000', '2025-10-14 22:35:13.435619+00'),
+('8be78f27-e8f2-4492-af57-d67d62137b01', 'HOLIDAY INN ANHEMBI - SÃO PAULO', '(11) 2107-8844', NULL, NULL, NULL, 'Rua Professor Milton Rodriguez #100 - Parque Anhembi, São Paulo - SP, 02009-040', '2025-10-14 22:35:13.435619+00'),
+('923f2255-2693-43b3-9364-fe1b7da545d1', 'FLAMBOYANT - PORTO VELHO', '(69) 3225-2102', NULL, NULL, NULL, 'Av. Tiradentes, 2979 - Industrial, Porto Velho - RO, 76821-001', '2025-10-14 22:35:13.435619+00'),
+('a21816c7-b6c2-4307-9bc0-4c37c8412c7c', 'HOTEL ANA DÁLIA - SORRISO', '(66) 99726-8050', NULL, NULL, NULL, 'Av. Luiz Amadeu Lodi, 1395 - Bom Jesus, Sorriso - MT, 78896-130', '2025-10-14 22:35:13.435619+00'),
+('a356a42c-ef9e-4d7d-b105-37fcadb9c2ed', 'HOTEL ACAPU - RIO VERDE GO', '(64) 3612-1095', NULL, NULL, NULL, 'Rua Demolíncio de Carvalho, Quadra O, Lotes 8 ao 15 - Jardim Brasilia, Rio Verde - GO, 75906-275', '2025-10-14 22:35:13.435619+00'),
+('af5b78e5-a79a-46a8-8db8-270d86eb0067', 'HOTEL ECOS CLASSIC - PORTO VELHO', '(69) 2181-5481', NULL, NULL, NULL, 'Rua Paulo Leal, 611, Centro 76804-106 Porto Velho, RO', '2025-10-14 22:35:13.435619+00'),
+('bd970a2e-4ae8-4367-b462-85f88fc9b1c0', 'HOTEL TROPICAL - CONFRESA', '(66) 98449-8648', NULL, NULL, NULL, 'Av. Brasil, 627 - Jardim do Éden, Confresa - MT, 78652-000', '2025-10-14 22:35:13.435619+00'),
+('bf59a1c0-6818-4915-a409-bbce14f3ff49', 'LIBERTE PALACE HOTEL - RIO VERDE GO', '(64) 3613-2607', NULL, NULL, NULL, 'Perímetro Urbano 388, BR-060, Rio Verde - GO, 75904-900', '2025-10-14 22:35:13.435619+00'),
+('c1252dca-a3a2-4de6-a56c-00cd12d32d8f', 'HOTEL HLN - SÃO PAULO', '(11) 99462-9412', NULL, NULL, NULL, 'R. Cel. Antônio de Carvalho, 269 - Santana, São Paulo - SP, 02032-030', '2025-10-14 22:35:13.435619+00'),
+('c23d0e51-5b57-436a-be21-f2510dc08928', 'NEW PLAZA HOTEL - BALSAS', '(99) 98812-1274', NULL, NULL, NULL, 'Av. Dr. José Bernandino, Nº 69 - Centro, Balsas - MA, 65800-000', '2025-10-14 22:35:13.435619+00'),
+('c72fa651-2122-4aed-b4b0-f98bf4125245', 'BATISTELA HOTEL - PRIMAVERA DO LESTE', '(66) 99930-1095', NULL, NULL, NULL, 'Av. Campo Grande, 905 - Jardim Riva, Primavera do Leste - MT, 78850-000', '2025-10-14 22:35:13.435619+00'),
+('c91fd75a-bc36-4b18-9e66-d108e0e94bee', 'Hotel Líder', '66 9229-5148', NULL, '140.00', '190.00', 'R. Dez - Centro - Água Boa - MT', '2025-10-14 22:35:13.435619+00'),
+('cce3f0fd-6669-4e9c-ba25-643cc3393d4b', 'HOTEL RIOS - BALSAS', '(99) 98529-9393', NULL, NULL, NULL, 'Av. Gov. Luiz Rocha, N° 216 - Potosi, Balsas - MA, 65800-000', '2025-10-14 22:35:13.435619+00'),
+('d80ce2f4-a3f6-41e4-8437-466b3cdfe2f1', 'SEDNA PALACE - GUARANTÃ', '(66) 3552-2500', NULL, NULL, NULL, 'Av. Pioneiro Jose Nelson Coutinho, 875 - Centro, Guarantã do Norte - MT, 78520-000', '2025-10-14 22:35:13.435619+00'),
+('d9977be4-4e96-4b75-a454-ebcd45308727', 'HOTEL ESPLANADA - GUARANTÃ', '(66) 9668-6689', NULL, NULL, NULL, 'R. Pioneiro Genésio Minetto, 333 - Centro, Guarantã do Norte - MT, 78520-000', '2025-10-14 22:35:13.435619+00'),
+('dbc07212-cf6f-4925-baf8-e7b8592ff6d2', 'New Plaza Hotel', '99 98812-1274', NULL, '160.00', '210.00', 'Av. Dr. José Bernardino, 69 - Balsas - MA', '2025-10-14 22:35:13.435619+00'),
+('dd27f42e-fa98-4ea2-8a14-66ee0810e9b9', 'COMERCIAL FIT TRANSAMERICA - SORRISO', '(66) 3545-2900', NULL, NULL, NULL, 'Av. Blumenau, 2235 - Bela Vista, Sorriso - MT, 78890-001', '2025-10-14 22:35:13.435619+00'),
+('e70b2ccc-c680-42a4-88df-823dadeea21d', 'HOTEL LIDER - ÁGUA BOA', '(66) 9229-5148', NULL, NULL, NULL, 'R. Dez - Centro, Água Boa - MT, 78635-000', '2025-10-14 22:35:13.435619+00'),
+('e98aa79f-6e39-4fb6-84ea-02e18049b0d6', 'IBIS ERECHIM', '(54) 3712-0443', NULL, NULL, NULL, 'R. Carlos Miranda, 71 - Fátima, Erechim - RS, 99709-292', '2025-10-14 22:35:13.435619+00'),
+('f5c47a88-a6eb-40a3-905a-3bce8c0659af', 'HOTEL VIVENDAS - ERECHIM', '(54) 3522-4100', NULL, NULL, NULL, 'Av. Caldas Júnior, 1740 - Boa Vista, Erechim - RS, 99714-050', '2025-10-14 22:35:13.435619+00'),
+('f939fc00-fb45-4686-bdf6-18b1bc5270da', 'HOTEL REAL - CONFRESA', '(66) 98404-4931', NULL, NULL, NULL, 'Av. Airton Senna, 34 - Centro, Confresa - MT, 78652-000', '2025-10-14 22:35:13.435619+00'),
+('fe5eb04f-864a-4ba9-9d13-389121ddaa4b', 'TRANSAMERICA RONDONÓPOLIS', '(66) 99292-6835', NULL, NULL, NULL, 'Av. Lions Internacional, 1235 - Vila Aurora I, Rondonópolis - MT, 78740-046', '2025-10-14 22:35:13.435619+00'),
+('fe876118-e079-4166-acf3-979c97ccf647', 'TRANSAMERICA LUCAS - LUCAS DO RIO VERDE', '(65) 99663-6888', NULL, NULL, NULL, 'Av. das Acácias, 2425W - Parque das Emas, Lucas do Rio Verde - MT, 78455-000', '2025-10-14 22:35:13.435619+00');
