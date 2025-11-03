@@ -102,7 +102,12 @@ export default function Aeronaves() {
                             </div>
                           </div>
                           {a.status && (
-                            <Badge variant="outline" className="bg-success/20 text-success border-success">{a.status}</Badge>
+                            <Badge
+                              variant="outline"
+                              className={a.status === "inativa" ? "bg-destructive/20 text-destructive border-destructive" : "bg-success/20 text-success border-success"}
+                            >
+                              {a.status}
+                            </Badge>
                           )}
                         </div>
 

@@ -1,5 +1,5 @@
 import { LogOut, MapPin, User, UserPlus } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -13,6 +13,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { GlobalSearch } from "@/components/search/GlobalSearch";
 import { UserFormDialog, type UserFormSubmitValues } from "@/components/admin/UserFormDialog";
+
+const NotificationBell = lazy(() =>
+  import("@/components/notifications/NotificationBell").then(m => ({ default: m.NotificationBell }))
+);
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -154,6 +158,10 @@ export function Header() {
           <span className="text-muted-foreground">São Paulo</span>
           <span className="text-foreground font-medium">24°C</span>
         </div>
+
+        <Suspense fallback={null}>
+          <NotificationBell />
+        </Suspense>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

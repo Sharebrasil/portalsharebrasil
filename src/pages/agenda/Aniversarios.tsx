@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,48 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar, Cake, Plus, Edit, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useBirthdays } from "@/hooks/useBirthdays";
 import type { Database } from "@/integrations/supabase/types";
-import {
-  addYears,
-  differenceInCalendarDays,
-  format,
-  isSameMonth,
-  isValid,
-  parse,
-  parseISO,
-  setYear,
-  startOfDay,
-} from "date-fns";
 
 type BirthdayRow = Database["public"]["Tables"]["birthdays"]["Row"];
-
-type ProcessedBirthday = BirthdayRow & {
-  displayDate: string;
-  parsedDate: Date | null;
-  currentYearDate: Date | null;
-  nextOccurrence: Date | null;
-};
-
-const parseBirthdayDate = (value: string): Date | null => {
-  if (!value) return null;
-
-  const isoCandidate = parseISO(value);
-  if (isValid(isoCandidate)) {
-    return isoCandidate;
-  }
-
-  const parsedWithYear = parse(value, "dd/MM/yyyy", new Date());
-  if (isValid(parsedWithYear)) {
-    return parsedWithYear;
-  }
-
-  const parsedWithoutYear = parse(value, "dd/MM", new Date());
-  if (isValid(parsedWithoutYear)) {
-    return parsedWithoutYear;
-  }
-
-  return null;
-};
 
 const getBirthdayCategoryLabel = (category: string | null) => {
   switch (category) {
@@ -74,12 +36,19 @@ const getBirthdayCategoryLabel = (category: string | null) => {
 };
 
 export default function Aniversarios() {
-  const [birthdays, setBirthdays] = useState<BirthdayRow[]>([]);
-  const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingBirthday, setEditingBirthday] = useState<BirthdayRow | null>(null);
   const { toast } = useToast();
   const [filter, setFilter] = useState<"month" | "next7" | "all">("month");
+
+  const {
+    isLoading,
+    refetch,
+    getFilteredBirthdays,
+    birthdaysThisMonth,
+    birthdaysNextSevenDays,
+    totalBirthdays,
+  } = useBirthdays();
 
   const [formData, setFormData] = useState({
     nome: "",
@@ -88,98 +57,9 @@ export default function Aniversarios() {
     category: "cliente" as string,
   });
 
-  const loadBirthdays = useCallback(async () => {
-    try {
-      setLoading(true);
-
-      const { data, error } = await supabase
-        .from("birthdays")
-        .select("id,nome,data_aniversario,empresa,category,created_at,updated_at")
-        .order("data_aniversario", { ascending: true });
-
-      if (error) throw error;
-
-      setBirthdays(data ?? []);
-    } catch (error) {
-      console.error("Erro ao carregar aniversários:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar os aniversários",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [toast]);
-
-  useEffect(() => {
-    loadBirthdays();
-  }, [loadBirthdays]);
-
-  const processedBirthdays = useMemo<ProcessedBirthday[]>(() => {
-    const today = new Date();
-
-    return birthdays.map((birthday) => {
-      const parsedDate = parseBirthdayDate(birthday.data_aniversario);
-      const currentYearDate = parsedDate ? setYear(parsedDate, today.getFullYear()) : null;
-      let nextOccurrence = currentYearDate;
-
-      if (nextOccurrence && differenceInCalendarDays(nextOccurrence, today) < 0) {
-        nextOccurrence = addYears(nextOccurrence, 1);
-      }
-
-      return {
-        ...birthday,
-        parsedDate,
-        currentYearDate,
-        nextOccurrence,
-        displayDate: parsedDate ? format(parsedDate, "dd/MM") : birthday.data_aniversario,
-      };
-    });
-  }, [birthdays]);
-
-  const today = useMemo(() => startOfDay(new Date()), []);
-
-  const listThisMonth = useMemo(() => {
-    return processedBirthdays.filter((birthday) => {
-      if (!birthday.currentYearDate) return false;
-      return isSameMonth(birthday.currentYearDate, today);
-    });
-  }, [processedBirthdays, today]);
-
-  const listNextSevenDays = useMemo(() => {
-    return processedBirthdays.filter((birthday) => {
-      if (!birthday.nextOccurrence) return false;
-      const diff = differenceInCalendarDays(startOfDay(birthday.nextOccurrence), today);
-      return diff >= 0 && diff <= 7;
-    });
-  }, [processedBirthdays, today]);
-
-  const sortedBirthdays = useMemo(() => {
-    return [...processedBirthdays].sort((a, b) => {
-      if (a.nextOccurrence && b.nextOccurrence) {
-        return a.nextOccurrence.getTime() - b.nextOccurrence.getTime();
-      }
-      if (a.nextOccurrence) return -1;
-      if (b.nextOccurrence) return 1;
-      return a.nome.localeCompare(b.nome);
-    });
-  }, [processedBirthdays]);
-
-  const birthdaysThisMonth = listThisMonth.length;
-  const birthdaysNextSevenDays = listNextSevenDays.length;
-
   const filteredBirthdays = useMemo(() => {
-    switch (filter) {
-      case "next7":
-        return sortedBirthdays.filter((b) => listNextSevenDays.includes(b));
-      case "all":
-        return sortedBirthdays;
-      case "month":
-      default:
-        return sortedBirthdays.filter((b) => listThisMonth.includes(b));
-    }
-  }, [filter, sortedBirthdays, listNextSevenDays, listThisMonth]);
+    return getFilteredBirthdays(filter);
+  }, [filter, getFilteredBirthdays]);
 
   return (
     <Layout>
@@ -231,7 +111,7 @@ export default function Aniversarios() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Total de Aniversários</p>
-                  <p className="text-2xl font-bold text-accent">{processedBirthdays.length}</p>
+                  <p className="text-2xl font-bold text-accent">{totalBirthdays}</p>
                 </div>
                 <Cake className="h-8 w-8 text-accent" />
               </div>
@@ -313,7 +193,7 @@ export default function Aniversarios() {
                             const { error } = await supabase.from("birthdays").delete().eq("id", birthday.id);
                             if (error) throw error;
                             toast({ title: "Excluído", description: "Aniversário excluído com sucesso" });
-                            loadBirthdays();
+                            refetch();
                           } catch (err) {
                             console.error("Erro ao excluir aniversário:", err);
                             toast({ title: "Erro", description: "Não foi possível excluir", variant: "destructive" });
@@ -431,7 +311,7 @@ export default function Aniversarios() {
 
                   setIsDialogOpen(false);
                   setEditingBirthday(null);
-                  loadBirthdays();
+                  refetch();
                 } catch (error) {
                   console.error("Erro ao salvar aniversário:", error);
                   toast({

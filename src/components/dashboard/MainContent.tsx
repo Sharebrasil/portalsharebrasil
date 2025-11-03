@@ -112,27 +112,25 @@ export function MainContent() {
   const { data: scheduledFlights = [] } = useQuery({
     queryKey: ["scheduled-flights-dashboard"],
     queryFn: async () => {
-      const today = new Date().toISOString().split('T')[0];
-      const { data, error } = await supabase
-        .from("flight_schedules")
-        .select(`
-          id,
-          scheduled_date,
-          departure_airport,
-          arrival_airport,
-          status,
-          aircraft:aircraft_id(registration),
-          client:client_id(company_name)
-        `)
-        .gte("scheduled_date", today)
-        .order("scheduled_date", { ascending: true })
-        .limit(5);
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        const { data, error } = await supabase
+          .from("flight_schedules")
+          .select("id, scheduled_date, departure_airport, arrival_airport, status, aircraft_id, client_id")
+          .gte("scheduled_date", today)
+          .order("scheduled_date", { ascending: true })
+          .limit(5);
 
-      if (error) {
-        console.error("Erro ao carregar voos agendados:", error);
+        if (error) {
+          console.error("Erro ao carregar voos agendados:", error?.message || error);
+          return [];
+        }
+
+        return data || [];
+      } catch (err) {
+        console.error("Erro inesperado ao carregar voos:", err);
         return [];
       }
-      return data || [];
     },
   });
 
@@ -265,7 +263,7 @@ export function MainContent() {
                     <div className="flex items-center gap-2">
                       <Plane className="h-4 w-4 text-primary" />
                       <span className="font-semibold text-foreground">
-                        {flight.aircraft?.registration || "N/A"}
+                        {flight.aircraft_id || "Aeronave não informada"}
                       </span>
                     </div>
                     <Badge
@@ -296,7 +294,7 @@ export function MainContent() {
 
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Users className="h-3 w-3" />
-                      <span>{flight.client?.company_name || "Cliente não informado"}</span>
+                      <span>{flight.client_id ? `Cliente: ${flight.client_id}` : "Cliente não informado"}</span>
                     </div>
 
                     <div className="flex items-center gap-2 text-muted-foreground">
