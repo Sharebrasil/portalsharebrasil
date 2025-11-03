@@ -17,22 +17,6 @@ import { useClientes } from "@/hooks/useClientes";
 import { useAeronaves } from "@/hooks/useAeronaves";
 import { useTripulantes } from "@/hooks/useTripulantes";
 
-interface Client {
-  id: string;
-  company_name: string;
-}
-
-interface Aircraft {
-  id: string;
-  registration: string;
-  model: string;
-}
-
-interface CrewMember {
-  id: string;
-  full_name: string;
-  canac: string;
-}
 
 interface DBTravelReport {
   id: string;
