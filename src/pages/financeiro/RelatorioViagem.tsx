@@ -365,6 +365,19 @@ export default function RelatorioViagem() {
     return <Badge className="bg-yellow-100 text-yellow-800">Em andamento</Badge>;
   };
 
+  // Mostrar estado de carregamento
+  if (isLoadingClientes || isLoadingAeronaves || isLoadingTripulantes) {
+    return (
+      <Layout>
+        <div className="p-6 flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <p className="text-lg text-muted-foreground">Carregando dados necessários...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
       <div className="p-6 space-y-6">
