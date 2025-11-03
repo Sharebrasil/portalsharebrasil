@@ -76,53 +76,7 @@ export default function RelatorioViagem() {
 
   useEffect(() => {
     loadReports();
-    loadClients();
-    loadAircraft();
-    loadCrewMembers();
   }, []);
-
-  const loadClients = async () => {
-    const { data, error } = await supabase
-      .from('clients')
-      .select('id, company_name')
-      .order('company_name');
-
-    if (error) {
-      toast.error('Erro ao carregar clientes');
-      return;
-    }
-
-    setClients(data || []);
-  };
-
-  const loadAircraft = async () => {
-    const { data, error } = await supabase
-      .from('aircraft')
-      .select('id, registration, model')
-      .order('registration');
-
-    if (error) {
-      toast.error('Erro ao carregar aeronaves');
-      return;
-    }
-
-    setAircraft(data || []);
-  };
-
-  const loadCrewMembers = async () => {
-    const { data, error } = await supabase
-      .from('crew_members')
-      .select('id, full_name, canac')
-      .eq('status', 'active')
-      .order('full_name');
-
-    if (error) {
-      toast.error('Erro ao carregar tripulantes');
-      return;
-    }
-
-    setCrewMembers(data || []);
-  };
 
   const loadReports = async () => {
     const { data, error } = await supabase
