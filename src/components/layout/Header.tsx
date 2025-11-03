@@ -14,7 +14,6 @@ import {
 import { GlobalSearch } from "@/components/search/GlobalSearch";
 import { UserFormDialog, type UserFormSubmitValues } from "@/components/admin/UserFormDialog";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useUserProfile } from "@/hooks/useUserProfile";
