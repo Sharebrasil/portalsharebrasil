@@ -425,12 +425,13 @@ export default function RelatorioViagem() {
                     <Select
                       value={formData.aeronave}
                       onValueChange={(value) => setFormData({ ...formData, aeronave: value })}
+                      disabled={isLoadingAeronaves}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Selecione a aeronave" />
+                        <SelectValue placeholder={isLoadingAeronaves ? "Carregando..." : "Selecione a aeronave"} />
                       </SelectTrigger>
                       <SelectContent>
-                        {aircraft.map(ac => (
+                        {aeronaves.map(ac => (
                           <SelectItem key={ac.id} value={ac.registration}>
                             {ac.registration} - {ac.model}
                           </SelectItem>
