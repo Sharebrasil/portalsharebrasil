@@ -9,7 +9,7 @@ export const useMessageNotifications = () => {
   const { roles, user } = useAuth();
 
   useEffect(() => {
-    if (!isSupabaseConfigured || !user) return;
+    if (!user) return;
 
     // Prefer user from AuthContext, fallback to Supabase if available
     if (user) {
