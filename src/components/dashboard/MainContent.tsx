@@ -25,37 +25,18 @@ export function MainContent() {
     if (!user) return;
 
     try {
-      const [assignedResult, createdResult] = await Promise.all([
-        supabase
-          .from("tasks")
-          .select("*")
-          .eq("assigned_to", user.id)
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("tasks")
-          .select("*")
-          .eq("created_by", user.id)
-          .order("created_at", { ascending: false })
-      ]);
+      const { data, error } = await supabase
+        .from("tasks")
+        .select("*")
+        .filter("assigned_to", "eq", user.id)
+        .or(`created_by.eq.${user.id}`)
+        .order("created_at", { ascending: false });
 
-      if (assignedResult.error) {
-        console.error("Erro ao carregar tarefas atribuídas:", assignedResult.error);
-        return;
+      if (error) {
+        console.error("Erro ao carregar tarefas:", error);
+      } else {
+        setTasks(data || []);
       }
-
-      if (createdResult.error) {
-        console.error("Erro ao carregar tarefas criadas:", createdResult.error);
-        return;
-      }
-
-      const assignedTasks = assignedResult.data || [];
-      const createdTasks = createdResult.data || [];
-
-      const uniqueTasks = Array.from(
-        new Map([...assignedTasks, ...createdTasks].map(task => [task.id, task])).values()
-      ).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-
-      setTasks(uniqueTasks);
     } catch (e) {
       console.error(e);
     }
