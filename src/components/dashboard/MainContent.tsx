@@ -263,7 +263,7 @@ export function MainContent() {
                     <div className="flex items-center gap-2">
                       <Plane className="h-4 w-4 text-primary" />
                       <span className="font-semibold text-foreground">
-                        {flight.aircraft?.registration || "N/A"}
+                        {flight.aircraft_id || "Aeronave não informada"}
                       </span>
                     </div>
                     <Badge
