@@ -33,7 +33,7 @@ export const useMessageNotifications = () => {
   }, [user]);
 
   useEffect(() => {
-    if (!isSupabaseConfigured || !currentUserId) return;
+    if (!currentUserId) return;
 
     if (!supabase || typeof supabase.channel !== 'function') return;
 
