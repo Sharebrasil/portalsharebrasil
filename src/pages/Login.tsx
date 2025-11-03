@@ -64,27 +64,28 @@ const Login = () => {
         localStorage.removeItem("login_email");
       }
 
-      const { error } = await supabase.auth.signInWithPassword({
-        email: formattedEmail,
-        password,
-      });
+      const result = await auth.signIn(formattedEmail, password);
 
-      if (error) {
-        throw error;
+      if (result.error) {
+        toast({
+          title: "Erro no login",
+          description: result.error,
+          variant: "destructive",
+        });
+        return;
       }
 
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (user) {
-        await refreshRoles(user.id);
+      if (result.user && result.token) {
+        auth.setStoredToken(result.token);
+        await refreshRoles(result.user.id);
       }
 
       toast({
         title: "Login realizado",
         description: "Bem-vindo novamente ao portal.",
       });
+
+      navigate("/", { replace: true });
     } catch (error) {
       const description = error instanceof Error
         ? error.message
