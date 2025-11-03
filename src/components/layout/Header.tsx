@@ -115,24 +115,23 @@ export function Header() {
   );
 
   const handleLogout = useCallback(async () => {
-    const { error } = await supabase.auth.signOut();
+    try {
+      await signOut();
 
-    if (error) {
+      toast({
+        title: "Sessão encerrada",
+        description: "Você saiu do portal com sucesso.",
+      });
+
+      navigate("/login", { replace: true });
+    } catch (error) {
       toast({
         title: "Erro ao sair",
         description: "Não foi possível encerrar a sessão. Tente novamente.",
         variant: "destructive",
       });
-      return;
     }
-
-    toast({
-      title: "Sessão encerrada",
-      description: "Você saiu do portal com sucesso.",
-    });
-
-    navigate("/login", { replace: true });
-  }, [navigate, toast]);
+  }, [navigate, toast, signOut]);
 
   return (
     <header className="h-16 bg-gradient-card border-b border-border px-4 lg:px-6 flex items-center justify-between shadow-card">
