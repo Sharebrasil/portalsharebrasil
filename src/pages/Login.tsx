@@ -12,7 +12,7 @@ import { Loader2, Lock, Mail, Plane, Eye, EyeOff } from "lucide-react";
 const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, isLoading: authLoading } = useAuth();
+  const { session, isLoading: authLoading, refreshRoles } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberEmail, setRememberEmail] = useState(false);
@@ -20,10 +20,10 @@ const Login = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!authLoading && user) {
+    if (!authLoading && session) {
       navigate("/", { replace: true });
     }
-  }, [authLoading, navigate, user]);
+  }, [authLoading, navigate, session]);
 
   useEffect(() => {
     const savedEmail = localStorage.getItem("login_email");
@@ -52,14 +52,20 @@ const Login = () => {
     setIsSubmitting(true);
 
     try {
+      // Adiciona .com automaticamente se o email não tiver domínio completo
+      let formattedEmail = email.trim();
+      if (formattedEmail.includes('@') && !formattedEmail.includes('.')) {
+        formattedEmail = formattedEmail + '.com';
+      }
+
       if (rememberEmail) {
-        localStorage.setItem("login_email", email.trim());
+        localStorage.setItem("login_email", formattedEmail);
       } else {
         localStorage.removeItem("login_email");
       }
 
       const { error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
+        email: formattedEmail,
         password,
       });
 
@@ -67,12 +73,18 @@ const Login = () => {
         throw error;
       }
 
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (user) {
+        await refreshRoles(user.id);
+      }
+
       toast({
         title: "Login realizado",
         description: "Bem-vindo novamente ao portal.",
       });
-
-      navigate("/", { replace: true });
     } catch (error) {
       const description = error instanceof Error
         ? error.message
