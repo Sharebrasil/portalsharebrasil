@@ -5,14 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import * as auth from "@/lib/auth";
 import { Loader2, Lock, Mail, Plane, Eye, EyeOff } from "lucide-react";
 
 const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, isLoading: authLoading, refreshRoles } = useAuth();
+  const { session, isLoading: authLoading, refreshRoles } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberEmail, setRememberEmail] = useState(false);
@@ -20,10 +20,10 @@ const Login = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!authLoading && user) {
+    if (!authLoading && session) {
       navigate("/", { replace: true });
     }
-  }, [authLoading, navigate, user]);
+  }, [authLoading, navigate, session]);
 
   useEffect(() => {
     const savedEmail = localStorage.getItem("login_email");
@@ -64,28 +64,27 @@ const Login = () => {
         localStorage.removeItem("login_email");
       }
 
-      const result = await auth.signIn(formattedEmail, password);
+      const { error } = await supabase.auth.signInWithPassword({
+        email: formattedEmail,
+        password,
+      });
 
-      if (result.error) {
-        toast({
-          title: "Erro no login",
-          description: result.error,
-          variant: "destructive",
-        });
-        return;
+      if (error) {
+        throw error;
       }
 
-      if (result.user && result.token) {
-        auth.setStoredToken(result.token);
-        await refreshRoles(result.user.id);
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (user) {
+        await refreshRoles(user.id);
       }
 
       toast({
         title: "Login realizado",
         description: "Bem-vindo novamente ao portal.",
       });
-
-      navigate("/", { replace: true });
     } catch (error) {
       const description = error instanceof Error
         ? error.message
