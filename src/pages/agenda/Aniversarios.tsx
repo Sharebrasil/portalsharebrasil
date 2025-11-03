@@ -111,7 +111,7 @@ export default function Aniversarios() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Total de Aniversários</p>
-                  <p className="text-2xl font-bold text-accent">{processedBirthdays.length}</p>
+                  <p className="text-2xl font-bold text-accent">{totalBirthdays}</p>
                 </div>
                 <Cake className="h-8 w-8 text-accent" />
               </div>
