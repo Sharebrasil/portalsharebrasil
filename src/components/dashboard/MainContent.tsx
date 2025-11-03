@@ -112,53 +112,25 @@ export function MainContent() {
   const { data: scheduledFlights = [] } = useQuery({
     queryKey: ["scheduled-flights-dashboard"],
     queryFn: async () => {
-      const today = new Date().toISOString().split('T')[0];
-      const { data, error } = await supabase
-        .from("flight_schedules")
-        .select("id, scheduled_date, departure_airport, arrival_airport, status, aircraft_id, client_id")
-        .gte("scheduled_date", today)
-        .order("scheduled_date", { ascending: true })
-        .limit(5);
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        const { data, error } = await supabase
+          .from("flight_schedules")
+          .select("id, scheduled_date, departure_airport, arrival_airport, status, aircraft_id, client_id")
+          .gte("scheduled_date", today)
+          .order("scheduled_date", { ascending: true })
+          .limit(5);
 
-      if (error) {
-        console.error("Erro ao carregar voos agendados:", error?.message || JSON.stringify(error));
+        if (error) {
+          console.error("Erro ao carregar voos agendados:", error?.message || error);
+          return [];
+        }
+
+        return data || [];
+      } catch (err) {
+        console.error("Erro inesperado ao carregar voos:", err);
         return [];
       }
-
-      if (!data) return [];
-
-      const enrichedFlights = await Promise.all(
-        data.map(async (flight) => {
-          let aircraft = null;
-          let client = null;
-
-          if (flight.aircraft_id) {
-            const { data: aircraftData } = await supabase
-              .from("aircraft")
-              .select("registration")
-              .eq("id", flight.aircraft_id)
-              .single();
-            aircraft = aircraftData;
-          }
-
-          if (flight.client_id) {
-            const { data: clientData } = await supabase
-              .from("clients")
-              .select("company_name")
-              .eq("id", flight.client_id)
-              .single();
-            client = clientData;
-          }
-
-          return {
-            ...flight,
-            aircraft,
-            client,
-          };
-        })
-      );
-
-      return enrichedFlights;
     },
   });
 
