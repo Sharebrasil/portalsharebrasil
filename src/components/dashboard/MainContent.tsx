@@ -28,7 +28,7 @@ export function MainContent() {
       const { data, error } = await supabase
         .from("tasks")
         .select("*")
-        .or(`assigned_to.eq.${user.id},created_by.eq.${user.id}`)
+        .or(`assigned_to.eq.${user.id},created_by.eq.${user.id}`, { foreignTable: '' })
         .order("created_at", { ascending: false });
 
       if (error) {
