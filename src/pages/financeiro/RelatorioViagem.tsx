@@ -13,9 +13,7 @@ import { Plane, MapPin, Calendar, DollarSign, Plus, FileText, Download, Edit, Tr
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { generatePDF, CATEGORIAS_DESPESA, PAGADORES, formatDateBR, type TravelReport, type TravelExpense } from "@/lib/travelReportPDF";
-import { useClientes } from "@/hooks/useClientes";
-import { useAeronaves } from "@/hooks/useAeronaves";
-import { useTripulantes } from "@/hooks/useTripulantes";
+import { useClientes, useAeronaves, useTripulantes } from "@/hooks/useData";
 
 
 interface DBTravelReport {
