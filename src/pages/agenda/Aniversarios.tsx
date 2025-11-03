@@ -193,7 +193,7 @@ export default function Aniversarios() {
                             const { error } = await supabase.from("birthdays").delete().eq("id", birthday.id);
                             if (error) throw error;
                             toast({ title: "Excluído", description: "Aniversário excluído com sucesso" });
-                            loadBirthdays();
+                            refetch();
                           } catch (err) {
                             console.error("Erro ao excluir aniversário:", err);
                             toast({ title: "Erro", description: "Não foi possível excluir", variant: "destructive" });
