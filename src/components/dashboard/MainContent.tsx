@@ -294,7 +294,7 @@ export function MainContent() {
 
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Users className="h-3 w-3" />
-                      <span>{flight.client?.company_name || "Cliente não informado"}</span>
+                      <span>{flight.client_id ? `Cliente: ${flight.client_id}` : "Cliente não informado"}</span>
                     </div>
 
                     <div className="flex items-center gap-2 text-muted-foreground">
