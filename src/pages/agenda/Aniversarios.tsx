@@ -36,12 +36,19 @@ const getBirthdayCategoryLabel = (category: string | null) => {
 };
 
 export default function Aniversarios() {
-  const [birthdays, setBirthdays] = useState<BirthdayRow[]>([]);
-  const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingBirthday, setEditingBirthday] = useState<BirthdayRow | null>(null);
   const { toast } = useToast();
   const [filter, setFilter] = useState<"month" | "next7" | "all">("month");
+
+  const {
+    isLoading,
+    refetch,
+    getFilteredBirthdays,
+    birthdaysThisMonth,
+    birthdaysNextSevenDays,
+    totalBirthdays,
+  } = useBirthdays();
 
   const [formData, setFormData] = useState({
     nome: "",
@@ -50,98 +57,9 @@ export default function Aniversarios() {
     category: "cliente" as string,
   });
 
-  const loadBirthdays = useCallback(async () => {
-    try {
-      setLoading(true);
-
-      const { data, error } = await supabase
-        .from("birthdays")
-        .select("id,nome,data_aniversario,empresa,category,created_at,updated_at")
-        .order("data_aniversario", { ascending: true });
-
-      if (error) throw error;
-
-      setBirthdays(data ?? []);
-    } catch (error) {
-      console.error("Erro ao carregar aniversários:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar os aniversários",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [toast]);
-
-  useEffect(() => {
-    loadBirthdays();
-  }, [loadBirthdays]);
-
-  const processedBirthdays = useMemo<ProcessedBirthday[]>(() => {
-    const today = new Date();
-
-    return birthdays.map((birthday) => {
-      const parsedDate = parseBirthdayDate(birthday.data_aniversario);
-      const currentYearDate = parsedDate ? setYear(parsedDate, today.getFullYear()) : null;
-      let nextOccurrence = currentYearDate;
-
-      if (nextOccurrence && differenceInCalendarDays(nextOccurrence, today) < 0) {
-        nextOccurrence = addYears(nextOccurrence, 1);
-      }
-
-      return {
-        ...birthday,
-        parsedDate,
-        currentYearDate,
-        nextOccurrence,
-        displayDate: parsedDate ? format(parsedDate, "dd/MM") : birthday.data_aniversario,
-      };
-    });
-  }, [birthdays]);
-
-  const today = useMemo(() => startOfDay(new Date()), []);
-
-  const listThisMonth = useMemo(() => {
-    return processedBirthdays.filter((birthday) => {
-      if (!birthday.currentYearDate) return false;
-      return isSameMonth(birthday.currentYearDate, today);
-    });
-  }, [processedBirthdays, today]);
-
-  const listNextSevenDays = useMemo(() => {
-    return processedBirthdays.filter((birthday) => {
-      if (!birthday.nextOccurrence) return false;
-      const diff = differenceInCalendarDays(startOfDay(birthday.nextOccurrence), today);
-      return diff >= 0 && diff <= 7;
-    });
-  }, [processedBirthdays, today]);
-
-  const sortedBirthdays = useMemo(() => {
-    return [...processedBirthdays].sort((a, b) => {
-      if (a.nextOccurrence && b.nextOccurrence) {
-        return a.nextOccurrence.getTime() - b.nextOccurrence.getTime();
-      }
-      if (a.nextOccurrence) return -1;
-      if (b.nextOccurrence) return 1;
-      return a.nome.localeCompare(b.nome);
-    });
-  }, [processedBirthdays]);
-
-  const birthdaysThisMonth = listThisMonth.length;
-  const birthdaysNextSevenDays = listNextSevenDays.length;
-
   const filteredBirthdays = useMemo(() => {
-    switch (filter) {
-      case "next7":
-        return sortedBirthdays.filter((b) => listNextSevenDays.includes(b));
-      case "all":
-        return sortedBirthdays;
-      case "month":
-      default:
-        return sortedBirthdays.filter((b) => listThisMonth.includes(b));
-    }
-  }, [filter, sortedBirthdays, listNextSevenDays, listThisMonth]);
+    return getFilteredBirthdays(filter);
+  }, [filter, getFilteredBirthdays]);
 
   return (
     <Layout>
