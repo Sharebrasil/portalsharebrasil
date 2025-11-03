@@ -1,21 +1,20 @@
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { isAppRole, type AppRole } from "@/lib/roles";
-import * as auth from "@/lib/auth";
-import type { User } from "@/lib/auth";
+import type { Session, User } from "@supabase/supabase-js";
+import { supabase } from "@/integrations/supabase/client";
+import type { AppRole } from "@/lib/roles";
 
 interface AuthContextValue {
+  session: Session | null;
   user: User | null;
   roles: AppRole[];
   isLoading: boolean;
   refreshRoles: (userId?: string) => Promise<AppRole[]>;
-  signIn: (email: string, password: string) => Promise<{ error: string | null }>;
-  signUp: (email: string, password: string, fullName?: string) => Promise<{ error: string | null }>;
-  signOut: () => Promise<void>;
 }
 
-export const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -26,23 +25,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return [];
     }
 
-    try {
-      const res = await fetch(`/api/auth/roles?userId=${encodeURIComponent(userId)}`);
-      if (!res.ok) {
-        setRoles([]);
-        return [];
-      }
+    const { data, error } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
 
-      const data = await res.json();
-      const roleList = (data.roles || []).filter((r: string): r is AppRole => isAppRole(r));
-
-      setRoles(roleList);
-      return roleList;
-    } catch (e) {
-      console.error("Failed to load user roles", e);
+    if (error) {
+      console.error("Failed to load user roles", error);
       setRoles([]);
       return [];
     }
+
+    const roleList = (data ?? [])
+      .map((entry) => entry.role)
+      .filter((role): role is AppRole => Boolean(role));
+
+    setRoles(roleList);
+    return roleList;
   }, []);
 
   const refreshRoles = useCallback(
@@ -50,111 +49,49 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     [loadRoles, user]
   );
 
-  const signIn = useCallback(async (email: string, password: string) => {
-    try {
-      const response = await auth.signIn(email, password);
-
-      if (response.error) {
-        return { error: response.error };
-      }
-
-      if (response.user && response.token) {
-        setUser(response.user);
-        auth.setStoredToken(response.token);
-        await loadRoles(response.user.id);
-      }
-
-      return { error: null };
-    } catch (error) {
-      console.error('Sign in error:', error);
-      return { error: 'Failed to sign in' };
-    }
-  }, [loadRoles]);
-
-  const signUp = useCallback(async (email: string, password: string, fullName?: string) => {
-    try {
-      const response = await auth.signUp(email, password, fullName);
-
-      if (response.error) {
-        return { error: response.error };
-      }
-
-      if (response.user && response.token) {
-        setUser(response.user);
-        auth.setStoredToken(response.token);
-        await loadRoles(response.user.id);
-      }
-
-      return { error: null };
-    } catch (error) {
-      console.error('Sign up error:', error);
-      return { error: 'Failed to create account' };
-    }
-  }, [loadRoles]);
-
-  const signOut = useCallback(async () => {
-    try {
-      auth.removeStoredToken();
-      setUser(null);
-      setRoles([]);
-    } catch (error) {
-      console.error('Sign out error:', error);
-    }
-  }, []);
-
   useEffect(() => {
     let isMounted = true;
 
+    const applyAuthState = async (nextSession: Session | null) => {
+      if (!isMounted) {
+        return;
+      }
+
+      setSession(nextSession);
+      setUser(nextSession?.user ?? null);
+      try {
+        await loadRoles(nextSession?.user?.id ?? null);
+      } catch (error) {
+        console.error("Failed to load user roles", error);
+        setRoles([]);
+      }
+    };
+
     const initialize = async () => {
-      if (!isMounted) return;
+      if (!isMounted) {
+        return;
+      }
 
       setIsLoading(true);
-
       try {
-        const isAutoAdmin = (import.meta.env.VITE_AUTO_ADMIN === 'true') || Boolean(import.meta.env.DEV);
+        const { data, error } = await supabase.auth.getSession();
 
-        const token = auth.getStoredToken();
-
-        // Dev-only shortcut: if auto-admin is enabled and there's no stored token,
-        // set a temporary admin user and roles so the dashboard opens without a password.
-        if (isAutoAdmin && !token) {
-          const devUser: User = {
-            id: 'dev-admin',
-            email: 'admin@local',
-            full_name: 'Administrador',
-            created_at: new Date().toISOString(),
-          };
-
-          setUser(devUser);
-          setRoles(['admin']);
-          setIsLoading(false);
+        if (!isMounted) {
           return;
         }
 
-        if (!token) {
-          setUser(null);
-          setRoles([]);
-          return;
+        if (error) {
+          throw error;
         }
 
-        const verifiedUser = await auth.verifyToken(token);
-
-        if (!isMounted) return;
-
-        if (verifiedUser) {
-          setUser(verifiedUser);
-          await loadRoles(verifiedUser.id);
-        } else {
-          auth.removeStoredToken();
-          setUser(null);
-          setRoles([]);
-        }
+        await applyAuthState(data.session ?? null);
       } catch (error) {
-        if (!isMounted) return;
+        if (!isMounted) {
+          return;
+        }
+
         console.error("Failed to initialize authentication", error);
-        auth.removeStoredToken();
-        setUser(null);
-        setRoles([]);
+        await applyAuthState(null);
       } finally {
         if (isMounted) {
           setIsLoading(false);
@@ -164,22 +101,42 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     void initialize();
 
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      if (!isMounted) {
+        return;
+      }
+
+      (async () => {
+        try {
+          await applyAuthState(newSession ?? null);
+        } catch (error) {
+          if (!isMounted) {
+            return;
+          }
+
+          console.error("Failed to handle auth state change", error);
+          await applyAuthState(null);
+        }
+      })();
+    });
+
     return () => {
       isMounted = false;
+      subscription.unsubscribe();
     };
   }, [loadRoles]);
 
   const value = useMemo(
     () => ({
+      session,
       user,
       roles,
       isLoading,
       refreshRoles,
-      signIn,
-      signUp,
-      signOut,
     }),
-    [isLoading, refreshRoles, roles, user, signIn, signUp, signOut]
+    [isLoading, refreshRoles, roles, session, user]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
