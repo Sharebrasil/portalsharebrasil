@@ -404,12 +404,13 @@ export default function RelatorioViagem() {
                     <Select
                       value={formData.cliente}
                       onValueChange={(value) => setFormData({ ...formData, cliente: value })}
+                      disabled={isLoadingClientes}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Selecione o cliente" />
+                        <SelectValue placeholder={isLoadingClientes ? "Carregando..." : "Selecione o cliente"} />
                       </SelectTrigger>
                       <SelectContent>
-                        {clients.map(client => (
+                        {clientes.map(client => (
                           <SelectItem key={client.id} value={client.company_name}>
                             {client.company_name}
                           </SelectItem>
