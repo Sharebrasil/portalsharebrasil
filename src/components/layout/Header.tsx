@@ -155,8 +155,6 @@ export function Header() {
           <span className="text-foreground font-medium">24°C</span>
         </div>
 
-        <NotificationBell />
-
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-8 w-8 lg:h-10 lg:w-10 rounded-full">
