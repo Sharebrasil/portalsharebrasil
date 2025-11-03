@@ -11,8 +11,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { lazy, Suspense } from "react";
 import { GlobalSearch } from "@/components/search/GlobalSearch";
 import { UserFormDialog, type UserFormSubmitValues } from "@/components/admin/UserFormDialog";
+
+const NotificationBell = lazy(() =>
+  import("@/components/notifications/NotificationBell").then(m => ({ default: m.NotificationBell }))
+);
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
