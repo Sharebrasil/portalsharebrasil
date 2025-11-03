@@ -45,7 +45,7 @@ const getInitials = (input: string | null | undefined) => {
 export function Header() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, roles } = useAuth();
+  const { user, roles, signOut } = useAuth();
   const { isAdmin, isFinanceiroMaster, isGestorMaster } = useUserRole();
   const canAccessSalaryManagement = isAdmin || isFinanceiroMaster || isGestorMaster;
   const { profile } = useUserProfile(user);
