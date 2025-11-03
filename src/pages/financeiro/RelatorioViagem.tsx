@@ -48,10 +48,11 @@ export default function RelatorioViagem() {
   const [currentReport, setCurrentReport] = useState<DBTravelReport | null>(null);
   const [expenses, setExpenses] = useState<TravelExpense[]>([]);
   const [uploading, setUploading] = useState(false);
-  
-  const [clients, setClients] = useState<Client[]>([]);
-  const [aircraft, setAircraft] = useState<Aircraft[]>([]);
-  const [crewMembers, setCrewMembers] = useState<CrewMember[]>([]);
+
+  // Chamada dos hooks para buscar dados
+  const { clientes, isLoadingClientes } = useClientes();
+  const { aeronaves, isLoadingAeronaves } = useAeronaves();
+  const { tripulantes, isLoadingTripulantes } = useTripulantes();
   
   const [formData, setFormData] = useState({
     numero: "",
