@@ -455,12 +455,13 @@ export default function RelatorioViagem() {
                     <Select
                       value={formData.tripulante}
                       onValueChange={(value) => setFormData({ ...formData, tripulante: value })}
+                      disabled={isLoadingTripulantes}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Selecione o tripulante" />
+                        <SelectValue placeholder={isLoadingTripulantes ? "Carregando..." : "Selecione o tripulante"} />
                       </SelectTrigger>
                       <SelectContent>
-                        {crewMembers.map(crew => (
+                        {tripulantes.map(crew => (
                           <SelectItem key={crew.id} value={crew.full_name}>
                             {crew.full_name} - {crew.canac}
                           </SelectItem>
@@ -473,13 +474,14 @@ export default function RelatorioViagem() {
                     <Select
                       value={formData.tripulante2}
                       onValueChange={(value) => setFormData({ ...formData, tripulante2: value })}
+                      disabled={isLoadingTripulantes}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Selecione o tripulante" />
+                        <SelectValue placeholder={isLoadingTripulantes ? "Carregando..." : "Selecione o tripulante"} />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="">Nenhum</SelectItem>
-                        {crewMembers.map(crew => (
+                        {tripulantes.map(crew => (
                           <SelectItem key={crew.id} value={crew.full_name}>
                             {crew.full_name} - {crew.canac}
                           </SelectItem>
