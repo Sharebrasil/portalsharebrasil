@@ -5,8 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import * as auth from "@/lib/auth";
 import { Loader2, Lock, Mail, Plane, Eye, EyeOff } from "lucide-react";
 
 const Login = () => {
