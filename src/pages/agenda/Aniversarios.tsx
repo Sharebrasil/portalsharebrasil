@@ -311,7 +311,7 @@ export default function Aniversarios() {
 
                   setIsDialogOpen(false);
                   setEditingBirthday(null);
-                  loadBirthdays();
+                  refetch();
                 } catch (error) {
                   console.error("Erro ao salvar aniversário:", error);
                   toast({
