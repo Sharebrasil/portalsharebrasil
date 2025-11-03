@@ -12,7 +12,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { GlobalSearch } from "@/components/search/GlobalSearch";
-import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { UserFormDialog, type UserFormSubmitValues } from "@/components/admin/UserFormDialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
