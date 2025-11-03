@@ -1,339 +1,258 @@
 import { useEffect, useState } from "react";
 import { Layout } from "@/components/layout/Layout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckSquare, Clock, AlertCircle, CheckCircle, Filter, Pencil, Trash2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { TaskFormDialog } from "@/components/tasks/TaskFormDialog";
+import { Bell, Plus } from "lucide-react";
 import { toast } from "sonner";
+import TaskDialog from "@/components/tasks/TaskDialog";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface Task {
   id: string;
   title: string;
   description: string | null;
-  status: string;
-  priority: string;
   due_date: string | null;
-  created_by: string | null;
+  priority: "baixa" | "media" | "alta";
+  status: "pendente" | "em_progresso" | "concluida";
   assigned_to: string | null;
-  creator_name?: string;
-  assignee_name?: string;
+  requested_by: string | null;
+  created_at: string;
 }
 
-export default function Tarefas() {
+interface TaskNotification {
+  id: string;
+  message: string;
+  read: boolean;
+  created_at: string;
+}
+
+export default function MinhasTarefas() {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState("todas");
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [notifications, setNotifications] = useState<TaskNotification[]>([]);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [loadingTasks, setLoadingTasks] = useState(false);
 
   useEffect(() => {
-    loadTasks();
-    getCurrentUser();
-
-    // Subscribe to task changes
-    const channel = supabase
-      .channel('tasks-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'tasks'
-        },
-        () => {
-          loadTasks();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    void fetchTasks();
+    void fetchNotifications();
   }, []);
 
-  const getCurrentUser = async () => {
+  const fetchTasks = async () => {
+    setLoadingTasks(true);
     const { data: { user } } = await supabase.auth.getUser();
-    setCurrentUserId(user?.id || null);
-  };
-
-  const loadTasks = async () => {
-    setLoading(true);
+    if (!user) {
+      setTasks([]);
+      setLoadingTasks(false);
+      return;
+    }
     const { data, error } = await supabase
       .from("tasks")
-      .select(`
-        *,
-        creator:user_profiles!tasks_created_by_fkey(full_name),
-        assignee:user_profiles!tasks_assigned_to_fkey(full_name)
-      `)
-      .order("created_at", { ascending: false });
+      .select("*")
+      .or(`created_by.eq.${user.id},assigned_to.eq.${user.id}`)
+      .order("due_date", { ascending: true });
 
     if (error) {
+      console.error("Erro ao carregar tarefas:", error);
       toast.error("Erro ao carregar tarefas");
-      console.error(error);
-    } else {
-      const tasksWithNames = data.map((task: any) => ({
-        ...task,
-        creator_name: task.creator?.full_name || "Sistema",
-        assignee_name: task.assignee?.full_name || "Não atribuída"
-      }));
-      setTasks(tasksWithNames);
+      setLoadingTasks(false);
+      return;
     }
-    setLoading(false);
+
+    setTasks((data ?? []) as Task[]);
+    setLoadingTasks(false);
   };
 
-  const deleteTask = async (id: string) => {
-    if (!confirm("Tem certeza que deseja excluir esta tarefa?")) return;
+  const fetchNotifications = async () => {
+    // Task notifications table doesn't exist yet - skip for now
+    setNotifications([]);
+  };
 
+  const markNotificationAsRead = async (id: string) => {
     const { error } = await supabase
-      .from("tasks")
-      .delete()
+      .from("task_notifications")
+      .update({ read: true })
       .eq("id", id);
 
     if (error) {
-      toast.error("Erro ao excluir tarefa");
-    } else {
-      toast.success("Tarefa excluída com sucesso");
-      loadTasks();
+      console.error("Erro ao marcar notificação como lida:", error);
+      toast.error("Não foi possível marcar a notificação");
+      return;
     }
+
+    void fetchNotifications();
   };
 
-  const toggleTaskStatus = async (task: Task) => {
-    const newStatus = task.status === "concluido" ? "aberto" : "concluido";
+  const handleEdit = (task: Task) => {
+    setEditingTask(task);
+    setIsDialogOpen(true);
+  };
 
+  const toggleTask = async (task: Task, checked: boolean) => {
+    const nextStatus: Task["status"] = checked ? "concluida" : "pendente";
     const { error } = await supabase
       .from("tasks")
-      .update({ status: newStatus })
+      .update({ status: nextStatus })
       .eq("id", task.id);
-
     if (error) {
+      console.error("Erro ao atualizar tarefa:", error);
       toast.error("Erro ao atualizar tarefa");
-    } else {
-      loadTasks();
+      return;
     }
+    setTasks((prev) => prev.map((t) => (t.id === task.id ? { ...t, status: nextStatus } : t)));
   };
 
-  const filteredTasks = tasks.filter(task => {
-    if (statusFilter === "todas") return true;
-    return task.status === statusFilter;
-  });
-
-  const stats = {
-    total: tasks.length,
-    aberto: tasks.filter(t => t.status === "aberto").length,
-    em_andamento: tasks.filter(t => t.status === "em_andamento").length,
-    concluido: tasks.filter(t => t.status === "concluido").length
+  const handleSave = () => {
+    void fetchTasks();
+    void fetchNotifications();
+    setIsDialogOpen(false);
+    setEditingTask(null);
   };
 
-  const getPrioridadeBadge = (prioridade: string) => {
-    switch (prioridade) {
+  const getPriorityColor = (priority: Task["priority"]) => {
+    switch (priority) {
       case "alta":
-        return <Badge className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">Alta</Badge>;
+        return "bg-red-500";
       case "media":
-        return <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">Média</Badge>;
+        return "bg-yellow-500";
       case "baixa":
-        return <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Baixa</Badge>;
+        return "bg-green-500";
       default:
-        return <Badge variant="secondary">{prioridade}</Badge>;
+        return "bg-gray-500";
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusColor = (status: Task["status"]) => {
     switch (status) {
-      case "concluido":
-        return <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Concluída</Badge>;
-      case "em_andamento":
-        return <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">Em Andamento</Badge>;
-      case "aberto":
-        return <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200">Aberto</Badge>;
+      case "concluida":
+        return "bg-green-600";
+      case "em_progresso":
+        return "bg-blue-600";
+      case "pendente":
+        return "bg-gray-600";
       default:
-        return <Badge variant="secondary">{status}</Badge>;
+        return "bg-gray-500";
     }
   };
 
-  const getStatusIcon = (status: string) => {
+  const getStatusLabel = (status: Task["status"]) => {
     switch (status) {
-      case "concluido":
-        return <CheckCircle className="h-4 w-4 text-green-600" />;
-      case "em_andamento":
-        return <Clock className="h-4 w-4 text-blue-600" />;
-      case "aberto":
-        return <AlertCircle className="h-4 w-4 text-gray-600" />;
+      case "concluida":
+        return "Concluída";
+      case "em_progresso":
+        return "Em Progresso";
+      case "pendente":
+        return "Pendente";
       default:
-        return null;
+        return status;
     }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('pt-BR');
   };
 
   return (
     <Layout>
-      <div className="p-6 space-y-6">
+      <div className="container mx-auto space-y-6 p-6">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Minhas Tarefas</h1>
-            <p className="text-muted-foreground mt-2">
-              Gerencie suas atividades e acompanhe o progresso
-            </p>
+          <h1 className="text-3xl font-bold">Minhas Tarefas</h1>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              className="relative"
+              onClick={() => setShowNotifications((prev) => !prev)}
+            >
+              <Bell className="h-4 w-4" />
+              {notifications.length > 0 ? (
+                <Badge className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center p-0 text-xs">
+                  {notifications.length}
+                </Badge>
+              ) : null}
+            </Button>
+            <Button onClick={() => setIsDialogOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Nova Tarefa
+            </Button>
           </div>
-          <TaskFormDialog onSuccess={loadTasks} />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Total de Tarefas</p>
-                  <p className="text-2xl font-bold text-primary">{stats.total}</p>
-                </div>
-                <CheckSquare className="h-8 w-8 text-primary" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Abertos</p>
-                  <p className="text-2xl font-bold text-gray-600">{stats.aberto}</p>
-                </div>
-                <AlertCircle className="h-8 w-8 text-gray-600" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Em Andamento</p>
-                  <p className="text-2xl font-bold text-blue-600">{stats.em_andamento}</p>
-                </div>
-                <Clock className="h-8 w-8 text-blue-600" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Concluídas</p>
-                  <p className="text-2xl font-bold text-green-600">{stats.concluido}</p>
-                </div>
-                <CheckCircle className="h-8 w-8 text-green-600" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <CheckSquare className="h-5 w-5" />
-                Lista de Tarefas
-              </CardTitle>
-              <div className="flex gap-2">
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-40">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todas">Todas</SelectItem>
-                    <SelectItem value="aberto">Abertas</SelectItem>
-                    <SelectItem value="em_andamento">Em Andamento</SelectItem>
-                    <SelectItem value="concluido">Concluídas</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Button variant="outline" size="icon">
-                  <Filter className="h-4 w-4" />
-                </Button>
-              </div>
+        {showNotifications && notifications.length > 0 ? (
+          <Card className="mb-6 p-4">
+            <h3 className="mb-3 font-semibold">Notificações</h3>
+            <div className="space-y-2">
+              {notifications.map((notification) => (
+                <button
+                  key={notification.id}
+                  type="button"
+                  className="flex w-full items-start justify-between rounded bg-muted p-2 text-left transition hover:bg-muted/80"
+                  onClick={() => markNotificationAsRead(notification.id)}
+                >
+                  <p className="text-sm">{notification.message}</p>
+                  <span className="text-xs text-muted-foreground">
+                    {format(new Date(notification.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                  </span>
+                </button>
+              ))}
             </div>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="text-center py-8 text-muted-foreground">
-                Carregando tarefas...
-              </div>
-            ) : filteredTasks.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                Nenhuma tarefa encontrada
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {filteredTasks.map((task) => (
-                  <div
-                    key={task.id}
-                    className="p-4 border border-border rounded-lg hover:bg-accent transition-colors"
-                  >
-                    <div className="flex items-start gap-3">
-                      <Checkbox
-                        checked={task.status === "concluido"}
-                        onCheckedChange={() => toggleTaskStatus(task)}
-                        className="mt-1"
-                      />
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between mb-2">
-                          <h3 className="font-semibold text-foreground">{task.title}</h3>
-                          <div className="flex items-center gap-2">
-                            {getStatusIcon(task.status)}
-                            {getStatusBadge(task.status)}
-                          </div>
-                        </div>
-                        {task.description && (
-                          <p className="text-muted-foreground text-sm mb-3">{task.description}</p>
-                        )}
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-muted-foreground">Prioridade:</span>
-                              {getPrioridadeBadge(task.priority)}
-                            </div>
-                          </div>
-                          {task.due_date && (
-                            <div className="text-right">
-                              <div className="text-xs text-muted-foreground">Vencimento</div>
-                              <div className="text-sm font-medium">{formatDate(task.due_date)}</div>
-                            </div>
-                          )}
-                        </div>
-                        <div className="mt-3 pt-3 border-t border-border space-y-2">
-                          <div className="flex items-center justify-between text-xs text-muted-foreground">
-                            <span>Criado por: <strong className="text-foreground">{task.creator_name}</strong></span>
-                            <span>Atribuído para: <strong className="text-foreground">{task.assignee_name}</strong></span>
-                          </div>
-                          <div className="flex gap-2 justify-end">
-                            <TaskFormDialog taskId={task.id} onSuccess={loadTasks}>
-                              <Button variant="outline" size="sm">
-                                <Pencil className="h-4 w-4 mr-1" />
-                                Editar
-                              </Button>
-                            </TaskFormDialog>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => deleteTask(task.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
+          </Card>
+        ) : null}
+
+        <div className="grid gap-4">
+          {loadingTasks ? (
+            <Card className="p-8 text-center">
+              <p className="text-muted-foreground">Carregando tarefas...</p>
+            </Card>
+          ) : tasks.length === 0 ? (
+            <Card className="p-8 text-center">
+              <p className="text-muted-foreground">Nenhuma tarefa encontrada</p>
+            </Card>
+          ) : (
+            tasks.map((task) => (
+              <Card key={task.id} className="p-3">
+                <div className="flex items-start gap-3">
+                  <Checkbox
+                    checked={task.status === 'concluida'}
+                    onCheckedChange={(v) => toggleTask(task, Boolean(v))}
+                  />
+                  <div className="flex-1 cursor-pointer" onClick={() => handleEdit(task)}>
+                    <div className="mb-1 flex flex-wrap items-center gap-2">
+                      <h3 className={`text-base font-semibold ${task.status === 'concluida' ? 'line-through text-muted-foreground' : ''}`}>{task.title}</h3>
+                      <Badge className={getPriorityColor(task.priority)}>
+                        {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
+                      </Badge>
+                      <Badge className={getStatusColor(task.status)}>
+                        {getStatusLabel(task.status)}
+                      </Badge>
                     </div>
+                    {task.description ? (
+                      <p className="mb-1 text-sm text-muted-foreground">{task.description}</p>
+                    ) : null}
+                    {task.due_date ? (
+                      <p className="text-xs text-muted-foreground">
+                        Prazo: {format(new Date(task.due_date), "dd/MM/yyyy", { locale: ptBR })}
+                      </p>
+                    ) : null}
                   </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                </div>
+              </Card>
+            ))
+          )}
+        </div>
+
+        <TaskDialog
+          open={isDialogOpen}
+          onOpenChange={(open) => {
+            setIsDialogOpen(open);
+            if (!open) {
+              setEditingTask(null);
+            }
+          }}
+          task={editingTask ?? undefined}
+          onSave={handleSave}
+        />
       </div>
     </Layout>
   );
