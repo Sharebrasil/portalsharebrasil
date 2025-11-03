@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { GlobalSearch } from "@/components/search/GlobalSearch";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { UserFormDialog, type UserFormSubmitValues } from "@/components/admin/UserFormDialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -154,6 +155,8 @@ export function Header() {
           <span className="text-muted-foreground">São Paulo</span>
           <span className="text-foreground font-medium">24°C</span>
         </div>
+
+        <NotificationBell />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
