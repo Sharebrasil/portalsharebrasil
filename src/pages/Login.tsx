@@ -12,7 +12,7 @@ import { Loader2, Lock, Mail, Plane, Eye, EyeOff } from "lucide-react";
 const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { session, isLoading: authLoading, refreshRoles } = useAuth();
+  const { user, isLoading: authLoading, refreshRoles } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberEmail, setRememberEmail] = useState(false);
