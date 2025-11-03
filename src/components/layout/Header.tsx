@@ -14,7 +14,6 @@ import {
 import { GlobalSearch } from "@/components/search/GlobalSearch";
 import { UserFormDialog, type UserFormSubmitValues } from "@/components/admin/UserFormDialog";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useUserProfile } from "@/hooks/useUserProfile";
@@ -45,7 +44,7 @@ const getInitials = (input: string | null | undefined) => {
 export function Header() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, roles } = useAuth();
+  const { user, roles, signOut } = useAuth();
   const { isAdmin, isFinanceiroMaster, isGestorMaster } = useUserRole();
   const canAccessSalaryManagement = isAdmin || isFinanceiroMaster || isGestorMaster;
   const { profile } = useUserProfile(user);
@@ -115,24 +114,23 @@ export function Header() {
   );
 
   const handleLogout = useCallback(async () => {
-    const { error } = await supabase.auth.signOut();
+    try {
+      await signOut();
 
-    if (error) {
+      toast({
+        title: "Sessão encerrada",
+        description: "Você saiu do portal com sucesso.",
+      });
+
+      navigate("/login", { replace: true });
+    } catch (error) {
       toast({
         title: "Erro ao sair",
         description: "Não foi possível encerrar a sessão. Tente novamente.",
         variant: "destructive",
       });
-      return;
     }
-
-    toast({
-      title: "Sessão encerrada",
-      description: "Você saiu do portal com sucesso.",
-    });
-
-    navigate("/login", { replace: true });
-  }, [navigate, toast]);
+  }, [navigate, toast, signOut]);
 
   return (
     <header className="h-16 bg-gradient-card border-b border-border px-4 lg:px-6 flex items-center justify-between shadow-card">

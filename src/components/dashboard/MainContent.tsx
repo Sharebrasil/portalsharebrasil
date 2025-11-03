@@ -25,19 +25,45 @@ export function MainContent() {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
+      const assignedResult = await supabase
         .from("tasks")
         .select("*")
-        .or(`assigned_to.eq.${user.id},created_by.eq.${user.id}`)
+        .eq("assigned_to", user.id)
         .order("created_at", { ascending: false });
 
-      if (error) {
-        console.error("Erro ao carregar tarefas:", error);
-      } else {
-        setTasks(data || []);
+      const createdResult = await supabase
+        .from("tasks")
+        .select("*")
+        .eq("created_by", user.id)
+        .order("created_at", { ascending: false });
+
+      if (assignedResult.error) {
+        console.error("Erro ao carregar tarefas atribuídas:", assignedResult.error);
+        setTasks([]);
+        return;
       }
+
+      if (createdResult.error) {
+        console.error("Erro ao carregar tarefas criadas:", createdResult.error);
+        setTasks([]);
+        return;
+      }
+
+      const assignedTasks = assignedResult.data || [];
+      const createdTasks = createdResult.data || [];
+
+      const tasksMap = new Map();
+      [...assignedTasks, ...createdTasks].forEach(task => {
+        tasksMap.set(task.id, task);
+      });
+
+      const uniqueTasks = Array.from(tasksMap.values())
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+      setTasks(uniqueTasks);
     } catch (e) {
-      console.error(e);
+      console.error("Erro ao buscar tarefas:", e);
+      setTasks([]);
     }
   };
 

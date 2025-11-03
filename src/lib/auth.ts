@@ -1,6 +1,4 @@
-// Client-side auth now uses server endpoints. Do not import server-only modules here.
-
-const API_BASE = '/api/auth';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface User {
   id: string;
@@ -19,19 +17,33 @@ export interface AuthResponse {
 
 export async function signUp(email: string, password: string, fullName?: string): Promise<AuthResponse> {
   try {
-    const res = await fetch(`${API_BASE}/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, fullName }),
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: fullName,
+        },
+      },
     });
 
-    const data = await res.json();
-
-    if (!res.ok) {
-      return { user: null, token: null, error: data.error || 'Failed to create account' };
+    if (error) {
+      return { user: null, token: null, error: error.message };
     }
 
-    return { user: data.user || null, token: data.token || null, error: null };
+    if (!data.user) {
+      return { user: null, token: null, error: 'Failed to create account' };
+    }
+
+    const token = data.session?.access_token || null;
+    const user: User = {
+      id: data.user.id,
+      email: data.user.email || '',
+      full_name: fullName,
+      created_at: data.user.created_at,
+    };
+
+    return { user, token, error: null };
   } catch (error) {
     console.error('Sign up error:', error);
     return { user: null, token: null, error: 'Failed to create account' };
@@ -40,19 +52,27 @@ export async function signUp(email: string, password: string, fullName?: string)
 
 export async function signIn(email: string, password: string): Promise<AuthResponse> {
   try {
-    const res = await fetch(`${API_BASE}/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
     });
 
-    const data = await res.json();
-
-    if (!res.ok) {
-      return { user: null, token: null, error: data.error || 'Invalid credentials' };
+    if (error) {
+      return { user: null, token: null, error: error.message };
     }
 
-    return { user: data.user || null, token: data.token || null, error: null };
+    if (!data.user || !data.session) {
+      return { user: null, token: null, error: 'Invalid credentials' };
+    }
+
+    const user: User = {
+      id: data.user.id,
+      email: data.user.email || '',
+      full_name: data.user.user_metadata?.full_name,
+      created_at: data.user.created_at,
+    };
+
+    return { user, token: data.session.access_token, error: null };
   } catch (error) {
     console.error('Sign in error:', error);
     return { user: null, token: null, error: 'Failed to sign in' };
@@ -61,15 +81,18 @@ export async function signIn(email: string, password: string): Promise<AuthRespo
 
 export async function verifyToken(token: string): Promise<User | null> {
   try {
-    const res = await fetch(`${API_BASE}/verify`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-    });
+    const { data, error } = await supabase.auth.getUser(token);
 
-    if (!res.ok) return null;
+    if (error || !data.user) {
+      return null;
+    }
 
-    const data = await res.json();
-    return data.user || null;
+    return {
+      id: data.user.id,
+      email: data.user.email || '',
+      full_name: data.user.user_metadata?.full_name,
+      created_at: data.user.created_at,
+    };
   } catch (error) {
     console.error('Token verification error:', error);
     return null;
@@ -78,10 +101,22 @@ export async function verifyToken(token: string): Promise<User | null> {
 
 export async function getUserById(userId: string): Promise<User | null> {
   try {
-    const res = await fetch(`${API_BASE}/user?id=${encodeURIComponent(userId)}`);
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data.user || null;
+    const { data, error } = await supabase
+      .from('auth.users')
+      .select('id, email, user_metadata, created_at')
+      .eq('id', userId)
+      .single();
+
+    if (error || !data) {
+      return null;
+    }
+
+    return {
+      id: data.id,
+      email: data.email || '',
+      full_name: data.user_metadata?.full_name,
+      created_at: data.created_at,
+    };
   } catch (error) {
     console.error('Get user error:', error);
     return null;

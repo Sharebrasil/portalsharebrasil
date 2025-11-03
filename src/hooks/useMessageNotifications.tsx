@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase, isSupabaseConfigured } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -9,7 +9,7 @@ export const useMessageNotifications = () => {
   const { roles, user } = useAuth();
 
   useEffect(() => {
-    if (!isSupabaseConfigured || !user) return;
+    if (!user) return;
 
     // Prefer user from AuthContext, fallback to Supabase if available
     if (user) {
@@ -33,7 +33,7 @@ export const useMessageNotifications = () => {
   }, [user]);
 
   useEffect(() => {
-    if (!isSupabaseConfigured || !currentUserId) return;
+    if (!currentUserId) return;
 
     if (!supabase || typeof supabase.channel !== 'function') return;
 

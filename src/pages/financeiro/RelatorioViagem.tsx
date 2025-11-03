@@ -13,23 +13,8 @@ import { Plane, MapPin, Calendar, DollarSign, Plus, FileText, Download, Edit, Tr
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { generatePDF, CATEGORIAS_DESPESA, PAGADORES, formatDateBR, type TravelReport, type TravelExpense } from "@/lib/travelReportPDF";
+import { useClientes, useAeronaves, useTripulantes } from "@/hooks/useData";
 
-interface Client {
-  id: string;
-  company_name: string;
-}
-
-interface Aircraft {
-  id: string;
-  registration: string;
-  model: string;
-}
-
-interface CrewMember {
-  id: string;
-  full_name: string;
-  canac: string;
-}
 
 interface DBTravelReport {
   id: string;
@@ -61,10 +46,11 @@ export default function RelatorioViagem() {
   const [currentReport, setCurrentReport] = useState<DBTravelReport | null>(null);
   const [expenses, setExpenses] = useState<TravelExpense[]>([]);
   const [uploading, setUploading] = useState(false);
-  
-  const [clients, setClients] = useState<Client[]>([]);
-  const [aircraft, setAircraft] = useState<Aircraft[]>([]);
-  const [crewMembers, setCrewMembers] = useState<CrewMember[]>([]);
+
+  // Chamada dos hooks para buscar dados
+  const { clientes, isLoadingClientes } = useClientes();
+  const { aeronaves, isLoadingAeronaves } = useAeronaves();
+  const { tripulantes, isLoadingTripulantes } = useTripulantes();
   
   const [formData, setFormData] = useState({
     numero: "",
@@ -88,53 +74,7 @@ export default function RelatorioViagem() {
 
   useEffect(() => {
     loadReports();
-    loadClients();
-    loadAircraft();
-    loadCrewMembers();
   }, []);
-
-  const loadClients = async () => {
-    const { data, error } = await supabase
-      .from('clients')
-      .select('id, company_name')
-      .order('company_name');
-
-    if (error) {
-      toast.error('Erro ao carregar clientes');
-      return;
-    }
-
-    setClients(data || []);
-  };
-
-  const loadAircraft = async () => {
-    const { data, error } = await supabase
-      .from('aircraft')
-      .select('id, registration, model')
-      .order('registration');
-
-    if (error) {
-      toast.error('Erro ao carregar aeronaves');
-      return;
-    }
-
-    setAircraft(data || []);
-  };
-
-  const loadCrewMembers = async () => {
-    const { data, error } = await supabase
-      .from('crew_members')
-      .select('id, full_name, canac')
-      .eq('status', 'active')
-      .order('full_name');
-
-    if (error) {
-      toast.error('Erro ao carregar tripulantes');
-      return;
-    }
-
-    setCrewMembers(data || []);
-  };
 
   const loadReports = async () => {
     const { data, error } = await supabase
@@ -423,6 +363,19 @@ export default function RelatorioViagem() {
     return <Badge className="bg-yellow-100 text-yellow-800">Em andamento</Badge>;
   };
 
+  // Mostrar estado de carregamento
+  if (isLoadingClientes || isLoadingAeronaves || isLoadingTripulantes) {
+    return (
+      <Layout>
+        <div className="p-6 flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <p className="text-lg text-muted-foreground">Carregando dados necessários...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
       <div className="p-6 space-y-6">
@@ -462,12 +415,13 @@ export default function RelatorioViagem() {
                     <Select
                       value={formData.cliente}
                       onValueChange={(value) => setFormData({ ...formData, cliente: value })}
+                      disabled={isLoadingClientes}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Selecione o cliente" />
+                        <SelectValue placeholder={isLoadingClientes ? "Carregando..." : "Selecione o cliente"} />
                       </SelectTrigger>
                       <SelectContent>
-                        {clients.map(client => (
+                        {clientes.map(client => (
                           <SelectItem key={client.id} value={client.company_name}>
                             {client.company_name}
                           </SelectItem>
@@ -482,12 +436,13 @@ export default function RelatorioViagem() {
                     <Select
                       value={formData.aeronave}
                       onValueChange={(value) => setFormData({ ...formData, aeronave: value })}
+                      disabled={isLoadingAeronaves}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Selecione a aeronave" />
+                        <SelectValue placeholder={isLoadingAeronaves ? "Carregando..." : "Selecione a aeronave"} />
                       </SelectTrigger>
                       <SelectContent>
-                        {aircraft.map(ac => (
+                        {aeronaves.map(ac => (
                           <SelectItem key={ac.id} value={ac.registration}>
                             {ac.registration} - {ac.model}
                           </SelectItem>
@@ -511,12 +466,13 @@ export default function RelatorioViagem() {
                     <Select
                       value={formData.tripulante}
                       onValueChange={(value) => setFormData({ ...formData, tripulante: value })}
+                      disabled={isLoadingTripulantes}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Selecione o tripulante" />
+                        <SelectValue placeholder={isLoadingTripulantes ? "Carregando..." : "Selecione o tripulante"} />
                       </SelectTrigger>
                       <SelectContent>
-                        {crewMembers.map(crew => (
+                        {tripulantes.map(crew => (
                           <SelectItem key={crew.id} value={crew.full_name}>
                             {crew.full_name} - {crew.canac}
                           </SelectItem>
@@ -529,13 +485,14 @@ export default function RelatorioViagem() {
                     <Select
                       value={formData.tripulante2}
                       onValueChange={(value) => setFormData({ ...formData, tripulante2: value })}
+                      disabled={isLoadingTripulantes}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Selecione o tripulante" />
+                        <SelectValue placeholder={isLoadingTripulantes ? "Carregando..." : "Selecione o tripulante"} />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="">Nenhum</SelectItem>
-                        {crewMembers.map(crew => (
+                        {tripulantes.map(crew => (
                           <SelectItem key={crew.id} value={crew.full_name}>
                             {crew.full_name} - {crew.canac}
                           </SelectItem>
