@@ -20,10 +20,10 @@ const Login = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!authLoading && session) {
+    if (!authLoading && user) {
       navigate("/", { replace: true });
     }
-  }, [authLoading, navigate, session]);
+  }, [authLoading, navigate, user]);
 
   useEffect(() => {
     const savedEmail = localStorage.getItem("login_email");
