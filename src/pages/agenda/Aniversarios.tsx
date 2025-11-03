@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,48 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar, Cake, Plus, Edit, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useBirthdays } from "@/hooks/useBirthdays";
 import type { Database } from "@/integrations/supabase/types";
-import {
-  addYears,
-  differenceInCalendarDays,
-  format,
-  isSameMonth,
-  isValid,
-  parse,
-  parseISO,
-  setYear,
-  startOfDay,
-} from "date-fns";
 
 type BirthdayRow = Database["public"]["Tables"]["birthdays"]["Row"];
-
-type ProcessedBirthday = BirthdayRow & {
-  displayDate: string;
-  parsedDate: Date | null;
-  currentYearDate: Date | null;
-  nextOccurrence: Date | null;
-};
-
-const parseBirthdayDate = (value: string): Date | null => {
-  if (!value) return null;
-
-  const isoCandidate = parseISO(value);
-  if (isValid(isoCandidate)) {
-    return isoCandidate;
-  }
-
-  const parsedWithYear = parse(value, "dd/MM/yyyy", new Date());
-  if (isValid(parsedWithYear)) {
-    return parsedWithYear;
-  }
-
-  const parsedWithoutYear = parse(value, "dd/MM", new Date());
-  if (isValid(parsedWithoutYear)) {
-    return parsedWithoutYear;
-  }
-
-  return null;
-};
 
 const getBirthdayCategoryLabel = (category: string | null) => {
   switch (category) {
