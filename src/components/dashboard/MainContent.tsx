@@ -28,13 +28,13 @@ export function MainContent() {
       const assignedResult = await supabase
         .from("tasks")
         .select("*")
-        .match({ assigned_to: user.id })
+        .eq("assigned_to", user.id)
         .order("created_at", { ascending: false });
 
       const createdResult = await supabase
         .from("tasks")
         .select("*")
-        .match({ created_by: user.id })
+        .eq("created_by", user.id)
         .order("created_at", { ascending: false });
 
       if (assignedResult.error) {
