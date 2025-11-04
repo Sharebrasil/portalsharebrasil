@@ -105,13 +105,19 @@ export default function Agendamentos() {
 
         const { data, error } = await query;
         if (error) {
-          console.error("Query error details:", error);
-          throw error;
+          console.error("Query error details:", JSON.stringify(error, null, 2));
+          console.error("Error message:", error.message);
+          console.error("Error code:", error.code);
+          throw new Error(`${error.message} (${error.code})`);
         }
         console.log("Schedules loaded:", data);
         return data;
       } catch (error) {
         console.error("Error fetching schedules:", error);
+        if (error instanceof Error) {
+          console.error("Error stack:", error.stack);
+          throw new Error(error.message);
+        }
         throw error;
       }
     },
