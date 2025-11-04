@@ -539,13 +539,17 @@ const TravelReports = () => {
 
     // Finalização: gerar PDF antes de persistir
     setCurrentReport(updatedReport);
-    // Garantir número do relatório antes do PDF
+    // Garantir número REAL do relatório antes do PDF (não rascunho_*)
     try {
-      if (!updatedReport.numero && updatedReport.cliente) {
-        updatedReport.numero = await allocateReportNumber(updatedReport.cliente);
+      if (!updatedReport.numero || updatedReport.numero.startsWith('rascunho_')) {
+        if (updatedReport.cliente) {
+          updatedReport.numero = await allocateReportNumber(updatedReport.cliente);
+        }
       }
     } catch {
-      if (!updatedReport.numero) updatedReport.numero = generateReportNumberLocal(updatedReport.cliente);
+      if (!updatedReport.numero || updatedReport.numero.startsWith('rascunho_')) {
+        updatedReport.numero = generateReportNumberLocal(updatedReport.cliente);
+      }
     }
 
     const pdfBlob = await generatePDF(updatedReport, { download: false });
@@ -587,8 +591,21 @@ const TravelReports = () => {
     const dbStatus = 'submitted';
     try {
       const { data: { user } } = await supabase.auth.getUser();
+
+      // Garantir que numero NUNCA é null ou rascunho_ antes de persistir
+      let finalNumber = updatedReport.numero;
+      if (!finalNumber || finalNumber.startsWith('rascunho_')) {
+        try {
+          if (updatedReport.cliente) {
+            finalNumber = await allocateReportNumber(updatedReport.cliente);
+          }
+        } catch {
+          finalNumber = generateReportNumberLocal(updatedReport.cliente);
+        }
+      }
+
       const payload: any = {
-        report_number: updatedReport.numero || null,
+        report_number: finalNumber,
         client_name: updatedReport.cliente || null,
         aircraft_registration: updatedReport.aeronave || null,
         crew_member_name: updatedReport.tripulante || null,
@@ -624,7 +641,7 @@ const TravelReports = () => {
       }
 
       if (dbRow) {
-        updatedReport.numero = dbRow.report_number || updatedReport.numero || '';
+        updatedReport.numero = dbRow.report_number || finalNumber || '';
         updatedReport.db_id = dbRow.id;
       }
 
@@ -635,7 +652,7 @@ const TravelReports = () => {
             .from('travel_report_history')
             .insert({
               report_id: updatedReport.db_id || null,
-              numero_relatorio: updatedReport.numero,
+              numero_relatorio: finalNumber || updatedReport.numero,
               cliente: updatedReport.cliente,
               pdf_path: pdfPath,
               metadata: {
