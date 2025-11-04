@@ -137,6 +137,7 @@ export default function Clientes() {
       const mapped: Cliente[] = ((data as any[]) || []).map((row: any) => ({
         ...row,
         aircraft: row.aircraft ? `${row.aircraft.registration} - ${row.aircraft.model}` : undefined,
+        aircraft_ownerships: row.aircraft_ownerships || [],
       }));
       setClientes(mapped);
     } catch (error) {
