@@ -303,65 +303,53 @@ const TravelReports = () => {
   };
 
   // Gerar número sequencial local (fallback) com sufixo do ano e reset anual por cliente
+  // Formato: ABC001/2025 (3 letras do cliente + número sequencial + ano)
   const generateReportNumberLocal = (cliente) => {
-    const yy = String(new Date().getFullYear()).slice(-2);
-    if (!cliente) return `REL001/${yy}`;
+    const yyyy = String(new Date().getFullYear());
+    if (!cliente) return `XXX001/${yyyy}`;
+
+    // Extrair 3 primeiras letras do cliente (maiúsculas)
+    const clienteLetras = cliente.substring(0, 3).toUpperCase().padEnd(3, 'X');
+
+    // Encontrar o número máximo para este cliente no ano atual
     const maxNumber = (reports || [])
       .filter((report:any) => report.cliente === cliente)
       .reduce((max:number, report:any) => {
         const raw = String(report.numero || '');
-        const yearSuffix = (raw.match(/\/(\d{2})\b/) || [null, null])[1];
+        const yearSuffix = (raw.match(/\/(\d{4})\b/) || [null, null])[1];
         const createdYear = (()=>{ try { return String(report.createdAt || '').slice(0,4); } catch { return null; } })();
-        const isSameYear = yearSuffix ? (yearSuffix === yy) : (createdYear === String(new Date().getFullYear()));
+        const isSameYear = yearSuffix ? (yearSuffix === yyyy) : (createdYear === yyyy);
         if (!isSameYear) return max;
-        const match = raw.match(/REL\s*(\d+)/i);
+        const match = raw.match(/\d+/);
         if (match) {
-          const num = parseInt(match[1]);
+          const num = parseInt(match[0]);
           return num > max ? num : max;
         }
         return max;
       }, 0);
-    return `REL${String(maxNumber + 1).padStart(3, '0')}/${yy}`;
+
+    return `${clienteLetras}${String(maxNumber + 1).padStart(3, '0')}/${yyyy}`;
   };
 
-  // Buscar próximo número no banco/histórico e garantir unicidade por cliente e ano
+  // Usar a função RPC generate_travel_report_number do banco
   const allocateReportNumber = async (cliente: string) => {
-    const yy = String(new Date().getFullYear()).slice(-2);
     try {
-      try {
-        const rpcRes: any = await (supabase as any).rpc('generate_report_number', { p_cliente: cliente, p_year: yy });
-        if (!rpcRes?.error && rpcRes?.data) return rpcRes.data as string;
-      } catch {}
-      let max = 0;
-      try {
-        const { data: rows } = await (supabase as any)
-          .from('travel_reports')
-          .select('report_number, client_name')
-          .eq('client_name', cliente);
-        (rows || []).forEach((r:any)=>{
-          const raw = String(r?.report_number || '');
-          const yearSuffix = (raw.match(/\/(\d{2})\b/) || [null, null])[1];
-          if (yearSuffix && yearSuffix !== yy) return;
-          const m = raw.match(/REL\s*(\d+)/i);
-          if (m) max = Math.max(max, parseInt(m[1]));
-        });
-      } catch {}
-      try {
-        const { data: hist } = await (supabase as any)
-          .from('travel_report_history')
-          .select('numero_relatorio, cliente')
-          .eq('cliente', cliente);
-        (hist || []).forEach((h:any)=>{
-          const raw = String(h?.numero_relatorio || '');
-          const yearSuffix = (raw.match(/\/(\d{2})\b/) || [null, null])[1];
-          if (yearSuffix && yearSuffix !== yy) return;
-          const m = raw.match(/REL\s*(\d+)/i);
-          if (m) max = Math.max(max, parseInt(m[1]));
-        });
-      } catch {}
-      const next = `REL${String(max + 1).padStart(3, '0')}/${yy}`;
-      return next;
-    } catch {
+      const { data, error } = await (supabase as any).rpc('generate_travel_report_number', {
+        p_client_name: cliente
+      });
+
+      if (error) {
+        console.error('Erro ao gerar número via RPC:', error);
+        return generateReportNumberLocal(cliente);
+      }
+
+      if (data) {
+        return data as string;
+      }
+
+      return generateReportNumberLocal(cliente);
+    } catch (e) {
+      console.error('Erro ao chamar RPC generate_travel_report_number:', e);
       return generateReportNumberLocal(cliente);
     }
   };
@@ -539,13 +527,17 @@ const TravelReports = () => {
 
     // Finalização: gerar PDF antes de persistir
     setCurrentReport(updatedReport);
-    // Garantir número do relatório antes do PDF
+    // Garantir número REAL do relatório antes do PDF (não rascunho_*)
     try {
-      if (!updatedReport.numero && updatedReport.cliente) {
-        updatedReport.numero = await allocateReportNumber(updatedReport.cliente);
+      if (!updatedReport.numero || updatedReport.numero.startsWith('rascunho_')) {
+        if (updatedReport.cliente) {
+          updatedReport.numero = await allocateReportNumber(updatedReport.cliente);
+        }
       }
     } catch {
-      if (!updatedReport.numero) updatedReport.numero = generateReportNumberLocal(updatedReport.cliente);
+      if (!updatedReport.numero || updatedReport.numero.startsWith('rascunho_')) {
+        updatedReport.numero = generateReportNumberLocal(updatedReport.cliente);
+      }
     }
 
     const pdfBlob = await generatePDF(updatedReport, { download: false });
@@ -587,19 +579,38 @@ const TravelReports = () => {
     const dbStatus = 'submitted';
     try {
       const { data: { user } } = await supabase.auth.getUser();
+
+      // Garantir que numero NUNCA é null ou rascunho_ antes de persistir
+      let finalNumber = updatedReport.numero;
+      if (!finalNumber || finalNumber.startsWith('rascunho_')) {
+        try {
+          if (updatedReport.cliente) {
+            finalNumber = await allocateReportNumber(updatedReport.cliente);
+          }
+        } catch {
+          finalNumber = generateReportNumberLocal(updatedReport.cliente);
+        }
+      }
+
       const payload: any = {
-        report_number: updatedReport.numero || null,
-        client_name: updatedReport.cliente || null,
-        aircraft_registration: updatedReport.aeronave || null,
-        crew_member_name: updatedReport.tripulante || null,
-        crew_member_name_2: updatedReport.tripulante2 || null,
-        destination: updatedReport.destino,
-        start_date: updatedReport.data_inicio,
-        end_date: updatedReport.data_fim || null,
-        observations: updatedReport.observacoes || null,
-        status: dbStatus,
-        total_amount: Number(updatedReport.valor_total || 0),
-        pdf_url: null,
+        numero: finalNumber,
+        cliente: updatedReport.cliente || '',
+        aeronave: updatedReport.aeronave || '',
+        tripulante: updatedReport.tripulante || '',
+        tripulante2: updatedReport.tripulante2 || null,
+        destino: updatedReport.destino || '',
+        data_inicio: updatedReport.data_inicio || '',
+        data_fim: updatedReport.data_fim || null,
+        observacoes: updatedReport.observacoes || null,
+        valor_total: Number(updatedReport.valor_total || 0),
+        total_combustivel: Number(updatedReport.total_combustivel || 0),
+        total_hospedagem: Number(updatedReport.total_hospedagem || 0),
+        total_alimentacao: Number(updatedReport.total_alimentacao || 0),
+        total_transporte: Number(updatedReport.total_transporte || 0),
+        total_outros: Number(updatedReport.total_outros || 0),
+        total_tripulante: Number(updatedReport.total_tripulante || 0),
+        total_cliente: Number(updatedReport.total_cliente || 0),
+        total_share_brasil: Number(updatedReport.total_share_brasil || 0),
         created_by: user?.id || null,
       };
 
@@ -624,7 +635,7 @@ const TravelReports = () => {
       }
 
       if (dbRow) {
-        updatedReport.numero = dbRow.report_number || updatedReport.numero || '';
+        updatedReport.numero = dbRow.report_number || finalNumber || '';
         updatedReport.db_id = dbRow.id;
       }
 
@@ -635,7 +646,7 @@ const TravelReports = () => {
             .from('travel_report_history')
             .insert({
               report_id: updatedReport.db_id || null,
-              numero_relatorio: updatedReport.numero,
+              numero_relatorio: finalNumber || updatedReport.numero,
               cliente: updatedReport.cliente,
               pdf_path: pdfPath,
               metadata: {
@@ -1246,9 +1257,9 @@ const TravelReports = () => {
   if (isCreating && currentReport) {
     // Conteúdo de criação/edição do relatório
     return (
-      <Layout showRightSidebar={false}>
-        <div className="p-4 space-y-4">
-        <div className="flex items-center space-x-2 border-b pb-4 mb-4" style={{ backgroundColor: 'rgba(99, 236, 216, 0.25)' }}>
+      <Layout showRightSidebar={true}>
+        <div className="p-4 space-y-4 bg-gray-950 min-h-screen">
+        <div className="flex items-center space-x-2 border-b pb-4 mb-4 bg-gray-900" style={{ backgroundColor: 'rgba(99, 236, 216, 0.15)' }}>
           <button onClick={() => { setIsCreating(false); setCurrentReport(null); }} className="p-2 rounded-full hover:bg-gray-100">
             <ArrowLeft size={24} />
           </button>
@@ -1268,10 +1279,10 @@ const TravelReports = () => {
 
         <div className="space-y-4">
           
-          <h2 className="text-lg font-semibold border-b pb-2 flex items-center"><Folder size={18} className="mr-2 text-blue-600" /> Informações da Viagem</h2>
+          <h2 className="text-lg font-semibold border-b pb-2 flex items-center text-gray-100 border-gray-700"><Folder size={18} className="mr-2 text-blue-400" /> Informações da Viagem</h2>
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col">
-              <label className="text-sm font-medium mb-1">Cliente *</label>
+              <label className="text-sm font-medium mb-1 text-gray-200">Cliente *</label>
               <Select 
                 value={currentReport.cliente || ''} 
                 onValueChange={(value) => {
@@ -1293,7 +1304,7 @@ const TravelReports = () => {
               </Select>
             </div>
             <div className="flex flex-col">
-              <label className="text-sm font-medium mb-1">Aeronave *</label>
+              <label className="text-sm font-medium mb-1 text-gray-200">Aeronave *</label>
               <Select 
                 value={currentReport.aeronave || ''} 
                 onValueChange={(value) => handleInputChange('aeronave', value)}
@@ -1310,7 +1321,7 @@ const TravelReports = () => {
             </div>
             <div className="flex flex-col">
               <div className="flex items-center justify-between mb-1">
-                <label className="text-sm font-medium">Tripulante *</label>
+                <label className="text-sm font-medium text-gray-200">Tripulante *</label>
                 {!showSecondTripulante && (
                   <button
                     type="button"
@@ -1348,13 +1359,13 @@ const TravelReports = () => {
             </div>
             {isOutroTripulante || !tripulanteSelectValue ? (
               <div className="flex flex-col">
-                <label className="text-sm font-medium mb-1">Nome do Tripulante *</label>
+                <label className="text-sm font-medium mb-1 text-gray-200">Nome do Tripulante *</label>
                 <input
                   type="text"
                   value={currentReport.tripulante || ''}
                   onChange={(e) => handleInputChange('tripulante', e.target.value)}
                   placeholder="Digite o nome completo"
-                  className="p-2 border rounded-md"
+                  className="p-2 border rounded-md bg-gray-800 border-gray-600 text-gray-100 placeholder-gray-500"
                 />
               </div>
             ) : null}
@@ -1362,7 +1373,7 @@ const TravelReports = () => {
             {showSecondTripulante && (
               <div className="flex flex-col">
                 <div className="flex items-center justify-between mb-1">
-                  <label className="text-sm font-medium">Tripulante 2</label>
+                  <label className="text-sm font-medium text-gray-200">Tripulante 2</label>
                 </div>
                 <Select
                   value={tripulante2SelectValue}
@@ -1390,72 +1401,72 @@ const TravelReports = () => {
             )}
             {showSecondTripulante && (isOutroTripulante2 || !tripulante2SelectValue) ? (
               <div className="flex flex-col">
-                <label className="text-sm font-medium mb-1">Nome do Tripulante 2</label>
+                <label className="text-sm font-medium mb-1 text-gray-200">Nome do Tripulante 2</label>
                 <input
                   type="text"
                   value={currentReport.tripulante2 || ''}
                   onChange={(e) => handleInputChange('tripulante2', e.target.value)}
                   placeholder="Digite o nome completo"
-                  className="p-2 border rounded-md"
+                  className="p-2 border rounded-md bg-gray-800 border-gray-600 text-gray-100 placeholder-gray-500"
                 />
               </div>
             ) : null}
 
             <div className="flex flex-col">
-              <label className="text-sm font-medium mb-1">Trecho *</label>
+              <label className="text-sm font-medium mb-1 text-gray-200">Trecho *</label>
               <input
                 type="text"
                 value={currentReport.destino || ''}
                 onChange={(e) => handleInputChange('destino', e.target.value)}
                 placeholder="Cidade/País"
-                className="p-2 border rounded-md"
+                className="p-2 border rounded-md bg-gray-800 border-gray-600 text-gray-100 placeholder-gray-500"
               />
             </div>
             <div className="flex flex-col">
-              <label className="text-sm font-medium mb-1">Data Início *</label>
+              <label className="text-sm font-medium mb-1 text-gray-200">Data Início *</label>
               <input
                 type="date"
                 value={currentReport.data_inicio || ''}
                 onChange={(e) => handleInputChange('data_inicio', e.target.value)}
-                className="p-2 border rounded-md"
+                className="p-2 border rounded-md bg-gray-800 border-gray-600 text-gray-100 placeholder-gray-500"
               />
             </div>
             <div className="flex flex-col">
-              <label className="text-sm font-medium mb-1">Data Fim</label>
+              <label className="text-sm font-medium mb-1 text-gray-200">Data Fim</label>
               <input
                 type="date"
                 value={currentReport.data_fim || ''}
                 onChange={(e) => handleInputChange('data_fim', e.target.value)}
-                className="p-2 border rounded-md"
+                className="p-2 border rounded-md bg-gray-800 border-gray-600 text-gray-100 placeholder-gray-500"
               />
             </div>
             <div className="col-span-2 flex flex-col">
-              <label className="text-sm font-medium mb-1">Observações</label>
+              <label className="text-sm font-medium mb-1 text-gray-200">Observações</label>
               <textarea
                 value={currentReport.observacoes || ''}
                 onChange={(e) => handleInputChange('observacoes', e.target.value)}
                 placeholder="Notas ou informações adicionais sobre a viagem"
-                className="p-2 border rounded-md h-20"
+                className="p-2 border rounded-md h-20 bg-gray-800 border-gray-600 text-gray-100 placeholder-gray-500"
               />
             </div>
           </div>
 
-          <h2 className="text-lg font-semibold border-b pb-2 pt-4 flex items-center"><DollarSign size={18} className="mr-2 text-green-600" /> Despesas ({currentReport.despesas.length})</h2>
+          <h2 className="text-lg font-semibold border-b pb-2 pt-4 flex items-center text-gray-100 border-gray-700"><DollarSign size={18} className="mr-2 text-green-500" /> Despesas ({currentReport.despesas.length})</h2>
           
           <div className="space-y-4">
             {currentReport.despesas.map((despesa, index) => (
-              <div key={index} className="border p-4 rounded-lg bg-gray-50 relative">
+              <div key={index} className="border p-4 rounded-lg bg-gray-900 relative">
                 <div className="absolute top-2 right-2 flex space-x-2">
-                  <button onClick={() => removeDespesa(index)} className="p-1 rounded-full text-red-500 hover:bg-red-100">
+                  <button onClick={() => removeDespesa(index)} className="p-1 rounded-full text-red-500 hover:bg-red-900">
                     <Trash2 size={18} />
                   </button>
                 </div>
                 
-                <h3 className="text-md font-medium mb-3 text-blue-800">Despesa #{index + 1}</h3>
+                <h3 className="text-md font-medium mb-3 text-blue-200">Despesa #{index + 1}</h3>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                   <div className="flex flex-col">
-                    <label className="text-xs font-medium mb-1">Categoria</label>
+                    <label className="text-xs font-medium mb-1 text-gray-200">Categoria</label>
                     <Select 
                       value={despesa.categoria || ''} 
                       onValueChange={(value) => handleDespesaChange(index, 'categoria', value)}
@@ -1471,17 +1482,17 @@ const TravelReports = () => {
                     </Select>
                   </div>
                   <div className="flex flex-col">
-                    <label className="text-xs font-medium mb-1">Valor (R$)</label>
+                    <label className="text-xs font-medium mb-1 text-gray-200">Valor (R$)</label>
                     <input
                       type="number"
                       value={despesa.valor || ''}
                       onChange={(e) => handleDespesaChange(index, 'valor', e.target.value)}
                       placeholder="0.00"
-                      className="p-2 border rounded-md text-sm"
+                      className="p-2 border rounded-md text-sm bg-gray-800 border-gray-600 text-gray-100 placeholder-gray-500"
                     />
                   </div>
                   <div className="flex flex-col">
-                    <label className="text-xs font-medium mb-1">Pago Por</label>
+                    <label className="text-xs font-medium mb-1 text-gray-200">Pago Por</label>
                     <Select 
                       value={despesa.pago_por || ''} 
                       onValueChange={(value) => handleDespesaChange(index, 'pago_por', value)}
@@ -1498,7 +1509,7 @@ const TravelReports = () => {
                   </div>
                   <div className="flex flex-col">
                     <label className="text-xs font-medium mb-1">Comprovante</label>
-                    <label className={`flex items-center justify-center p-2 border rounded-md cursor-pointer text-sm ${despesa.comprovante_url ? 'bg-green-100 border-green-400 text-green-700' : 'bg-white border-gray-300 hover:bg-gray-100'}`}>
+                    <label className={`flex items-center justify-center p-2 border rounded-md cursor-pointer text-sm ${despesa.comprovante_url ? 'bg-green-900 border-green-600 text-green-300' : 'bg-gray-800 border-gray-600 hover:bg-gray-700'}`}>
                       {uploadingIndex === index ? (
                         <span>Carregando...</span>
                       ) : (
@@ -1517,20 +1528,20 @@ const TravelReports = () => {
                   </div>
                 </div>
                 <div className="flex flex-col">
-                  <label className="text-xs font-medium mb-1">Descrição</label>
+                  <label className="text-xs font-medium mb-1 text-gray-200">Descrição</label>
                   <input
                     type="text"
                     value={despesa.descricao || ''}
                     onChange={(e) => handleDespesaChange(index, 'descricao', e.target.value)}
                     placeholder="Breve descrição da despesa"
-                    className="p-2 border rounded-md text-sm"
+                    className="p-2 border rounded-md text-sm bg-gray-800 border-gray-600 text-gray-100 placeholder-gray-500"
                   />
                 </div>
               </div>
             ))}
           </div>
           
-          <button onClick={addDespesa} className="w-full flex items-center justify-center space-x-2 p-2 border-2 border-dashed border-gray-300 text-gray-600 rounded-md hover:border-blue-400 hover:text-blue-600 transition">
+          <button onClick={addDespesa} className="w-full flex items-center justify-center space-x-2 p-2 border-2 border-dashed border-gray-600 text-gray-400 rounded-md hover:border-blue-400 hover:text-blue-400 transition">
             <Plus size={20} />
             <span>Adicionar Despesa</span>
           </button>
@@ -1544,31 +1555,31 @@ const TravelReports = () => {
             <span>Finalizar</span>
           </button>
 
-          <h2 className="text-lg font-semibold border-b pb-2 pt-4 flex items-center"><Clock size={18} className="mr-2 text-red-600" /> Resumo e Totais</h2>
+          <h2 className="text-lg font-semibold border-b pb-2 pt-4 flex items-center text-gray-100 border-gray-700"><Clock size={18} className="mr-2 text-red-500" /> Resumo e Totais</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="border p-4 rounded-lg bg-white shadow-sm">
-              <h3 className="text-md font-bold mb-2 text-blue-800">Totais por Categoria</h3>
-              <div className="space-y-1 text-sm">
+            <div className="border p-4 rounded-lg bg-gray-900 shadow-sm border-gray-700">
+              <h3 className="text-md font-bold mb-2 text-blue-300">Totais por Categoria</h3>
+              <div className="space-y-1 text-sm text-gray-200">
                 <div className="flex justify-between"><span>Combustível:</span> <span className="font-semibold">R$ {currentReport.total_combustivel.toFixed(2).replace('.', ',')}</span></div>
                 <div className="flex justify-between"><span>Hospedagem:</span> <span className="font-semibold">R$ {currentReport.total_hospedagem.toFixed(2).replace('.', ',')}</span></div>
                 <div className="flex justify-between"><span>Alimentação:</span> <span className="font-semibold">R$ {currentReport.total_alimentacao.toFixed(2).replace('.', ',')}</span></div>
                 <div className="flex justify-between"><span>Transporte:</span> <span className="font-semibold">R$ {currentReport.total_transporte.toFixed(2).replace('.', ',')}</span></div>
                 <div className="flex justify-between"><span>Outros:</span> <span className="font-semibold">R$ {currentReport.total_outros.toFixed(2).replace('.', ',')}</span></div>
-                <div className="flex justify-between pt-2 border-t font-bold text-lg text-green-600"><span>TOTAL GERAL:</span> <span>R$ {currentReport.valor_total.toFixed(2).replace('.', ',')}</span></div>
+                <div className="flex justify-between pt-2 border-t border-gray-700 font-bold text-lg text-green-400"><span>TOTAL GERAL:</span> <span>R$ {currentReport.valor_total.toFixed(2).replace('.', ',')}</span></div>
               </div>
             </div>
-            <div className="border p-4 rounded-lg bg-white shadow-sm">
-              <h3 className="text-md font-bold mb-2 text-blue-800">Totais por Pagador</h3>
-              <div className="space-y-1 text-sm">
+            <div className="border p-4 rounded-lg bg-gray-900 shadow-sm border-gray-700">
+              <h3 className="text-md font-bold mb-2 text-blue-300">Totais por Pagador</h3>
+              <div className="space-y-1 text-sm text-gray-200">
                 <div className="flex justify-between"><span>Tripulante:</span> <span className="font-semibold">R$ {currentReport.total_tripulante.toFixed(2).replace('.', ',')}</span></div>
                 <div className="flex justify-between"><span>Cliente:</span> <span className="font-semibold">R$ {currentReport.total_cliente.toFixed(2).replace('.', ',')}</span></div>
                 <div className="flex justify-between"><span>ShareBrasil:</span> <span className="font-semibold">R$ {currentReport.total_share_brasil.toFixed(2).replace('.', ',')}</span></div>
-                <div className="flex justify-between pt-2 border-t font-bold text-lg text-green-600"><span>TOTAL GERAL:</span> <span>R$ {currentReport.valor_total.toFixed(2).replace('.', ',')}</span></div>
+                <div className="flex justify-between pt-2 border-t border-gray-700 font-bold text-lg text-green-400"><span>TOTAL GERAL:</span> <span>R$ {currentReport.valor_total.toFixed(2).replace('.', ',')}</span></div>
               </div>
             </div>
           </div>
 
-          <div className="flex justify-end space-x-4 border-t pt-4">
+          <div className="flex justify-end space-x-4 border-t border-gray-700 pt-4">
             <button onClick={() => saveReport('draft')} disabled={isGeneratingPdf} className="flex items-center space-x-1 p-2 bg-yellow-400 text-white rounded-md hover:bg-yellow-500 disabled:opacity-50">
               <Save size={20} />
               <span>Salvar Rascunho</span>

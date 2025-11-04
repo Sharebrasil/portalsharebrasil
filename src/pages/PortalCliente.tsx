@@ -103,11 +103,14 @@ export default function PortalCliente() {
       // Buscar clientes sem selects relacionais (evita 400 quando relação/schema falha)
       const { data, error } = await supabase
         .from('clients')
-        .select('*')
+        .select('id, company_name, share_percentage, aircraft_id, status, phone, email, city, address')
         .eq('status', 'ativo')
         .not('aircraft_id', 'is', null);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Detalhes do erro:', error);
+        throw error;
+      }
 
       const rows = (data as any[]) || [];
 
@@ -138,7 +141,8 @@ export default function PortalCliente() {
 
       setClients(mapped);
     } catch (error) {
-      console.error('Error loading clients:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('Error loading clients:', errorMessage, error);
       toast.error('Erro ao carregar clientes');
     } finally {
       setLoading(false);

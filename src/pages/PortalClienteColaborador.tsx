@@ -100,27 +100,49 @@ export default function PortalCliente() {
   const loadClients = async () => {
     try {
       setLoading(true);
+      // Buscar clientes sem selects relacionais (evita 400 quando relação/schema falha)
       const { data, error } = await supabase
         .from('clients')
-        .select(`
-          id,
-          company_name,
-          share_percentage,
-          aircraft_id,
-          aircraft:aircraft_id (
-            id,
-            registration,
-            manufacturer,
-            model,
-            year
-          )
-        `)
+        .select('id, company_name, share_percentage, aircraft_id, status, phone, email, city, address')
+        .eq('status', 'ativo')
         .not('aircraft_id', 'is', null);
 
-      if (error) throw error;
-      setClients(data || []);
+      if (error) {
+        console.error('Detalhes do erro:', error);
+        throw error;
+      }
+
+      const rows = (data as any[]) || [];
+
+      // Buscar aeronaves em batch para montar o campo 'aircraft'
+      const aircraftIds = Array.from(new Set(rows.map(r => r.aircraft_id).filter(Boolean)));
+      let aircraftMap: Record<string, any> = {};
+
+      if (aircraftIds.length > 0) {
+        const { data: aircraftData, error: aircraftError } = await supabase
+          .from('aircraft')
+          .select('id, registration, manufacturer, model, year')
+          .in('id', aircraftIds as string[]);
+
+        if (!aircraftError && Array.isArray(aircraftData)) {
+          aircraftData.forEach((a: any) => {
+            aircraftMap[a.id] = a;
+          });
+        }
+      }
+
+      const mapped: Client[] = rows.map((r: any) => ({
+        id: r.id,
+        company_name: r.company_name,
+        share_percentage: r.share_percentage,
+        aircraft_id: r.aircraft_id,
+        aircraft: r.aircraft_id ? aircraftMap[r.aircraft_id] : undefined,
+      }));
+
+      setClients(mapped);
     } catch (error) {
-      console.error('Error loading clients:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('Error loading clients:', errorMessage, error);
       toast.error('Erro ao carregar clientes');
     } finally {
       setLoading(false);
