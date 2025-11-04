@@ -1268,7 +1268,7 @@ const TravelReports = () => {
 
         <div className="space-y-4">
           
-          <h2 className="text-lg font-semibold border-b pb-2 flex items-center"><Folder size={18} className="mr-2 text-blue-600" /> Informações da Viagem</h2>
+          <h2 className="text-lg font-semibold border-b pb-2 flex items-center text-gray-100 border-gray-700"><Folder size={18} className="mr-2 text-blue-400" /> Informações da Viagem</h2>
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col">
               <label className="text-sm font-medium mb-1 text-gray-200">Cliente *</label>
