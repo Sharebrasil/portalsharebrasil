@@ -16,7 +16,11 @@ import {
 } from "@/components/ui/alert-dialog";
 
 export function UsersList() {
-  const { data: users, isLoading } = useQuery({
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+
+  const { data: users, isLoading, refetch } = useQuery({
     queryKey: ["users"],
     queryFn: async () => {
       const { data, error } = await supabase.functions.invoke("list-users");
@@ -24,6 +28,43 @@ export function UsersList() {
       return data.users || [];
     },
   });
+
+  const handleDeleteUser = async () => {
+    if (!selectedUser) return;
+
+    try {
+      setDeletingUserId(selectedUser.id);
+      const { error } = await supabase.auth.admin.deleteUser(selectedUser.id);
+
+      if (error) throw error;
+
+      toast.success(`Usuário ${selectedUser.email} removido com sucesso`);
+      setShowDeleteDialog(false);
+      setSelectedUser(null);
+      await refetch();
+    } catch (error) {
+      console.error("Erro ao deletar usuário:", error);
+      toast.error("Erro ao remover usuário");
+    } finally {
+      setDeletingUserId(null);
+    }
+  };
+
+  const handleDeactivateUser = async (user: any) => {
+    try {
+      const { error } = await supabase.auth.admin.updateUserById(user.id, {
+        user_metadata: { status: "inactive" },
+      });
+
+      if (error) throw error;
+
+      toast.success(`Usuário ${user.email} desativado com sucesso`);
+      await refetch();
+    } catch (error) {
+      console.error("Erro ao desativar usuário:", error);
+      toast.error("Erro ao desativar usuário");
+    }
+  };
 
   if (isLoading) {
     return (
