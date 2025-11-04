@@ -138,6 +138,19 @@ export default function DiarioBordoDetalhes() {
     },
   });
 
+  const { data: allAircraft } = useQuery({
+    queryKey: ['aircraft-list'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('aircraft')
+        .select('id, registration, model, fuel_consumption')
+        .order('registration');
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const { data: company } = useQuery({
     queryKey: ['company-settings-latest'],
     queryFn: async () => {
