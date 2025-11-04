@@ -110,9 +110,33 @@ const GestaoSalarios = () => {
       queryClient.invalidateQueries({ queryKey: ["salaries"] });
       toast.success("Salário salvo com sucesso!");
       setEditingSalaryId(null);
+      setIsSalaryDialogOpen(false);
+      setSalaryForm({
+        user_id: "",
+        position: "",
+        department: "",
+        gross_salary: "",
+        net_salary: "",
+        benefits: "",
+      });
     },
     onError: () => {
       toast.error("Erro ao salvar salário");
+    },
+  });
+
+  const deleteSalaryMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("salaries").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["salaries"] });
+      toast.success("Salário deletado com sucesso!");
+      setDeleteId(null);
+    },
+    onError: () => {
+      toast.error("Erro ao deletar salário");
     },
   });
 
@@ -375,7 +399,7 @@ const GestaoSalarios = () => {
                                 </div>
                               </div>
                               <div>
-                                <Label>Observações</Label>
+                                <Label>Observa��ões</Label>
                                 <Textarea defaultValue={payment.observations || ""} />
                               </div>
                             </div>
