@@ -1,22 +1,17 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ChevronLeft, Save, Send, FileText, Download, MessageCircle, Plus, Trash2, Calendar, MapPin, DollarSign, Clock, Plane, Receipt, Upload, ArrowLeft, Folder, Eye, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-// Layout Web
 import { Layout } from '@/components/layout/Layout'; 
 import { supabase } from '@/integrations/supabase/client';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import html2pdf from 'html2pdf.js';
-
-// Componentes do seu Design System (baseado no código original)
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-
-// --- FUNÇÕES UTILITÁRIAS EXTERNAS (PARA USO INTERNO) ---
 
 const toFolder = (s: string) => (s || 'sem_cliente')
     .normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
@@ -45,10 +40,7 @@ const formatCurrencyBR = (value: number | string) => {
     return num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
-// Placeholder para a Logo da sua empresa (ajuste o caminho)
 const SHAREBRASIL_LOGO = 'https://sharebrasil.com/logo.png'; 
-
-// --- COMPONENTES AUXILIARES DE VISUALIZAÇÃO WEB (ReportFormUI CORRIGIDO) ---
 
 const ReportFormUI = ({ currentReport, handleInputChange, handleDespesaChange, addDespesa, removeDespesa, handleFileUpload, calculateDays, CATEGORIAS_DESPESA, PAGADORES, uploadingIndex, cliente, aeronaves, uniqueTripulantes, showSecondTripulante, setShowSecondTripulante, deleteCreatedReport }) => {
     if (!currentReport) return <p className="text-center text-gray-500 mt-10 p-6">Selecione um rascunho ou clique em "+ Novo Relatório" para começar.</p>;
@@ -70,7 +62,6 @@ const ReportFormUI = ({ currentReport, handleInputChange, handleDespesaChange, a
                     {isFinalized && <CardDescription className="text-red-500">Este relatório está finalizado e não pode ser editado. Exclua para recriar.</CardDescription>}
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Linha 1: Cliente e Aeronave */}
                     <div className="space-y-2">
                         <Label htmlFor="cliente">Cliente *</Label>
                         <Select onValueChange={(v) => handleInputChange('cliente', v)} value={currentReport.cliente || ''} disabled={isFinalized}>
@@ -79,9 +70,9 @@ const ReportFormUI = ({ currentReport, handleInputChange, handleDespesaChange, a
                             </SelectTrigger>
                             <SelectContent>
                                 {cliente
-                                    .filter(c => c.nome && String(c.nome).trim() !== '') // CORREÇÃO: Filtra nomes vazios
+                                    .filter(c => c.nome && String(c.nome).trim() !== '')
                                     .map((c) => (
-                                        <SelectItem key={c.id} value={c.nome}>{c.nome}</SelectItem>
+                                        <SelectItem key={c.id} value={String(c.nome).trim()}>{c.nome}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
@@ -94,15 +85,14 @@ const ReportFormUI = ({ currentReport, handleInputChange, handleDespesaChange, a
                             </SelectTrigger>
                             <SelectContent>
                                 {aeronaves
-                                    .filter(a => a.prefixo && String(a.prefixo).trim() !== '') // CORREÇÃO: Filtra prefixos vazios
+                                    .filter(a => a.prefixo && String(a.prefixo).trim() !== '')
                                     .map((a) => (
-                                        <SelectItem key={a.id} value={a.prefixo}>{a.prefixo} ({a.modelo})</SelectItem>
+                                        <SelectItem key={a.id} value={String(a.prefixo).trim()}>{a.prefixo} ({a.modelo})</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
                     </div>
 
-                    {/* ... (outros inputs de texto e data) ... */}
                     <div className="space-y-2">
                         <Label htmlFor="tripulante">Tripulante Responsável *</Label>
                         <Input 
@@ -180,7 +170,6 @@ const ReportFormUI = ({ currentReport, handleInputChange, handleDespesaChange, a
                 </CardContent>
             </Card>
 
-            {/* Seção de Totais (Visível em Finalizado ou Rascunho com despesas) */}
             {(isFinalized || (currentReport.despesas && currentReport.despesas.length > 0)) && (
                 <Card>
                     <CardHeader>
@@ -188,10 +177,10 @@ const ReportFormUI = ({ currentReport, handleInputChange, handleDespesaChange, a
                     </CardHeader>
                     <CardContent>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm font-medium">
-                            <div><DollarSign className="w-4 h-4 inline mr-1 text-green-600" /> Combustível: **R$ {formatCurrencyBR(currentReport.total_combustivel)}**</div>
-                            <div><MapPin className="w-4 h-4 inline mr-1 text-blue-600" /> Hospedagem: **R$ {formatCurrencyBR(currentReport.total_hospedagem)}**</div>
-                            <div><Plane className="w-4 h-4 inline mr-1 text-yellow-600" /> Alimentação: **R$ {formatCurrencyBR(currentReport.total_alimentacao)}**</div>
-                            <div><Clock className="w-4 h-4 inline mr-1 text-purple-600" /> Transporte: **R$ {formatCurrencyBR(currentReport.total_transporte)}**</div>
+                            <div><DollarSign className="w-4 h-4 inline mr-1 text-green-600" /> Combustível: R$ {formatCurrencyBR(currentReport.total_combustivel)}</div>
+                            <div><MapPin className="w-4 h-4 inline mr-1 text-blue-600" /> Hospedagem: R$ {formatCurrencyBR(currentReport.total_hospedagem)}</div>
+                            <div><Plane className="w-4 h-4 inline mr-1 text-yellow-600" /> Alimentação: R$ {formatCurrencyBR(currentReport.total_alimentacao)}</div>
+                            <div><Clock className="w-4 h-4 inline mr-1 text-purple-600" /> Transporte: R$ {formatCurrencyBR(currentReport.total_transporte)}</div>
                             <div className="md:col-span-4 text-lg font-bold pt-2 border-t mt-2 flex justify-between">
                                 <span>Total Geral:</span>
                                 <span>R$ {formatCurrencyBR(currentReport.valor_total)}</span>
@@ -201,7 +190,6 @@ const ReportFormUI = ({ currentReport, handleInputChange, handleDespesaChange, a
                 </Card>
             )}
 
-            {/* Seção de Despesas */}
             <Card className={isFinalized ? 'opacity-80' : ''}>
                 <CardHeader>
                     <CardTitle className="flex justify-between items-center">
@@ -230,7 +218,6 @@ const ReportFormUI = ({ currentReport, handleInputChange, handleDespesaChange, a
                             )}
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-                                {/* Categoria */}
                                 <div className="space-y-2">
                                     <Label>Categoria</Label>
                                     <Select onValueChange={(v) => handleDespesaChange(index, 'categoria', v)} value={despesa.categoria || ''} disabled={isFinalized}>
@@ -238,16 +225,13 @@ const ReportFormUI = ({ currentReport, handleInputChange, handleDespesaChange, a
                                             <SelectValue placeholder="Selecione a Categoria" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {CATEGORIAS_DESPESA
-                                                .filter(c => c !== '') // CORREÇÃO: Filtro defensivo
-                                                .map((c) => (
-                                                    <SelectItem key={c} value={c}>{c}</SelectItem>
-                                                ))}
+                                            {CATEGORIAS_DESPESA.map((c) => (
+                                                <SelectItem key={c} value={c}>{c}</SelectItem>
+                                            ))}
                                         </SelectContent>
                                     </Select>
                                 </div>
 
-                                {/* Valor */}
                                 <div className="space-y-2">
                                     <Label>Valor (R$)</Label>
                                     <Input 
@@ -259,7 +243,6 @@ const ReportFormUI = ({ currentReport, handleInputChange, handleDespesaChange, a
                                     />
                                 </div>
 
-                                {/* Pago Por */}
                                 <div className="space-y-2">
                                     <Label>Pago Por</Label>
                                     <Select onValueChange={(v) => handleDespesaChange(index, 'pago_por', v)} value={despesa.pago_por || ''} disabled={isFinalized}>
@@ -267,16 +250,13 @@ const ReportFormUI = ({ currentReport, handleInputChange, handleDespesaChange, a
                                             <SelectValue placeholder="Pago Por" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {PAGADORES
-                                                .filter(p => p !== '') // CORREÇÃO: Filtro defensivo
-                                                .map((p) => (
-                                                    <SelectItem key={p} value={p}>{p}</SelectItem>
-                                                ))}
+                                            {PAGADORES.map((p) => (
+                                                <SelectItem key={p} value={p}>{p}</SelectItem>
+                                            ))}
                                         </SelectContent>
                                     </Select>
                                 </div>
 
-                                {/* Comprovante */}
                                 <div className="space-y-2">
                                     <Label>Comprovante</Label>
                                     {despesa.comprovante_url ? (
@@ -312,7 +292,6 @@ const ReportFormUI = ({ currentReport, handleInputChange, handleDespesaChange, a
                                 </div>
                             </div>
 
-                            {/* Descrição */}
                             <div className="space-y-2 col-span-full">
                                 <Label>Descrição</Label>
                                 <Textarea 
@@ -333,7 +312,6 @@ const ReportFormUI = ({ currentReport, handleInputChange, handleDespesaChange, a
                 </CardContent>
             </Card>
 
-            {/* Observações */}
             <Card className={isFinalized ? 'opacity-80' : ''}>
                 <CardHeader>
                     <CardTitle>Observações</CardTitle>
@@ -363,7 +341,6 @@ const ReportFormUI = ({ currentReport, handleInputChange, handleDespesaChange, a
         </div>
     );
 };
-
 
 const HistoryList = ({ history, openPdfModal, loadingHistory, refreshHistory, deleteHistoryItem }) => (
     <Card className="h-full flex flex-col">
@@ -417,14 +394,11 @@ const DraftsList = ({ visibleReports, selectedCliente, setSelectedCliente, allCl
                         <SelectValue placeholder="Todos os Clientes" />
                     </SelectTrigger>
                     <SelectContent>
-                        {/* Este é o item com value="" que é permitido (limpar seleção) */}
-                        <SelectItem value="">Todos os Clientes</SelectItem> 
+                        <SelectItem value="__all__">Todos os Clientes</SelectItem>
                         <Separator />
-                        {allClienteFolders
-                            .filter(c => c !== '') // CORREÇÃO: Filtro defensivo
-                            .map((c) => (
-                                <SelectItem key={c} value={c}>{c}</SelectItem>
-                            ))}
+                        {allClienteFolders.map((c) => (
+                            <SelectItem key={c} value={c}>{c}</SelectItem>
+                        ))}
                     </SelectContent>
                 </Select>
             </div>
@@ -453,9 +427,7 @@ const DraftsList = ({ visibleReports, selectedCliente, setSelectedCliente, allCl
     </Card>
 );
 
-// --- FUNÇÃO CRUCIAL PARA GERAÇÃO DE PDF (COM ESTILOS INLINE PARA HTML2PDF) ---
 const generateHTMLReport = (report: any, currentFullName: string) => {
-    // ... (Esta função permanece inalterada, pois o erro é no Select, não no HTML do PDF)
     const totalGeral = formatCurrencyBR(report.valor_total);
     const dataViagem = `${formatDateBR(report.data_inicio)} a ${formatDateBR(report.data_fim)}`;
     const dias = (report.data_inicio && report.data_fim) ? ((Math.ceil(Math.abs(new Date(report.data_fim).getTime() - new Date(report.data_inicio).getTime()) / (1000 * 60 * 60 * 24)) + 1) + ' dias') : '1 dia';
@@ -468,7 +440,6 @@ const generateHTMLReport = (report: any, currentFullName: string) => {
 
     const htmlContent = `
         <div style="${pageStyle}">
-            
             <header style="${headerStyle}">
                 <img id="report-logo" src="${SHAREBRASIL_LOGO}" alt="Logo" style="height: 40px; margin-bottom: 10px;"/>
                 <div style="font-size: 12px; font-weight: bold; color: #333;">RELATÓRIO DE VIAGEM</div>
@@ -599,9 +570,6 @@ const generateHTMLReport = (report: any, currentFullName: string) => {
     return htmlContent;
 };
 
-
-// --- COMPONENTE PRINCIPAL ---
-
 const TravelReports = () => {
     const navigate = useNavigate();
     const [reports, setReports] = useState([]);
@@ -613,22 +581,18 @@ const TravelReports = () => {
     const [cliente, setCliente] = useState<any[]>([]);
     const [aeronaves, setAeronaves] = useState<any[]>([]);
     const [tripulantesList, setTripulantesList] = useState<string[]>([]);
-    const [selectedCliente, setSelectedCliente] = useState<string>('');
+    const [selectedCliente, setSelectedCliente] = useState<string>('__all__');
     const [currentFullName, setCurrentFullName] = useState<string>('');
     const [history, setHistory] = useState<any[]>([]);
     const [loadingHistory, setLoadingHistory] = useState<boolean>(false);
 
-    // Constantes do sistema
-    // CORREÇÃO: Usamos o filter defensivamente no map, mas aqui garantimos que não haja '' acidentalmente.
-    const CATEGORIAS_DESPESA = ["Combustível", "Hospedagem", "Alimentação", "Transporte", "Outros"].filter(Boolean).filter(c => c !== '');
-    const PAGADORES = ["Tripulante", "Cliente", "ShareBrasil"].filter(Boolean).filter(p => p !== '');
+    const CATEGORIAS_DESPESA = ["Combustível", "Hospedagem", "Alimentação", "Transporte", "Outros"];
+    const PAGADORES = ["Tripulante", "Cliente", "ShareBrasil"];
 
-    // Modal de visualização de PDF
     const [pdfModalOpen, setPdfModalOpen] = useState(false);
     const [pdfModalUrl, setPdfModalUrl] = useState<string | null>(null);
     const openPdfModal = (url: string) => { setPdfModalUrl(url); setPdfModalOpen(true); };
 
-    // Trigger de Download
     const triggerDownload = (blob: Blob, filename: string) => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -641,7 +605,6 @@ const TravelReports = () => {
     };
 
     const getReportPdfUrl = async (report?: any): Promise<string | null> => {
-        // ... (função inalterada) ...
         try {
             const targetReport = report || currentReport;
             if (!targetReport?.numero) return null;
@@ -656,11 +619,9 @@ const TravelReports = () => {
                 return pub || null;
             };
 
-            // 1) tenta caminho direto pelo cliente/número
             let url = await trySign(candidatePath);
             if (url) return url;
 
-            // 2) fallback: consulta histórico apenas por PDFs
             const { data } = await (supabase as any)
                 .from('travel_report_history')
                 .select('pdf_path')
@@ -676,7 +637,6 @@ const TravelReports = () => {
         }
     };
 
-    // Ações do histórico: abrir direto e excluir
     const openHistoryDirect = async (item: any) => {
         try {
             const { data: signed } = await supabase.storage.from('report-history').createSignedUrl(item.pdf_path, 604800);
@@ -701,7 +661,6 @@ const TravelReports = () => {
         }
     };
 
-    // Carregar relatórios salvos e dados iniciais
     useEffect(() => {
         const savedReports = JSON.parse(localStorage.getItem('travelReports') || '[]');
         setReports(savedReports);
@@ -710,26 +669,24 @@ const TravelReports = () => {
     useEffect(() => {
         (async () => {
             try {
-                // CORREÇÃO: Garante que os dados do Supabase sejam filtrados
                 const { data, error } = await supabase.from('clients').select('id, company_name').order('company_name');
                 if (!error) {
                     setCliente((data || [])
                         .map((c: any) => ({ id: c.id, nome: String(c.company_name || '').trim() }))
-                        .filter((c: any) => c.nome !== '')); // Filtra itens sem nome
+                        .filter((c: any) => c.nome !== ''));
                 }
-            } catch (e) { /* ignore */ }
+            } catch (e) { }
         })();
     }, []);
 
     useEffect(() => {
         (async () => {
             try {
-                // CORREÇÃO: Garante que os dados do Supabase sejam filtrados
                 const { data } = await supabase.from('aircraft').select('id, registration, model').order('registration');
                 setAeronaves((data || [])
                     .map((a: any) => ({ id: a.id, prefixo: String(a.registration || '').trim(), modelo: a.model }))
-                    .filter((a: any) => a.prefixo !== '')); // Filtra itens sem prefixo
-            } catch (e) { /* ignore */ }
+                    .filter((a: any) => a.prefixo !== ''));
+            } catch (e) { }
         })();
     }, []);
 
@@ -738,7 +695,7 @@ const TravelReports = () => {
             try {
                 const { data, error } = await supabase.from('crew_members').select('full_name').order('full_name');
                 if (!error) setTripulantesList((data || []).map((t:any)=>String(t.full_name || '').trim()).filter(Boolean).filter(t => t !== ''));
-            } catch (e) { /* noop */ }
+            } catch (e) { }
         })();
     }, []);
 
@@ -783,30 +740,24 @@ const TravelReports = () => {
         }
     }, [pdfModalOpen]);
 
-    // Helpers de visualização (Memoizados)
     const dbClienteNames = useMemo(() => (cliente || []).map((c:any) => String(c?.nome || '').trim()).filter(Boolean), [cliente]);
     const reportClienteNames = useMemo(() => Array.from(new Set((reports || []).map((r:any) => String(r?.cliente || '').trim()).filter(Boolean))), [reports]);
     const historyClienteNames = useMemo(() => Array.from(new Set((history || []).map((h:any) => String(h?.cliente || '').trim()).filter(Boolean))), [history]);
     const allClienteFolders = useMemo(() => Array.from(new Set([
         ...dbClienteNames, ...reportClienteNames, ...historyClienteNames,
-    ].filter(Boolean))).filter(c => c !== '').sort((a, b) => String(a).localeCompare(String(b), 'pt-BR')), [dbClienteNames, reportClienteNames, historyClienteNames]); // CORREÇÃO: Filtro final garantindo que não há ''
-    const visibleReports = useMemo(() => (selectedCliente ? (reports || []).filter((r:any) => r?.cliente === selectedCliente) : (reports || []))
+    ].filter(Boolean).filter(c => String(c).trim() !== ''))).sort((a, b) => String(a).localeCompare(String(b), 'pt-BR')), [dbClienteNames, reportClienteNames, historyClienteNames]);
+    const visibleReports = useMemo(() => (selectedCliente && selectedCliente !== '__all__' ? (reports || []).filter((r:any) => r?.cliente === selectedCliente) : (reports || []))
         .filter((r:any) => r?.status !== 'finalized'), [reports, selectedCliente]);
     const uniqueTripulantes = useMemo(() => Array.from(new Set((tripulantesList || []).filter(Boolean).filter(t => t !== ''))).sort((a, b) => String(a).localeCompare(String(b), 'pt-BR')), [tripulantesList]);
     
-    // Estados para Tripulante 2
     const [showSecondTripulante, setShowSecondTripulante] = useState<boolean>(false);
     useEffect(() => { if (currentReport?.tripulante2 && !showSecondTripulante) setShowSecondTripulante(true); }, [currentReport?.tripulante2]);
 
-    // Salvar relatórios
     const saveReports = (updatedReports) => {
         localStorage.setItem('travelReports', JSON.stringify(updatedReports));
         setReports(updatedReports);
     };
 
-    // ... (Outras funções, como deleteReport, deleteCreatedReport, generateReportNumberLocal, allocateReportNumber, createNewReport, calculateTotals, calculateDays, saveReport, handleInputChange, handleDespesaChange, addDespesa, removeDespesa, handleFileUpload, e generatePDF, permanecem inalteradas, pois o problema era o map nos Selects) ...
-
-    // Excluir relatório salvo (rascunho local)
     const deleteReport = (numero) => {
         if (!numero) return;
         const ok = confirm('Tem certeza que deseja excluir este rascunho? Esta ação não pode ser desfeita.');
@@ -817,7 +768,6 @@ const TravelReports = () => {
         alert('Rascunho excluído com sucesso.');
     };
 
-    // Excluir relatório criado/finalizado
     const deleteCreatedReport = async (report: any) => {
         if (!report?.numero) { alert('Relatório inválido.'); return; }
         const ok = confirm(`Excluir o relatório ${report.numero}? Esta ação apagará o PDF do servidor e o registro no banco.`);
@@ -845,7 +795,6 @@ const TravelReports = () => {
         }
     };
 
-    // Funções de Geração de Número (Mantidas as do código original)
     const generateReportNumberLocal = (cliente) => {
         const yyyy = String(new Date().getFullYear());
         if (!cliente) return `XXX001/${yyyy}`;
@@ -893,7 +842,6 @@ const TravelReports = () => {
         }
     };
 
-    // Criar novo relatorio
     const createNewReport = () => {
         const lastCreated = (()=>{ try { return localStorage.getItem('last_created_tripulante_name') || ''; } catch { return ''; } })();
         const newReport = {
@@ -916,7 +864,7 @@ const TravelReports = () => {
             total_share_brasil: 0,
             valor_total: 0,
             observacoes: '',
-            status: 'draft', // draft, finalized
+            status: 'draft',
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
         } as any;
@@ -928,7 +876,6 @@ const TravelReports = () => {
         setShowSecondTripulante(!!newReport.tripulante2);
     };
 
-    // Calcular totais
     const calculateTotals = (despesas) => {
         const totals = {
             total_combustivel: 0, total_hospedagem: 0, total_alimentacao: 0, 
@@ -939,7 +886,6 @@ const TravelReports = () => {
         despesas.forEach(despesa => {
             const valor = Number(despesa.valor) || 0;
             
-            // Totais por categoria
             switch (despesa.categoria) {
                 case 'Combustível': totals.total_combustivel += valor; break;
                 case 'Hospedagem': totals.total_hospedagem += valor; break;
@@ -948,7 +894,6 @@ const TravelReports = () => {
                 default: totals.total_outros += valor;
             }
 
-            // Totais por pagador
             switch (despesa.pago_por) {
                 case 'Tripulante': totals.total_tripulante += valor; break;
                 case 'Cliente': totals.total_cliente += valor; break;
@@ -965,7 +910,6 @@ const TravelReports = () => {
         }));
     };
 
-    // Calcular dias da viagem
     const calculateDays = () => {
         if (currentReport?.data_inicio && currentReport?.data_fim) {
             const inicio = new Date(currentReport.data_inicio);
@@ -977,7 +921,6 @@ const TravelReports = () => {
         return 1;
     };
 
-    // Salvar rascunho local ou finalizar
     const saveReport = async (status = 'draft') => {
         if (!currentReport) return;
 
@@ -987,7 +930,6 @@ const TravelReports = () => {
             updatedAt: new Date().toISOString()
         };
 
-        // Validação apenas ao finalizar
         if (status === 'finalized') {
             const missing = [] as string[];
             if (!updatedReport.cliente) missing.push('Cliente');
@@ -1001,7 +943,6 @@ const TravelReports = () => {
             }
         }
 
-        // Geração de número para rascunho (sempre garantir um identificador único)
         try {
             if (!updatedReport.numero) {
                 if (updatedReport.cliente) {
@@ -1016,7 +957,6 @@ const TravelReports = () => {
             }
         } catch {}
 
-        // Se não for finalização, salvar apenas localmente (rascunho)
         if (status !== 'finalized') {
             try {
                 if (!updatedReport.numero && updatedReport.cliente) {
@@ -1042,11 +982,9 @@ const TravelReports = () => {
             return;
         }
 
-        // Finalização: gerar PDF antes de persistir
         setCurrentReport(updatedReport);
-        setIsGeneratingPdf(true); // Inicia loading
+        setIsGeneratingPdf(true);
         
-        // Garantir número REAL do relatório antes do PDF (não rascunho_*)
         try {
             if (!updatedReport.numero || updatedReport.numero.startsWith('rascunho_')) {
                 if (updatedReport.cliente) {
@@ -1059,7 +997,6 @@ const TravelReports = () => {
             }
         }
         
-        // Geração do PDF
         const pdfBlob = await generatePDF(updatedReport, currentFullName, { download: false });
         if (!pdfBlob) {
             setIsGeneratingPdf(false);
@@ -1068,13 +1005,11 @@ const TravelReports = () => {
             return;
         }
 
-        // Baixar localmente imediatamente
         try {
             const filename = `${updatedReport.numero}-relatorio-viagem.pdf`;
             triggerDownload(pdfBlob, filename);
         } catch {}
 
-        // PASSO 1: Upload do PDF no Storage
         const toFolderSafe = (s: string) => (s || 'sem_cliente')
             .normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
             .replace(/[^a-zA-Z0-9-_]/g, '_');
@@ -1097,7 +1032,6 @@ const TravelReports = () => {
             return;
         }
 
-        // PASSO 2: Persistir no Supabase
         try {
             const { data: { user } } = await supabase.auth.getUser();
 
@@ -1107,7 +1041,7 @@ const TravelReports = () => {
             }
 
             const payload: any = {
-                report_number: finalNumber, // Ajuste para o nome da coluna no seu DB
+                report_number: finalNumber,
                 cliente: updatedReport.cliente || '',
                 aeronave: updatedReport.aeronave || '',
                 tripulante: updatedReport.tripulante || '',
@@ -1126,12 +1060,11 @@ const TravelReports = () => {
                 total_cliente: Number(updatedReport.total_cliente || 0),
                 total_share_brasil: Number(updatedReport.total_share_brasil || 0),
                 created_by: user?.id || null,
-                report_data_json: updatedReport, // Salva o JSON completo do relatório
+                report_data_json: updatedReport,
             };
 
             let dbRow: any | null = null;
             if (updatedReport.db_id) {
-                // UPDATE (se já tiver sido salvo)
                 const { data, error } = await supabase
                     .from('travel_reports')
                     .update(payload)
@@ -1141,7 +1074,6 @@ const TravelReports = () => {
                 if (error) throw error;
                 dbRow = data;
             } else {
-                // INSERT (primeiro salvamento)
                 const insertRes = await supabase
                     .from('travel_reports')
                     .insert(payload)
@@ -1156,7 +1088,6 @@ const TravelReports = () => {
                 updatedReport.db_id = dbRow.id;
             }
 
-            // PASSO 3: Registrar histórico com pdf_path
             if (pdfUploadSuccess) {
                 try {
                     const ins = await (supabase as any)
@@ -1166,7 +1097,7 @@ const TravelReports = () => {
                             numero_relatorio: finalNumber || updatedReport.numero,
                             cliente: updatedReport.cliente,
                             pdf_path: pdfPath,
-                            metadata: { /* ... (metadata) ... */ }
+                            metadata: {}
                         })
                         .select('*')
                         .single();
@@ -1184,10 +1115,8 @@ const TravelReports = () => {
             setIsGeneratingPdf(false);
             console.error('Falha ao salvar no banco:', e);
             alert(`Falha ao salvar no banco. Tente novamente.`);
-            // Não retornar aqui: manter local para evitar perda
         }
 
-        // Atualiza localStorage (remove rascunho e adiciona finalizado)
         const existingIndex = reports.findIndex(r => r.numero === updatedReport.numero);
         let updatedReports;
         if (existingIndex >= 0) {
@@ -1197,7 +1126,6 @@ const TravelReports = () => {
             updatedReports = [...reports, updatedReport];
         }
         
-        // Remove rascunho se for bem sucedido
         if(pdfUploadSuccess) {
             updatedReports = updatedReports.filter((r:any) => r.numero !== currentReport.numero || r.numero === updatedReport.numero);
         }
@@ -1208,13 +1136,11 @@ const TravelReports = () => {
         alert('Relatório finalizado, salvo e PDF gerado!');
     };
 
-    // Atualizar campo do formulário
     const handleInputChange = (field, value) => {
         const updated = { ...currentReport, [field]: value };
         setCurrentReport(updated);
     };
 
-    // Atualizar despesa
     const handleDespesaChange = (index, field, value) => {
         const newDespesas = [...currentReport.despesas];
         newDespesas[index][field] = field === 'valor' ? value : value;
@@ -1222,7 +1148,6 @@ const TravelReports = () => {
         calculateTotals(newDespesas);
     };
 
-    // Adicionar despesa
     const addDespesa = () => {
         setCurrentReport(prev => ({
             ...prev,
@@ -1230,14 +1155,12 @@ const TravelReports = () => {
         }));
     };
 
-    // Remover despesa
     const removeDespesa = (index) => {
         const newDespesas = currentReport.despesas.filter((_, i) => i !== index);
         setCurrentReport(prev => ({ ...prev, despesas: newDespesas }));
         calculateTotals(newDespesas);
     };
 
-    // Simular upload de arquivo (Mantida a do código original)
     const handleFileUpload = async (index, file) => {
         if (!file) return;
         setUploadingIndex(index);
@@ -1256,7 +1179,6 @@ const TravelReports = () => {
         setUploadingIndex(null);
     };
 
-    // Gerar PDF (Mantida a estrutura do código original)
     const generatePDF = async (reportParam?: any, currentFullName: string, options?: { download?: boolean }): Promise<Blob | null> => {
         const report = reportParam || currentReport;
         if (!report) {
@@ -1268,12 +1190,10 @@ const TravelReports = () => {
         const download = !(options && options.download === false);
 
         try {
-            // 1. Gera o HTML com os dados do relatório
             const htmlContent = generateHTMLReport(report, currentFullName);
             const element = document.createElement('div');
             element.innerHTML = htmlContent;
 
-            // 2. Trata imagens e PDFs (Mantido o tratamento do código original)
             try {
                 const receiptImgs = Array.from(element.querySelectorAll('.receipt-image')) as HTMLImageElement[];
                 for (const ri of receiptImgs) {
@@ -1288,22 +1208,20 @@ const TravelReports = () => {
             } catch {}
             
             const pdfConfig = {
-                margin: [10, 10, 15, 10], // top, left, bottom, right
+                margin: [10, 10, 15, 10],
                 filename: `${report.numero}-relatorio-viagem.pdf`,
                 image: { type: 'jpeg', quality: 0.98 },
                 html2canvas: { scale: 3, useCORS: true },
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
                 pagebreak: { 
-                    mode: ['css', 'legacy'], // Permite controle de quebra de página
-                    before: 'h2', // Quebra antes de todos os H2
+                    mode: ['css', 'legacy'],
+                    before: 'h2',
                 }
             };
 
-            // 4. Geração
             const pdfGenerator = html2pdf().set(pdfConfig).from(element).outputPdf('blob');
             const pdfBlob = await pdfGenerator;
             
-            // 5. Download opcional
             if (download) {
                 triggerDownload(pdfBlob, pdfConfig.filename);
             }
@@ -1318,11 +1236,8 @@ const TravelReports = () => {
         }
     };
 
-
-    // JSX PRINCIPAL: Usando o Layout Web
     return (
         <Layout>
-            {/* Modal de visualização de PDF */}
             <Dialog open={pdfModalOpen} onOpenChange={setPdfModalOpen}>
                 <DialogContent className="max-w-4xl h-[90vh]">
                     <DialogHeader>
@@ -1337,7 +1252,6 @@ const TravelReports = () => {
             </Dialog>
 
             <div className="flex h-[calc(100vh-64px)] p-6 gap-6">
-                {/* Painel Esquerdo: Rascunhos e Histórico */}
                 <div className="w-1/3 space-y-6 flex flex-col">
                     <div className="flex-1 min-h-[45%] max-h-[50%]">
                         <DraftsList
@@ -1361,9 +1275,7 @@ const TravelReports = () => {
                     </div>
                 </div>
 
-                {/* Painel Central: Formulário de Edição/Visualização */}
                 <div className="w-2/3 border rounded-lg overflow-y-auto bg-gray-50 shadow-lg relative">
-                    {/* Barra de Ações Fixa */}
                     <div className="sticky top-0 bg-white z-10 p-4 border-b flex justify-between items-center shadow-sm">
                         <Button 
                             variant="outline" 
