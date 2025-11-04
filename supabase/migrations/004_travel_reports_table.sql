@@ -4,6 +4,7 @@
 CREATE TABLE IF NOT EXISTS public.travel_reports (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   numero text NOT NULL UNIQUE,
+  cliente text NOT NULL,
   aeronave text NOT NULL,
   tripulante text NOT NULL,
   tripulante2 text NULL,
