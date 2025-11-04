@@ -135,27 +135,6 @@ export default function MinhasTarefas() {
           </Button>
         </div>
 
-        {showNotifications && notifications.length > 0 ? (
-          <Card className="mb-6 p-4">
-            <h3 className="mb-3 font-semibold">Notificações</h3>
-            <div className="space-y-2">
-              {notifications.map((notification) => (
-                <button
-                  key={notification.id}
-                  type="button"
-                  className="flex w-full items-start justify-between rounded bg-muted p-2 text-left transition hover:bg-muted/80"
-                  onClick={() => markNotificationAsRead(notification.id)}
-                >
-                  <p className="text-sm">{notification.message}</p>
-                  <span className="text-xs text-muted-foreground">
-                    {format(new Date(notification.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </Card>
-        ) : null}
-
         <div className="grid gap-4">
           {loadingTasks ? (
             <Card className="p-8 text-center">
