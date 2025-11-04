@@ -47,7 +47,11 @@ const PortalClienteDashboard = () => {
       if (error) throw error;
       setReconciliations(data || []);
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Falha ao carregar conciliações. Tente novamente.";
       console.error("Erro ao carregar conciliações:", error);
+      toast.error("Erro", {
+        description: errorMessage
+      });
     }
   };
 
@@ -63,7 +67,11 @@ const PortalClienteDashboard = () => {
       if (error) throw error;
       setPortalData(data || []);
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Falha ao carregar dados do portal. Tente novamente.";
       console.error("Erro ao carregar dados do portal:", error);
+      toast.error("Erro", {
+        description: errorMessage
+      });
     }
   };
 
