@@ -81,7 +81,6 @@ export default function MinhasTarefas() {
 
   const handleSave = () => {
     void fetchTasks();
-    void fetchNotifications();
     setIsDialogOpen(false);
     setEditingTask(null);
   };
