@@ -103,7 +103,7 @@ export function FlightScheduleDialog({ open, onOpenChange, onSuccess, scheduleId
       const [aircraftRes, crewRes, clientsRes] = await Promise.all([
         supabase.from("aircraft").select("id, registration, model"),
         supabase.from("crew_members").select("id, full_name").eq("status", "active"),
-        supabase.from("clients").select("id, company_name"),
+        supabase.from("clients").select("id, company_name").eq("status", "ativo"),
       ]);
 
       if (aircraftRes.error) throw aircraftRes.error;
