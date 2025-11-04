@@ -118,54 +118,91 @@ export function UsersList() {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Lista de Usuários</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Email</TableHead>
-                <TableHead>Roles</TableHead>
-                <TableHead>Data de Criação</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {users?.map((user: any) => (
-                <TableRow key={user.id}>
-                  <TableCell className="font-medium">{user.email}</TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {user.roles && user.roles.length > 0 ? (
-                        user.roles.map((role: string) => (
-                          <Badge
-                            key={role}
-                            className={`${getRoleColor(role)} text-xs`}
-                            variant="outline"
-                          >
-                            {getRoleLabel(role)}
-                          </Badge>
-                        ))
-                      ) : (
-                        <span className="text-muted-foreground text-sm">Sem roles</span>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>{new Date(user.created_at).toLocaleDateString('pt-BR')}</TableCell>
-                  <TableCell>
-                    <Badge variant={user.email_confirmed_at ? "default" : "secondary"}>
-                      {user.email_confirmed_at ? "Confirmado" : "Pendente"}
-                    </Badge>
-                  </TableCell>
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle>Lista de Usuários</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Departamento</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </CardContent>
-    </Card>
+              </TableHeader>
+              <TableBody>
+                {users?.map((user: any) => (
+                  <TableRow key={user.id}>
+                    <TableCell className="font-medium">{user.email}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {user.roles && user.roles.length > 0 ? (
+                          user.roles.map((role: string) => (
+                            <Badge
+                              key={role}
+                              className={`${getRoleColor(role)} text-xs`}
+                              variant="outline"
+                            >
+                              {getRoleLabel(role)}
+                            </Badge>
+                          ))
+                        ) : (
+                          <span className="text-muted-foreground text-sm">Sem departamento</span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => handleDeactivateUser(user)}
+                          className="p-1 text-muted-foreground hover:text-warning transition-colors"
+                          title="Desativar usuário"
+                          aria-label="Desativar usuário"
+                        >
+                          <Power className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setShowDeleteDialog(true);
+                          }}
+                          className="p-1 text-muted-foreground hover:text-destructive transition-colors"
+                          title="Excluir usuário"
+                          aria-label="Excluir usuário"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogTitle>Excluir usuário</AlertDialogTitle>
+          <AlertDialogDescription>
+            Tem certeza que deseja remover permanentemente o usuário {selectedUser?.email}? Esta ação não pode ser desfeita.
+          </AlertDialogDescription>
+          <div className="flex justify-end gap-3">
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteUser}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deletingUserId === selectedUser?.id}
+            >
+              {deletingUserId === selectedUser?.id ? "Removendo..." : "Remover"}
+            </AlertDialogAction>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
