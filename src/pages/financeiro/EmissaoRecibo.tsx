@@ -488,62 +488,55 @@ export default function EmissaoRecibo() {
       thickness: 0.5
     });
 
-    // --- OUTROS DETALHES (OBSERVAÇÕES, DECLARAÇÃO E DATA) ---
-    tableY -= 25;
-
-    if (observacoes && observacoes.trim()) {
-      const obsLines = wrapText(`Observação: ${observacoes}`, width - 60, font, 8);
-      obsLines.forEach((line, idx) => {
-        page.drawText(line, { x: MARGIN_X, y: tableY - (idx * 10), size: 8, font });
-      });
-      tableY -= (obsLines.length * 10) + 10;
-    } else {
-      tableY -= 10;
-    }
-
-    if (prazoMaximoQuitacao) {
-      const prazoFormatted = new Date(prazoMaximoQuitacao).toLocaleDateString("pt-BR");
-      page.drawText(`PRAZO MÁXIMO DE QUITAÇÃO ${prazoFormatted}`, { x: MARGIN_X, y: tableY, size: 8, font });
-      tableY -= 15;
-    }
+    // OBS section
+    tableY -= 30;
 
     const valorExtensoText = valorExtenso || numberToCurrencyWordsPtBr(amountNum);
-    const declaracaoPagamento = `Declaração: Recebemos de ${pagadorNome.toUpperCase()}, a importância de ${valorExtensoText.toLowerCase()}, referente aos itens listados acima. Para maior clareza, firmo o presente recibo para que produza seus efeitos, dando plena, geral e irrevogável quitação pelo valor recebido.`;
-    const obsReembolsoBloco = [
-      "OBS: Declaro, para os devidos fins, que o presente recibo é emitido antecipadamente a título de solicitação de reembolso referente às despesas efetuadas por esta empresa em benefício do cliente acima identificado.",
-      "Ressalta-se que o presente documento somente terá validade e produzirá seus efeitos legais após a efetiva quitação do valor nele indicado, mediante comprovação do respectivo pagamento.",
-      "Para maior clareza e segurança das partes, firmo o presente recibo, que permanecerá condicionado ao cumprimento integral da obrigação de pagamento até a data de quitação."
-    ].join("\n\n");
-    const declaracaoTexto = receiptType === "pagamento" ? declaracaoPagamento : obsReembolsoBloco;
-    const paragraphs = declaracaoTexto.split("\n\n");
-    for (let pIndex = 0; pIndex < paragraphs.length; pIndex++) {
-      const lines = wrapText(paragraphs[pIndex], width - 60, font, 7);
-      lines.forEach((line, idx) => {
-        page.drawText(line, { x: MARGIN_X, y: tableY - (idx * 9), size: 7, font });
-      });
-      tableY -= (lines.length * 9) + 10; // espaço entre parágrafos
-    }
-    tableY -= 5;
+    const obsText = receiptType === "pagamento"
+      ? `Declaração: Recebemos de ${pagadorNome.toUpperCase()}, a importância de ${valorExtensoText.toLowerCase()}, referente aos itens listados acima. Para maior clareza, firmo o presente recibo para que produza seus efeitos, dando plena, geral e irrevogável quitação pelo valor recebido.`
+      : `OBS: Declaro, para os devidos fins, que o presente recibo é emitido antecipadamente a título de solicitação de reembolso referente às despesas efetuadas por esta empresa em benefício do cliente acima identificado.\n\nRessalta-se que o presente documento somente terá validade e produzirá seus efeitos legais após a efetiva quitação do valor nele indicado, mediante comprovação do respectivo pagamento.\n\nPara maior clareza e segurança das partes, firmo o presente recibo, que permanecerá condicionado ao cumprimento integral da obrigação de pagamento até a data de quitação.`;
 
+    page.drawText("OBS:", { x: MARGIN, y: tableY, size: 8, font: bold });
+    tableY -= 12;
+
+    const obsLines = wrapText(obsText.replace(/^OBS:\s*/, ''), width - MARGIN * 2, font, 7);
+    obsLines.forEach((line, idx) => {
+      page.drawText(line, { x: MARGIN, y: tableY - (idx * 10), size: 7, font });
+    });
+
+    tableY -= (obsLines.length * 10) + 30;
+
+    // Date
     const todayLocal = formatDateLocalYYYYMMDD(new Date());
     const issueDateFormatted = formatDateDisplay(todayLocal);
-    const cityText = company?.city || pagadorCidade || "";
+    const cityText = company?.city || pagadorCidade || "Várzea Grande";
     const dataCidadeText = `${cityText}, ${issueDateFormatted}`;
-    page.drawText(dataCidadeText, { x: MARGIN_X, y: tableY, size: 8, font });
 
-    // Linha de assinatura
-    const signatureY = tableY - 60;
-    // Logo acima da assinatura (pequena)
+    page.drawText(dataCidadeText, { x: MARGIN, y: tableY, size: 8, font });
+
+    // Signature
+    const signY = tableY - 80;
+
     if (logoImage) {
-      const logoW = 60;
-      const logoH = 20;
-      page.drawImage(logoImage, { x: width / 2 - logoW / 2, y: signatureY + 12, width: logoW, height: logoH });
+      page.drawImage(logoImage, {
+        x: width / 2 - 40,
+        y: signY + 15,
+        width: 80,
+        height: 30
+      });
     }
-    page.drawLine({ start: { x: width / 2 - 80, y: signatureY }, end: { x: width / 2 + 80, y: signatureY }, thickness: 0.5 });
-    page.drawText(company?.name || "Assinatura do Emissor", {
-      x: width / 2 - (font.widthOfTextAtSize(company?.name || "Assinatura do Emissor", 8) / 2),
-      y: signatureY - 10,
-      size: 8,
+
+    page.drawLine({
+      start: { x: width / 2 - 100, y: signY },
+      end: { x: width / 2 + 100, y: signY },
+      thickness: 0.5
+    });
+
+    const sigText = company?.name || "Assinatura";
+    page.drawText(sigText, {
+      x: width / 2 - font.widthOfTextAtSize(sigText, 7) / 2,
+      y: signY - 12,
+      size: 7,
       font
     });
 
