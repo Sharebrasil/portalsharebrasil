@@ -18,8 +18,7 @@ export const useClientes = () => {
       const { data, error } = await supabase
         .from("clients")
         .select("*")
-        .eq("status", "ativo")
-        .order("company_name");
+        .eq("status", "ativo");
 
       if (error) {
         // É crucial lançar o erro para que o React Query o capture
@@ -27,8 +26,11 @@ export const useClientes = () => {
         throw error;
       }
 
-      // Retorna a lista de dados (ou null se vazia)
-      return (data as Cliente[]) || null;
+      // Retorna a lista de dados ordenada por nome (ou null se vazia)
+      const clients = (data as Cliente[]) || [];
+      return clients.sort((a, b) =>
+        (a.company_name || '').localeCompare(b.company_name || '', 'pt-BR')
+      ) || null;
     },
   });
 

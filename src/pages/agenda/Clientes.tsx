@@ -131,15 +131,16 @@ export default function Clientes() {
       const { data, error } = await supabase
         .from("clients")
         .select("*, aircraft:aircraft_id(id, registration, model)")
-        .eq("status", "ativo")
-        .order("company_name");
+        .eq("status", "ativo");
 
       if (error) throw error;
       const mapped: Cliente[] = ((data as any[]) || []).map((row: any) => ({
         ...row,
         aircraft: row.aircraft ? `${row.aircraft.registration} - ${row.aircraft.model}` : undefined,
         aircraft_ownerships: row.aircraft_ownerships || [],
-      }));
+      })).sort((a, b) =>
+        (a.company_name || '').localeCompare(b.company_name || '', 'pt-BR')
+      );
       setClientes(mapped);
     } catch (error) {
       console.error("Erro ao carregar clientes:", error);
