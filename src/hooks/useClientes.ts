@@ -18,6 +18,7 @@ export const useClientes = () => {
       const { data, error } = await supabase
         .from("clients")
         .select("*")
+        .eq("status", "ativo")
         .order("company_name");
 
       if (error) {
