@@ -140,6 +140,7 @@ export function CreateLogbookDialog({
       setFuelConsumption("");
       setCellularHours("0");
       setDailyRate("");
+      setBaseAerodrome("");
     } catch (error: any) {
       console.error("Erro ao criar diário de bordo:", error);
       toast.error(error.message || "Não foi possível criar o diário de bordo");
