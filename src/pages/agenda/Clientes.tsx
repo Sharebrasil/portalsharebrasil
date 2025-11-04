@@ -322,6 +322,7 @@ export default function Clientes() {
         financial_contact: formData.financial_contact,
         observations: formData.observations,
         aircraft_id: formData.aircraft_id || null,
+        aircraft_ownerships: aircraftOwnerships,
         status: (formData as any).status ?? "ativo",
         logo_url: logoUrl,
         documents: [...existingDocs, ...newDocs],
