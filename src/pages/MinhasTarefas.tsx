@@ -32,7 +32,6 @@ export default function MinhasTarefas() {
 
   useEffect(() => {
     void fetchTasks();
-    void fetchNotifications();
   }, []);
 
   const fetchTasks = async () => {
