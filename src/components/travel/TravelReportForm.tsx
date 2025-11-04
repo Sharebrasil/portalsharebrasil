@@ -76,7 +76,7 @@ export function TravelReportForm({ onSave, onCancel }: TravelReportFormProps) {
   }, [expenses]);
 
   const loadClients = async () => {
-    const { data } = await supabase.from('clients').select('*').order('company_name');
+    const { data } = await supabase.from('clients').select('*').eq('status', 'ativo').order('company_name');
     if (data) setClients(data);
   };
 
