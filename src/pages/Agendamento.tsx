@@ -93,7 +93,6 @@ export default function Agendamentos() {
           .select(`
             *,
             aircraft:aircraft_id(registration, model),
-            client:client_id(company_name),
             crew:crew_member_id(full_name)
           `)
           .order("flight_date", { ascending: false })
@@ -110,6 +109,33 @@ export default function Agendamentos() {
           console.error("Error code:", error.code);
           throw new Error(`${error.message} (${error.code})`);
         }
+
+        // Fetch client data separately and attach to schedules
+        if (data && data.length > 0) {
+          const clientIds = [...new Set(data.map((s: any) => s.client_id).filter(Boolean))];
+          let clients: any[] = [];
+
+          if (clientIds.length > 0) {
+            const { data: clientData, error: clientError } = await supabase
+              .from("clients")
+              .select("id, company_name")
+              .in("id", clientIds);
+
+            if (!clientError && clientData) {
+              clients = clientData;
+            }
+          }
+
+          const clientMap = new Map(clients.map((c: any) => [c.id, c.company_name]));
+          const enrichedData = data.map((schedule: any) => ({
+            ...schedule,
+            client: schedule.client_id ? { company_name: clientMap.get(schedule.client_id) || "Não informado" } : null,
+          }));
+
+          console.log("Schedules loaded:", enrichedData);
+          return enrichedData;
+        }
+
         console.log("Schedules loaded:", data);
         return data;
       } catch (error) {
