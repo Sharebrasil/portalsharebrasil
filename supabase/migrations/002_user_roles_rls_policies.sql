@@ -95,3 +95,41 @@ GRANT EXECUTE ON FUNCTION is_financeiro_master() TO authenticated;
 GRANT EXECUTE ON FUNCTION is_financeiro_master() TO anon;
 GRANT EXECUTE ON FUNCTION is_admin_role() TO authenticated;
 GRANT EXECUTE ON FUNCTION is_admin_role() TO anon;
+
+-- ============================================
+-- Enable RLS on contacts table
+-- ============================================
+ALTER TABLE public.contacts ENABLE ROW LEVEL SECURITY;
+
+-- ============================================
+-- Policy: Allow authenticated users to SELECT contacts
+-- ============================================
+CREATE POLICY "contacts_select_authenticated" ON public.contacts
+  FOR SELECT
+  TO authenticated
+  USING (true);
+
+-- ============================================
+-- Policy: Allow authenticated users to INSERT contacts
+-- ============================================
+CREATE POLICY "contacts_insert_authenticated" ON public.contacts
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (true);
+
+-- ============================================
+-- Policy: Allow authenticated users to UPDATE contacts
+-- ============================================
+CREATE POLICY "contacts_update_authenticated" ON public.contacts
+  FOR UPDATE
+  TO authenticated
+  USING (true)
+  WITH CHECK (true);
+
+-- ============================================
+-- Policy: Allow authenticated users to DELETE contacts
+-- ============================================
+CREATE POLICY "contacts_delete_authenticated" ON public.contacts
+  FOR DELETE
+  TO authenticated
+  USING (true);
