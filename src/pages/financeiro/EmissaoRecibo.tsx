@@ -326,96 +326,23 @@ export default function EmissaoRecibo() {
     const company = await fetchCompanySettings();
     const amountNum = parseFloat(valor || "0");
 
-    const emitterAddress = company ? [company.address].filter(Boolean).join("") : "";
-    const emitterCityState = company ? [company.city, company.state].filter(Boolean).join(" - ") : "";
-    // const payerAddress = pagadorEndereco || ""; // Não usado na visualização do cabeçalho
-
     const pdfDoc = await PDFDocument.create();
-    // Aumentei a altura da página ligeiramente para garantir espaço no topo se for necessário ajustar a escala
-    const page = pdfDoc.addPage([420, 595]);
+    const page = pdfDoc.addPage([595, 842]); // A4
     const { width, height } = page.getSize();
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-    // --- VARIÁVEIS DE POSIÇÃO ---
-    const MARGIN_X = 30;
-    const TOP_Y_START = height - 50; // Linha de partida para os elementos do topo (Logo, Título, Valor)
+    const MARGIN = 50;
+    let y = height - 80;
 
-    // Altura da linha de texto e espaçamento
-    const LINE_HEIGHT_SM = 11;
-    const LINE_HEIGHT_XS = 9;
-
-    // --- 1. LOGOTIPO E TÍTULO ---
-    let logoImage: any = null;
-    try {
-      const logoBytes = await fetch(company?.logo_url || LOGO_FALLBACK).then(r => r.arrayBuffer());
-      logoImage = await pdfDoc.embedPng(logoBytes);
-      // Ajuste no Y para alinhar com o topo
-      page.drawImage(logoImage, { x: MARGIN_X, y: TOP_Y_START - 20, width: 60, height: 40 });
-    } catch {
-      // Fallback de texto para o logo/nome do emissor
-      page.drawText(company?.name || "EMISSOR", { x: MARGIN_X, y: TOP_Y_START - 20, size: 9, font: bold });
-    }
-
-    // Título Centralizado: RECIBO DE PAGAMENTO
-    page.drawText("RECIBO DE PAGAMENTO", {
-      x: width / 2 - (bold.widthOfTextAtSize("RECIBO DE PAGAMENTO", 14) / 2),
-      y: TOP_Y_START + 5, // Posição mais alta, centralizada no topo
-      size: 14,
-      font: bold
-    });
-
-    // --- 2. BLOCO DE VALOR (CANTO SUPERIOR DIREITO) ---
-    const PAD_X = 6;
-    const PAD_Y = 4;
-    const valueStr = formatBRL(amountNum);
-    const valueW = bold.widthOfTextAtSize(valueStr, 10);
-    const labelStr = "Número do recibo:";
-    const labelW = font.widthOfTextAtSize(labelStr, 7);
-    const recW = font.widthOfTextAtSize(recNumber, 7);
-    const contentW = Math.max(valueW, labelW, recW);
-    const contentH = 10 /*value*/ + 2 + 7 /*label*/ + 2 + 7 /*rec*/;
-    const BOX_WIDTH = contentW + PAD_X * 2;
-    const BOX_HEIGHT = contentH + PAD_Y * 2;
-    const BOX_X = width - MARGIN_X - BOX_WIDTH; // Alinha à direita
-    const BOX_Y_BOTTOM = TOP_Y_START - BOX_HEIGHT; // Caixa rente ao conteúdo
-
-    // Caixa (Retângulo)
-    page.drawRectangle({
-      x: BOX_X,
-      y: BOX_Y_BOTTOM,
-      width: BOX_WIDTH,
-      height: BOX_HEIGHT,
-      borderColor: rgb(0.7, 0.7, 0.7),
-      borderWidth: 1,
-      color: rgb(0.95, 0.95, 0.95)
-    });
-
-    // Valor
-    let ty = TOP_Y_START - PAD_Y - 10; // topo dentro da caixa
-    page.drawText(valueStr, { x: BOX_X + PAD_X, y: ty, size: 10, font: bold });
-    ty -= 12;
-    // Rótulo do recibo
-    page.drawText(labelStr, { x: BOX_X + PAD_X, y: ty, size: 7, font });
-    ty -= 9;
-    // Número do recibo
-    page.drawText(recNumber, { x: BOX_X + PAD_X, y: ty, size: 7, font });
-
-    // --- 3. BLOCO DE INFORMAÇÕES (EMISSOR E PAGADOR) ---
-    // Começa abaixo dos elementos do topo (Ex: abaixo da caixa de valor, com um espaçamento)
-    let y = BOX_Y_BOTTOM - 20;
-    const X_EMISSOR = MARGIN_X;
-    const X_PAGADOR = 220; // Ponto central da página para a 2ª coluna
-
-    // Funç��o auxiliar para quebrar texto (mantida do seu código)
+    // Helper function
     const wrapText = (text: string, maxWidth: number, fontRef: any, size: number): string[] => {
       const words = text.split(/\s+/);
       const lines: string[] = [];
       let line = "";
       for (const w of words) {
         const test = line ? `${line} ${w}` : w;
-        const wpx = fontRef.widthOfTextAtSize(test, size);
-        if (wpx > maxWidth && line) {
+        if (fontRef.widthOfTextAtSize(test, size) > maxWidth && line) {
           lines.push(line);
           line = w;
         } else {
@@ -426,129 +353,190 @@ export default function EmissaoRecibo() {
       return lines;
     };
 
-    // --- COLUNA DO EMISSOR (ESQUERDA) ---
-    let yEmissor = y;
-    page.drawText("Emissor", { x: X_EMISSOR, y: yEmissor, size: 9, font: bold });
-    yEmissor -= LINE_HEIGHT_SM;
-
-    page.drawText(company?.name || "", { x: X_EMISSOR, y: yEmissor, size: 9, font: bold });
-    yEmissor -= LINE_HEIGHT_XS;
-
-    page.drawText(`CNPJ: ${company?.cnpj || ""}`, { x: X_EMISSOR, y: yEmissor, size: 8, font });
-
-    if (company?.phone) {
-      yEmissor -= LINE_HEIGHT_XS;
-      // Adaptação para o formato (xx) xxxxx-xxxx com base no seu código
-      page.drawText(`/ (${company.phone.substring(0, 2)}) ${company.phone.substring(2)}`, { x: X_EMISSOR, y: yEmissor, size: 8, font });
-    }
-    if (emitterAddress) {
-      yEmissor -= LINE_HEIGHT_XS;
-      page.drawText(emitterAddress, { x: X_EMISSOR, y: yEmissor, size: 8, font });
-    }
-    if (emitterCityState) {
-      yEmissor -= LINE_HEIGHT_XS;
-      page.drawText(emitterCityState, { x: X_EMISSOR, y: yEmissor, size: 8, font });
+    // Logo
+    let logoImage: any = null;
+    try {
+      const logoBytes = await fetch(company?.logo_url || LOGO_FALLBACK).then(r => r.arrayBuffer());
+      logoImage = await pdfDoc.embedPng(logoBytes);
+      page.drawImage(logoImage, { x: MARGIN, y: y - 35, width: 80, height: 35 });
+    } catch {
+      page.drawText(company?.name || "EMISSOR", { x: MARGIN, y: y, size: 10, font: bold });
     }
 
-    // --- COLUNA DO PAGADOR (DIREITA) ---
-    let yPagador = y;
-    page.drawText("Pagador", { x: X_PAGADOR, y: yPagador, size: 9, font: bold });
-    yPagador -= LINE_HEIGHT_SM;
-
-    const payerNameLines = wrapText(pagadorNome.toUpperCase(), 170, bold, 9);
-    payerNameLines.forEach((line, idx) => {
-      page.drawText(line, { x: X_PAGADOR, y: yPagador - (idx * LINE_HEIGHT_SM), size: 9, font: bold });
+    // Title centered
+    const title = "RECIBO DE PAGAMENTO";
+    page.drawText(title, {
+      x: width / 2 - bold.widthOfTextAtSize(title, 16) / 2,
+      y: y - 10,
+      size: 16,
+      font: bold
     });
-    yPagador -= (payerNameLines.length * LINE_HEIGHT_SM);
 
-    yPagador -= 1;
-    page.drawText(`CNPJ: ${pagadorDocumento}`, { x: X_PAGADOR, y: yPagador, size: 8, font });
+    // Value box on right
+    const valueBox = {
+      width: 110,
+      height: 50,
+      x: width - MARGIN - 110,
+      y: y - 50
+    };
 
-    // Define o ponto de início para o corpo do recibo (tabela) como o mais baixo entre Emissor e Pagador
-    let tableY = Math.min(yEmissor, yPagador) - 20;
+    page.drawRectangle({
+      x: valueBox.x,
+      y: valueBox.y,
+      width: valueBox.width,
+      height: valueBox.height,
+      borderColor: rgb(0.6, 0.6, 0.6),
+      borderWidth: 1
+    });
 
-    // --- CORPO DO RECIBO (TABELA E TOTAL) ---
+    page.drawText(formatBRL(amountNum), {
+      x: valueBox.x + 10,
+      y: valueBox.y + 30,
+      size: 12,
+      font: bold
+    });
 
-    page.drawLine({ start: { x: MARGIN_X, y: tableY }, end: { x: width - MARGIN_X, y: tableY }, thickness: 1 });
-    tableY -= 14;
-    page.drawText("DESCRIÇÃO", { x: MARGIN_X + 5, y: tableY, size: 9, font: bold });
-    page.drawText("TOTAL", { x: width - MARGIN_X - 40, y: tableY, size: 9, font: bold });
-    tableY -= 2;
-    page.drawLine({ start: { x: MARGIN_X, y: tableY }, end: { x: width - MARGIN_X, y: tableY }, thickness: 0.5 });
-    tableY -= 14;
+    page.drawText("Número do recibo:", {
+      x: valueBox.x + 10,
+      y: valueBox.y + 18,
+      size: 7,
+      font
+    });
 
-    const descMaxWidth = 300;
-    const descLines = wrapText(servico, descMaxWidth, font, 9);
-    descLines.forEach((ln, idx) => {
-      const yLine = tableY - (idx * LINE_HEIGHT_SM);
-      page.drawText(ln, { x: MARGIN_X + 5, y: yLine, size: 9, font });
+    page.drawText(recNumber, {
+      x: valueBox.x + 10,
+      y: valueBox.y + 8,
+      size: 8,
+      font
+    });
+
+    y -= 80;
+
+    // Emitter section (left column)
+    page.drawText("Emissor", { x: MARGIN, y, size: 8, font: bold });
+    y -= 12;
+
+    const emitterLines = [
+      company?.name || "",
+      company?.cnpj ? `CNPJ: ${company.cnpj}` : "",
+      company?.address || "",
+      company?.city && company?.state ? `${company.city} - ${company.state}` : ""
+    ].filter(Boolean);
+
+    emitterLines.forEach(line => {
+      page.drawText(line, { x: MARGIN, y, size: 7, font });
+      y -= 10;
+    });
+
+    // Payer section (right column)
+    let yPayer = height - 160;
+    const xPayer = width / 2 + 20;
+
+    page.drawText("Pagador", { x: xPayer, y: yPayer, size: 8, font: bold });
+    yPayer -= 12;
+
+    page.drawText(pagadorNome.toUpperCase(), { x: xPayer, y: yPayer, size: 8, font: bold });
+    yPayer -= 10;
+
+    page.drawText(`CNPJ: ${pagadorDocumento}`, { x: xPayer, y: yPayer, size: 7, font });
+    yPayer -= 10;
+
+    // Table
+    y = Math.min(y, yPayer) - 30;
+    let tableY = y;
+
+    // Header line
+    page.drawLine({
+      start: { x: MARGIN, y: tableY },
+      end: { x: width - MARGIN, y: tableY },
+      thickness: 1,
+      color: rgb(0, 0, 0)
+    });
+
+    tableY -= 15;
+    page.drawText("DESCRIÇÃO", { x: MARGIN + 5, y: tableY, size: 8, font: bold });
+    page.drawText("TOTAL", { x: width - MARGIN - 60, y: tableY, size: 8, font: bold });
+
+    tableY -= 3;
+    page.drawLine({
+      start: { x: MARGIN, y: tableY },
+      end: { x: width - MARGIN, y: tableY },
+      thickness: 0.5
+    });
+
+    // Description
+    tableY -= 15;
+    const descLines = wrapText(servico, width - MARGIN * 2 - 100, font, 8);
+    descLines.forEach((line, idx) => {
+      page.drawText(line, { x: MARGIN + 5, y: tableY - (idx * 12), size: 8, font });
       if (idx === 0) {
-        page.drawText(formatBRL(amountNum), { x: width - MARGIN_X - 45, y: yLine, size: 9, font });
+        page.drawText(formatBRL(amountNum), {
+          x: width - MARGIN - 60,
+          y: tableY - (idx * 12),
+          size: 8,
+          font
+        });
       }
     });
-    tableY -= (descLines.length * LINE_HEIGHT_SM) + 10;
 
-    page.drawLine({ start: { x: MARGIN_X, y: tableY }, end: { x: width - MARGIN_X, y: tableY }, thickness: 0.5 });
-    tableY -= 14;
-    page.drawText("Total:", { x: width - MARGIN_X - 100, y: tableY, size: 9, font: bold });
-    page.drawText(formatBRL(amountNum), { x: width - MARGIN_X - 45, y: tableY, size: 9, font: bold });
+    tableY -= (descLines.length * 12) + 15;
 
-    // --- OUTROS DETALHES (OBSERVAÇÕES, DECLARAÇÃO E DATA) ---
-    tableY -= 25;
+    // Total line
+    page.drawLine({
+      start: { x: MARGIN, y: tableY },
+      end: { x: width - MARGIN, y: tableY },
+      thickness: 0.5
+    });
 
-    if (observacoes && observacoes.trim()) {
-      const obsLines = wrapText(`Observação: ${observacoes}`, width - 60, font, 8);
-      obsLines.forEach((line, idx) => {
-        page.drawText(line, { x: MARGIN_X, y: tableY - (idx * 10), size: 8, font });
-      });
-      tableY -= (obsLines.length * 10) + 10;
-    } else {
-      tableY -= 10;
-    }
-
-    if (prazoMaximoQuitacao) {
-      const prazoFormatted = new Date(prazoMaximoQuitacao).toLocaleDateString("pt-BR");
-      page.drawText(`PRAZO MÁXIMO DE QUITAÇÃO ${prazoFormatted}`, { x: MARGIN_X, y: tableY, size: 8, font });
-      tableY -= 15;
-    }
+    // OBS section
+    tableY -= 30;
 
     const valorExtensoText = valorExtenso || numberToCurrencyWordsPtBr(amountNum);
-    const declaracaoPagamento = `Declaração: Recebemos de ${pagadorNome.toUpperCase()}, a importância de ${valorExtensoText.toLowerCase()}, referente aos itens listados acima. Para maior clareza, firmo o presente recibo para que produza seus efeitos, dando plena, geral e irrevogável quitação pelo valor recebido.`;
-    const obsReembolsoBloco = [
-      "OBS: Declaro, para os devidos fins, que o presente recibo é emitido antecipadamente a título de solicitação de reembolso referente às despesas efetuadas por esta empresa em benefício do cliente acima identificado.",
-      "Ressalta-se que o presente documento somente terá validade e produzirá seus efeitos legais após a efetiva quitação do valor nele indicado, mediante comprovação do respectivo pagamento.",
-      "Para maior clareza e segurança das partes, firmo o presente recibo, que permanecerá condicionado ao cumprimento integral da obrigação de pagamento até a data de quitação."
-    ].join("\n\n");
-    const declaracaoTexto = receiptType === "pagamento" ? declaracaoPagamento : obsReembolsoBloco;
-    const paragraphs = declaracaoTexto.split("\n\n");
-    for (let pIndex = 0; pIndex < paragraphs.length; pIndex++) {
-      const lines = wrapText(paragraphs[pIndex], width - 60, font, 7);
-      lines.forEach((line, idx) => {
-        page.drawText(line, { x: MARGIN_X, y: tableY - (idx * 9), size: 7, font });
-      });
-      tableY -= (lines.length * 9) + 10; // espaço entre parágrafos
-    }
-    tableY -= 5;
+    const obsText = receiptType === "pagamento"
+      ? `Declaração: Recebemos de ${pagadorNome.toUpperCase()}, a importância de ${valorExtensoText.toLowerCase()}, referente aos itens listados acima. Para maior clareza, firmo o presente recibo para que produza seus efeitos, dando plena, geral e irrevogável quitação pelo valor recebido.`
+      : `OBS: Declaro, para os devidos fins, que o presente recibo é emitido antecipadamente a título de solicitação de reembolso referente às despesas efetuadas por esta empresa em benefício do cliente acima identificado.\n\nRessalta-se que o presente documento somente terá validade e produzirá seus efeitos legais após a efetiva quitação do valor nele indicado, mediante comprovação do respectivo pagamento.\n\nPara maior clareza e segurança das partes, firmo o presente recibo, que permanecerá condicionado ao cumprimento integral da obrigação de pagamento até a data de quitação.`;
 
+    page.drawText("OBS:", { x: MARGIN, y: tableY, size: 8, font: bold });
+    tableY -= 12;
+
+    const obsLines = wrapText(obsText.replace(/^OBS:\s*/, ''), width - MARGIN * 2, font, 7);
+    obsLines.forEach((line, idx) => {
+      page.drawText(line, { x: MARGIN, y: tableY - (idx * 10), size: 7, font });
+    });
+
+    tableY -= (obsLines.length * 10) + 30;
+
+    // Date
     const todayLocal = formatDateLocalYYYYMMDD(new Date());
     const issueDateFormatted = formatDateDisplay(todayLocal);
-    const cityText = company?.city || pagadorCidade || "";
+    const cityText = company?.city || pagadorCidade || "Várzea Grande";
     const dataCidadeText = `${cityText}, ${issueDateFormatted}`;
-    page.drawText(dataCidadeText, { x: MARGIN_X, y: tableY, size: 8, font });
 
-    // Linha de assinatura
-    const signatureY = tableY - 60;
-    // Logo acima da assinatura (pequena)
+    page.drawText(dataCidadeText, { x: MARGIN, y: tableY, size: 8, font });
+
+    // Signature
+    const signY = tableY - 80;
+
     if (logoImage) {
-      const logoW = 60;
-      const logoH = 20;
-      page.drawImage(logoImage, { x: width / 2 - logoW / 2, y: signatureY + 12, width: logoW, height: logoH });
+      page.drawImage(logoImage, {
+        x: width / 2 - 40,
+        y: signY + 15,
+        width: 80,
+        height: 30
+      });
     }
-    page.drawLine({ start: { x: width / 2 - 80, y: signatureY }, end: { x: width / 2 + 80, y: signatureY }, thickness: 0.5 });
-    page.drawText(company?.name || "Assinatura do Emissor", {
-      x: width / 2 - (font.widthOfTextAtSize(company?.name || "Assinatura do Emissor", 8) / 2),
-      y: signatureY - 10,
-      size: 8,
+
+    page.drawLine({
+      start: { x: width / 2 - 100, y: signY },
+      end: { x: width / 2 + 100, y: signY },
+      thickness: 0.5
+    });
+
+    const sigText = company?.name || "Assinatura";
+    page.drawText(sigText, {
+      x: width / 2 - font.widthOfTextAtSize(sigText, 7) / 2,
+      y: signY - 12,
+      size: 7,
       font
     });
 

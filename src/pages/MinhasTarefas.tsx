@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Bell, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import TaskDialog from "@/components/tasks/TaskDialog";
 import { format } from "date-fns";
@@ -23,24 +23,15 @@ interface Task {
   created_at: string;
 }
 
-interface TaskNotification {
-  id: string;
-  message: string;
-  read: boolean;
-  created_at: string;
-}
 
 export default function MinhasTarefas() {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [notifications, setNotifications] = useState<TaskNotification[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [showNotifications, setShowNotifications] = useState(false);
   const [loadingTasks, setLoadingTasks] = useState(false);
 
   useEffect(() => {
     void fetchTasks();
-    void fetchNotifications();
   }, []);
 
   const fetchTasks = async () => {
@@ -68,25 +59,6 @@ export default function MinhasTarefas() {
     setLoadingTasks(false);
   };
 
-  const fetchNotifications = async () => {
-    // Task notifications table doesn't exist yet - skip for now
-    setNotifications([]);
-  };
-
-  const markNotificationAsRead = async (id: string) => {
-    const { error } = await supabase
-      .from("task_notifications")
-      .update({ read: true })
-      .eq("id", id);
-
-    if (error) {
-      console.error("Erro ao marcar notificação como lida:", error);
-      toast.error("Não foi possível marcar a notificação");
-      return;
-    }
-
-    void fetchNotifications();
-  };
 
   const handleEdit = (task: Task) => {
     setEditingTask(task);
@@ -109,7 +81,6 @@ export default function MinhasTarefas() {
 
   const handleSave = () => {
     void fetchTasks();
-    void fetchNotifications();
     setIsDialogOpen(false);
     setEditingTask(null);
   };
@@ -158,47 +129,11 @@ export default function MinhasTarefas() {
       <div className="container mx-auto space-y-6 p-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold">Minhas Tarefas</h1>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              className="relative"
-              onClick={() => setShowNotifications((prev) => !prev)}
-            >
-              <Bell className="h-4 w-4" />
-              {notifications.length > 0 ? (
-                <Badge className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center p-0 text-xs">
-                  {notifications.length}
-                </Badge>
-              ) : null}
-            </Button>
-            <Button onClick={() => setIsDialogOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Nova Tarefa
-            </Button>
-          </div>
+          <Button onClick={() => setIsDialogOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Nova Tarefa
+          </Button>
         </div>
-
-        {showNotifications && notifications.length > 0 ? (
-          <Card className="mb-6 p-4">
-            <h3 className="mb-3 font-semibold">Notificações</h3>
-            <div className="space-y-2">
-              {notifications.map((notification) => (
-                <button
-                  key={notification.id}
-                  type="button"
-                  className="flex w-full items-start justify-between rounded bg-muted p-2 text-left transition hover:bg-muted/80"
-                  onClick={() => markNotificationAsRead(notification.id)}
-                >
-                  <p className="text-sm">{notification.message}</p>
-                  <span className="text-xs text-muted-foreground">
-                    {format(new Date(notification.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </Card>
-        ) : null}
 
         <div className="grid gap-4">
           {loadingTasks ? (

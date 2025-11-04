@@ -1560,7 +1560,7 @@ const TravelReports = () => {
             <div className="border p-4 rounded-lg bg-gray-900 shadow-sm border-gray-700">
               <h3 className="text-md font-bold mb-2 text-blue-300">Totais por Categoria</h3>
               <div className="space-y-1 text-sm text-gray-200">
-                <div className="flex justify-between"><span>Combustível:</span> <span className="font-semibold">R$ {currentReport.total_combustivel.toFixed(2).replace('.', ',')}</span></div>
+                <div className="flex justify-between"><span>Combust��vel:</span> <span className="font-semibold">R$ {currentReport.total_combustivel.toFixed(2).replace('.', ',')}</span></div>
                 <div className="flex justify-between"><span>Hospedagem:</span> <span className="font-semibold">R$ {currentReport.total_hospedagem.toFixed(2).replace('.', ',')}</span></div>
                 <div className="flex justify-between"><span>Alimentação:</span> <span className="font-semibold">R$ {currentReport.total_alimentacao.toFixed(2).replace('.', ',')}</span></div>
                 <div className="flex justify-between"><span>Transporte:</span> <span className="font-semibold">R$ {currentReport.total_transporte.toFixed(2).replace('.', ',')}</span></div>
@@ -1628,7 +1628,7 @@ const TravelReports = () => {
 
   // Conteúdo da lista de relatórios
   return (
-    <Layout showRightSidebar={false}>
+    <Layout showRightSidebar={true}>
       <div className="p-4 space-y-4">
         <h1 className="text-2xl font-bold flex items-center justify-between">
         <span>Relatórios de Viagem</span>

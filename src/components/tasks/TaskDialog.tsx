@@ -51,7 +51,6 @@ interface Task {
 interface UserProfile {
   id: string;
   full_name: string;
-  tipo: string | null;
 }
 
 export default function TaskDialog({ open, onOpenChange, task, onSave }: TaskDialogProps) {
@@ -95,7 +94,7 @@ export default function TaskDialog({ open, onOpenChange, task, onSave }: TaskDia
   const fetchUsers = useCallback(async () => {
     const { data, error } = await supabase
       .from("user_profiles")
-      .select("id, full_name, tipo")
+      .select("id, full_name")
       .order("full_name", { ascending: true });
 
     if (error) {
@@ -301,7 +300,7 @@ export default function TaskDialog({ open, onOpenChange, task, onSave }: TaskDia
                 <SelectContent>
                   {users.map((user) => (
                     <SelectItem key={user.id} value={user.id}>
-                      {user.full_name} {user.tipo ? `(${user.tipo})` : ""}
+                      {user.full_name}
                     </SelectItem>
                   ))}
                 </SelectContent>
