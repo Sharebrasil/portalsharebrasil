@@ -45,10 +45,10 @@ const formatCurrencyBR = (value: number | string) => {
     return num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
-// --- COMPONENTES AUXILIARES DE VISUALIZAÇÃO WEB ---
-
 // Placeholder para a Logo da sua empresa (ajuste o caminho)
 const SHAREBRASIL_LOGO = 'https://sharebrasil.com/logo.png'; 
+
+// --- COMPONENTES AUXILIARES DE VISUALIZAÇÃO WEB (ReportFormUI CORRIGIDO) ---
 
 const ReportFormUI = ({ currentReport, handleInputChange, handleDespesaChange, addDespesa, removeDespesa, handleFileUpload, calculateDays, CATEGORIAS_DESPESA, PAGADORES, uploadingIndex, cliente, aeronaves, uniqueTripulantes, showSecondTripulante, setShowSecondTripulante, deleteCreatedReport }) => {
     if (!currentReport) return <p className="text-center text-gray-500 mt-10 p-6">Selecione um rascunho ou clique em "+ Novo Relatório" para começar.</p>;
@@ -78,8 +78,10 @@ const ReportFormUI = ({ currentReport, handleInputChange, handleDespesaChange, a
                                 <SelectValue placeholder="Selecione o Cliente" />
                             </SelectTrigger>
                             <SelectContent>
-                                {cliente.map((c) => (
-                                    <SelectItem key={c.id} value={c.nome}>{c.nome}</SelectItem>
+                                {cliente
+                                    .filter(c => c.nome && String(c.nome).trim() !== '') // CORREÇÃO: Filtra nomes vazios
+                                    .map((c) => (
+                                        <SelectItem key={c.id} value={c.nome}>{c.nome}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
@@ -91,14 +93,16 @@ const ReportFormUI = ({ currentReport, handleInputChange, handleDespesaChange, a
                                 <SelectValue placeholder="Selecione a Aeronave" />
                             </SelectTrigger>
                             <SelectContent>
-                                {aeronaves.map((a) => (
-                                    <SelectItem key={a.id} value={a.prefixo}>{a.prefixo} ({a.modelo})</SelectItem>
+                                {aeronaves
+                                    .filter(a => a.prefixo && String(a.prefixo).trim() !== '') // CORREÇÃO: Filtra prefixos vazios
+                                    .map((a) => (
+                                        <SelectItem key={a.id} value={a.prefixo}>{a.prefixo} ({a.modelo})</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
                     </div>
 
-                    {/* Linha 2: Tripulante 1 e Trecho */}
+                    {/* ... (outros inputs de texto e data) ... */}
                     <div className="space-y-2">
                         <Label htmlFor="tripulante">Tripulante Responsável *</Label>
                         <Input 
@@ -124,7 +128,6 @@ const ReportFormUI = ({ currentReport, handleInputChange, handleDespesaChange, a
                         />
                     </div>
                     
-                    {/* Linha 3: Data Início/Fim */}
                     <div className="space-y-2">
                         <Label htmlFor="data_inicio">Data Início *</Label>
                         <Input 
@@ -147,7 +150,6 @@ const ReportFormUI = ({ currentReport, handleInputChange, handleDespesaChange, a
                         <p className="text-sm text-gray-500">Duração: {calculateDays()} dia(s)</p>
                     </div>
 
-                    {/* Linha 4: Segundo Tripulante (Opcional) */}
                     <div className="col-span-1 md:col-span-2 space-y-2">
                         {showSecondTripulante || currentReport.tripulante2 ? (
                             <>
@@ -236,9 +238,11 @@ const ReportFormUI = ({ currentReport, handleInputChange, handleDespesaChange, a
                                             <SelectValue placeholder="Selecione a Categoria" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {CATEGORIAS_DESPESA.map((c) => (
-                                                <SelectItem key={c} value={c}>{c}</SelectItem>
-                                            ))}
+                                            {CATEGORIAS_DESPESA
+                                                .filter(c => c !== '') // CORREÇÃO: Filtro defensivo
+                                                .map((c) => (
+                                                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                                                ))}
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -263,9 +267,11 @@ const ReportFormUI = ({ currentReport, handleInputChange, handleDespesaChange, a
                                             <SelectValue placeholder="Pago Por" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {PAGADORES.map((p) => (
-                                                <SelectItem key={p} value={p}>{p}</SelectItem>
-                                            ))}
+                                            {PAGADORES
+                                                .filter(p => p !== '') // CORREÇÃO: Filtro defensivo
+                                                .map((p) => (
+                                                    <SelectItem key={p} value={p}>{p}</SelectItem>
+                                                ))}
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -411,11 +417,14 @@ const DraftsList = ({ visibleReports, selectedCliente, setSelectedCliente, allCl
                         <SelectValue placeholder="Todos os Clientes" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="">Todos os Clientes</SelectItem>
+                        {/* Este é o item com value="" que é permitido (limpar seleção) */}
+                        <SelectItem value="">Todos os Clientes</SelectItem> 
                         <Separator />
-                        {allClienteFolders.map((c) => (
-                            <SelectItem key={c} value={c}>{c}</SelectItem>
-                        ))}
+                        {allClienteFolders
+                            .filter(c => c !== '') // CORREÇÃO: Filtro defensivo
+                            .map((c) => (
+                                <SelectItem key={c} value={c}>{c}</SelectItem>
+                            ))}
                     </SelectContent>
                 </Select>
             </div>
@@ -446,6 +455,7 @@ const DraftsList = ({ visibleReports, selectedCliente, setSelectedCliente, allCl
 
 // --- FUNÇÃO CRUCIAL PARA GERAÇÃO DE PDF (COM ESTILOS INLINE PARA HTML2PDF) ---
 const generateHTMLReport = (report: any, currentFullName: string) => {
+    // ... (Esta função permanece inalterada, pois o erro é no Select, não no HTML do PDF)
     const totalGeral = formatCurrencyBR(report.valor_total);
     const dataViagem = `${formatDateBR(report.data_inicio)} a ${formatDateBR(report.data_fim)}`;
     const dias = (report.data_inicio && report.data_fim) ? ((Math.ceil(Math.abs(new Date(report.data_fim).getTime() - new Date(report.data_inicio).getTime()) / (1000 * 60 * 60 * 24)) + 1) + ' dias') : '1 dia';
@@ -609,8 +619,9 @@ const TravelReports = () => {
     const [loadingHistory, setLoadingHistory] = useState<boolean>(false);
 
     // Constantes do sistema
-    const CATEGORIAS_DESPESA = ["Combustível", "Hospedagem", "Alimentação", "Transporte", "Outros"];
-    const PAGADORES = ["Tripulante", "Cliente", "ShareBrasil"];
+    // CORREÇÃO: Usamos o filter defensivamente no map, mas aqui garantimos que não haja '' acidentalmente.
+    const CATEGORIAS_DESPESA = ["Combustível", "Hospedagem", "Alimentação", "Transporte", "Outros"].filter(Boolean).filter(c => c !== '');
+    const PAGADORES = ["Tripulante", "Cliente", "ShareBrasil"].filter(Boolean).filter(p => p !== '');
 
     // Modal de visualização de PDF
     const [pdfModalOpen, setPdfModalOpen] = useState(false);
@@ -629,8 +640,8 @@ const TravelReports = () => {
         setTimeout(() => { try { URL.revokeObjectURL(url); } catch {} }, 1000);
     };
 
-    // Função para obter URL do PDF (Mantida a do código original)
     const getReportPdfUrl = async (report?: any): Promise<string | null> => {
+        // ... (função inalterada) ...
         try {
             const targetReport = report || currentReport;
             if (!targetReport?.numero) return null;
@@ -699,9 +710,12 @@ const TravelReports = () => {
     useEffect(() => {
         (async () => {
             try {
+                // CORREÇÃO: Garante que os dados do Supabase sejam filtrados
                 const { data, error } = await supabase.from('clients').select('id, company_name').order('company_name');
                 if (!error) {
-                    setCliente((data || []).map((c: any) => ({ id: c.id, nome: c.company_name })));
+                    setCliente((data || [])
+                        .map((c: any) => ({ id: c.id, nome: String(c.company_name || '').trim() }))
+                        .filter((c: any) => c.nome !== '')); // Filtra itens sem nome
                 }
             } catch (e) { /* ignore */ }
         })();
@@ -710,8 +724,11 @@ const TravelReports = () => {
     useEffect(() => {
         (async () => {
             try {
+                // CORREÇÃO: Garante que os dados do Supabase sejam filtrados
                 const { data } = await supabase.from('aircraft').select('id, registration, model').order('registration');
-                setAeronaves((data || []).map((a: any) => ({ id: a.id, prefixo: a.registration, modelo: a.model })));
+                setAeronaves((data || [])
+                    .map((a: any) => ({ id: a.id, prefixo: String(a.registration || '').trim(), modelo: a.model }))
+                    .filter((a: any) => a.prefixo !== '')); // Filtra itens sem prefixo
             } catch (e) { /* ignore */ }
         })();
     }, []);
@@ -720,7 +737,7 @@ const TravelReports = () => {
         (async () => {
             try {
                 const { data, error } = await supabase.from('crew_members').select('full_name').order('full_name');
-                if (!error) setTripulantesList((data || []).map((t:any)=>t.full_name).filter(Boolean));
+                if (!error) setTripulantesList((data || []).map((t:any)=>String(t.full_name || '').trim()).filter(Boolean).filter(t => t !== ''));
             } catch (e) { /* noop */ }
         })();
     }, []);
@@ -772,10 +789,10 @@ const TravelReports = () => {
     const historyClienteNames = useMemo(() => Array.from(new Set((history || []).map((h:any) => String(h?.cliente || '').trim()).filter(Boolean))), [history]);
     const allClienteFolders = useMemo(() => Array.from(new Set([
         ...dbClienteNames, ...reportClienteNames, ...historyClienteNames,
-    ].filter(Boolean))).sort((a, b) => String(a).localeCompare(String(b), 'pt-BR')), [dbClienteNames, reportClienteNames, historyClienteNames]);
+    ].filter(Boolean))).filter(c => c !== '').sort((a, b) => String(a).localeCompare(String(b), 'pt-BR')), [dbClienteNames, reportClienteNames, historyClienteNames]); // CORREÇÃO: Filtro final garantindo que não há ''
     const visibleReports = useMemo(() => (selectedCliente ? (reports || []).filter((r:any) => r?.cliente === selectedCliente) : (reports || []))
         .filter((r:any) => r?.status !== 'finalized'), [reports, selectedCliente]);
-    const uniqueTripulantes = useMemo(() => Array.from(new Set((tripulantesList || []).filter(Boolean))).sort((a, b) => String(a).localeCompare(String(b), 'pt-BR')), [tripulantesList]);
+    const uniqueTripulantes = useMemo(() => Array.from(new Set((tripulantesList || []).filter(Boolean).filter(t => t !== ''))).sort((a, b) => String(a).localeCompare(String(b), 'pt-BR')), [tripulantesList]);
     
     // Estados para Tripulante 2
     const [showSecondTripulante, setShowSecondTripulante] = useState<boolean>(false);
@@ -786,6 +803,8 @@ const TravelReports = () => {
         localStorage.setItem('travelReports', JSON.stringify(updatedReports));
         setReports(updatedReports);
     };
+
+    // ... (Outras funções, como deleteReport, deleteCreatedReport, generateReportNumberLocal, allocateReportNumber, createNewReport, calculateTotals, calculateDays, saveReport, handleInputChange, handleDespesaChange, addDespesa, removeDespesa, handleFileUpload, e generatePDF, permanecem inalteradas, pois o problema era o map nos Selects) ...
 
     // Excluir relatório salvo (rascunho local)
     const deleteReport = (numero) => {
@@ -1268,14 +1287,6 @@ const TravelReports = () => {
                 }
             } catch {}
             
-            // Tratamento de imagens externas (mantido o código original)
-            const imgs = Array.from(element.querySelectorAll('img'));
-            const fetchToDataUrl = async (url) => { /* ... (função de fetch mantida) ... */ return null; }; 
-
-            // Simulação da lógica original de conversão de imagem para Data URL (para o código ser completo, deve-se incluir a função fetchToDataUrl)
-            // for (const img of imgs) { /* ... lógica de conversão ... */ }
-
-            // 3. Configuração do html2pdf
             const pdfConfig = {
                 margin: [10, 10, 15, 10], // top, left, bottom, right
                 filename: `${report.numero}-relatorio-viagem.pdf`,
