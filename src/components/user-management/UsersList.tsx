@@ -52,17 +52,30 @@ export function UsersList() {
 
   const handleDeactivateUser = async (user: any) => {
     try {
-      const { error } = await supabase.auth.admin.updateUserById(user.id, {
-        user_metadata: { status: "inactive" },
-      });
+      const isInactive = user.user_metadata?.status === "inactive" || user.banned_until;
 
-      if (error) throw error;
+      if (isInactive) {
+        // Ativar usuário
+        const { error } = await supabase.auth.admin.updateUserById(user.id, {
+          user_metadata: { status: "active" },
+        });
 
-      toast.success(`Usuário ${user.email} desativado com sucesso`);
+        if (error) throw error;
+        toast.success(`Usuário ${user.email} ativado com sucesso`);
+      } else {
+        // Desativar usuário
+        const { error } = await supabase.auth.admin.updateUserById(user.id, {
+          user_metadata: { status: "inactive" },
+        });
+
+        if (error) throw error;
+        toast.success(`Usuário ${user.email} desativado com sucesso`);
+      }
+
       await refetch();
     } catch (error) {
-      console.error("Erro ao desativar usuário:", error);
-      toast.error("Erro ao desativar usuário");
+      console.error("Erro ao alternar status do usuário:", error);
+      toast.error("Erro ao alternar status do usuário");
     }
   };
 
