@@ -353,23 +353,22 @@ export default function EmissaoRecibo() {
       return lines;
     };
 
-    // --- 1. LOGOTIPO E TÍTULO ---
+    // Logo
     let logoImage: any = null;
     try {
       const logoBytes = await fetch(company?.logo_url || LOGO_FALLBACK).then(r => r.arrayBuffer());
       logoImage = await pdfDoc.embedPng(logoBytes);
-      // Ajuste no Y para alinhar com o topo
-      page.drawImage(logoImage, { x: MARGIN_X, y: TOP_Y_START - 20, width: 60, height: 40 });
+      page.drawImage(logoImage, { x: MARGIN, y: y - 35, width: 80, height: 35 });
     } catch {
-      // Fallback de texto para o logo/nome do emissor
-      page.drawText(company?.name || "EMISSOR", { x: MARGIN_X, y: TOP_Y_START - 20, size: 9, font: bold });
+      page.drawText(company?.name || "EMISSOR", { x: MARGIN, y: y, size: 10, font: bold });
     }
 
-    // Título Centralizado: RECIBO DE PAGAMENTO
-    page.drawText("RECIBO DE PAGAMENTO", {
-      x: width / 2 - (bold.widthOfTextAtSize("RECIBO DE PAGAMENTO", 14) / 2),
-      y: TOP_Y_START + 5, // Posição mais alta, centralizada no topo
-      size: 14,
+    // Title centered
+    const title = "RECIBO DE PAGAMENTO";
+    page.drawText(title, {
+      x: width / 2 - bold.widthOfTextAtSize(title, 16) / 2,
+      y: y - 10,
+      size: 16,
       font: bold
     });
 
