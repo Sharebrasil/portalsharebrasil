@@ -1246,9 +1246,9 @@ const TravelReports = () => {
   if (isCreating && currentReport) {
     // Conteúdo de criação/edição do relatório
     return (
-      <Layout showRightSidebar={false}>
-        <div className="p-4 space-y-4">
-        <div className="flex items-center space-x-2 border-b pb-4 mb-4" style={{ backgroundColor: 'rgba(99, 236, 216, 0.25)' }}>
+      <Layout showRightSidebar={true}>
+        <div className="p-4 space-y-4 bg-gray-950 min-h-screen">
+        <div className="flex items-center space-x-2 border-b pb-4 mb-4 bg-gray-900" style={{ backgroundColor: 'rgba(99, 236, 216, 0.15)' }}>
           <button onClick={() => { setIsCreating(false); setCurrentReport(null); }} className="p-2 rounded-full hover:bg-gray-100">
             <ArrowLeft size={24} />
           </button>
@@ -1444,14 +1444,14 @@ const TravelReports = () => {
           
           <div className="space-y-4">
             {currentReport.despesas.map((despesa, index) => (
-              <div key={index} className="border p-4 rounded-lg bg-gray-50 relative">
+              <div key={index} className="border p-4 rounded-lg bg-gray-900 relative">
                 <div className="absolute top-2 right-2 flex space-x-2">
                   <button onClick={() => removeDespesa(index)} className="p-1 rounded-full text-red-500 hover:bg-red-100">
                     <Trash2 size={18} />
                   </button>
                 </div>
                 
-                <h3 className="text-md font-medium mb-3 text-blue-800">Despesa #{index + 1}</h3>
+                <h3 className="text-md font-medium mb-3 text-blue-200">Despesa #{index + 1}</h3>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                   <div className="flex flex-col">
