@@ -23,6 +23,16 @@ const GestaoSalarios = () => {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedCrewMember, setSelectedCrewMember] = useState<string>("");
+  const [isSalaryDialogOpen, setIsSalaryDialogOpen] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [salaryForm, setSalaryForm] = useState({
+    user_id: "",
+    position: "",
+    department: "",
+    gross_salary: "",
+    net_salary: "",
+    benefits: "",
+  });
 
   const { isAdmin, isFinanceiroMaster, isGestorMaster, isLoading: isRolesLoading } = useUserRole();
   const isAllowed = isAdmin || isFinanceiroMaster || isGestorMaster;
