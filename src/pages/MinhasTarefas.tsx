@@ -23,12 +23,6 @@ interface Task {
   created_at: string;
 }
 
-interface TaskNotification {
-  id: string;
-  message: string;
-  read: boolean;
-  created_at: string;
-}
 
 export default function MinhasTarefas() {
   const [tasks, setTasks] = useState<Task[]>([]);
