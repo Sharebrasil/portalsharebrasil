@@ -49,9 +49,12 @@ const GestaoSalarios = () => {
   const { data: crewMembers = [] } = useQuery({
     queryKey: ["crew_members"],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke("list-crew-members", { body: { status: "active" } });
+      const { data, error } = await supabase
+        .from("crew_members")
+        .select("*")
+        .order("full_name");
       if (error) throw new Error(error.message ?? "Erro ao carregar tripulantes");
-      return ((data as { crew_members?: any[] })?.crew_members ?? []) as any[];
+      return data as any[];
     },
   });
 
