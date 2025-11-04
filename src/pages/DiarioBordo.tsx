@@ -41,11 +41,11 @@ export default function DiarioBordo() {
 
   return (
     <Layout>
-      <div className="container mx-auto p-6 space-y-6 w-full">
-        <div className="flex justify-between items-center pb-[30px]">
+      <div className="p-6 space-y-6">
+        <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-foreground pb-[2px] mt-2 mr-[85px]">Diários de Bordo</h1>
-            <p className="text-muted-foreground mt-1 pb-[21px]">
+            <h1 className="text-3xl font-bold text-foreground">Diários de Bordo</h1>
+            <p className="text-muted-foreground mt-1">
               Gerencie os diários de bordo digitais das aeronaves.
             </p>
           </div>
