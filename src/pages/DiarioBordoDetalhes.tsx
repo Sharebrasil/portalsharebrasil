@@ -576,9 +576,123 @@ export default function DiarioBordoDetalhes() {
                       />
                     </td>
                     <td className="border border-gray-300 p-1">
+                      <Popover open={deSearchOpen === index} onOpenChange={(open) => setDeSearchOpen(open ? index : null)}>
+                        <PopoverTrigger asChild>
+                          <Input
+                            placeholder="Buscar..."
+                            value={deSearchOpen === index ? deSearchValue : entry.de}
+                            onChange={(e) => {
+                              setDeSearchValue(e.target.value);
+                              if (deSearchOpen !== index) setDeSearchOpen(index);
+                            }}
+                            disabled={!canAddOrEdit}
+                            className="h-7 text-xs w-16 border-cyan-200 focus:border-cyan-500"
+                          />
+                        </PopoverTrigger>
+                        <PopoverContent className="w-48 p-0" align="start">
+                          <div className="max-h-40 overflow-y-auto">
+                            {aerodromes?.filter(a =>
+                              a.icao_code.toLowerCase().includes(deSearchValue.toLowerCase()) ||
+                              a.name.toLowerCase().includes(deSearchValue.toLowerCase())
+                            ).map((aerodrome) => (
+                              <button
+                                key={aerodrome.id}
+                                onClick={() => {
+                                  updateEntry(index, 'de', aerodrome.icao_code);
+                                  setDeSearchOpen(null);
+                                  setDeSearchValue('');
+                                }}
+                                className="w-full text-left px-3 py-2 text-xs hover:bg-cyan-100 border-b border-gray-200"
+                              >
+                                <div className="font-semibold">{aerodrome.icao_code}</div>
+                                <div className="text-gray-600">{aerodrome.name}</div>
+                              </button>
+                            ))}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    </td>
+                    <td className="border border-gray-300 p-1">
+                      <Popover open={paraSearchOpen === index} onOpenChange={(open) => setParaSearchOpen(open ? index : null)}>
+                        <PopoverTrigger asChild>
+                          <Input
+                            placeholder="Buscar..."
+                            value={paraSearchOpen === index ? paraSearchValue : entry.para}
+                            onChange={(e) => {
+                              setParaSearchValue(e.target.value);
+                              if (paraSearchOpen !== index) setParaSearchOpen(index);
+                            }}
+                            disabled={!canAddOrEdit}
+                            className="h-7 text-xs w-16 border-cyan-200 focus:border-cyan-500"
+                          />
+                        </PopoverTrigger>
+                        <PopoverContent className="w-48 p-0" align="start">
+                          <div className="max-h-40 overflow-y-auto">
+                            {aerodromes?.filter(a =>
+                              a.icao_code.toLowerCase().includes(paraSearchValue.toLowerCase()) ||
+                              a.name.toLowerCase().includes(paraSearchValue.toLowerCase())
+                            ).map((aerodrome) => (
+                              <button
+                                key={aerodrome.id}
+                                onClick={() => {
+                                  updateEntry(index, 'para', aerodrome.icao_code);
+                                  setParaSearchOpen(null);
+                                  setParaSearchValue('');
+                                }}
+                                className="w-full text-left px-3 py-2 text-xs hover:bg-cyan-100 border-b border-gray-200"
+                              >
+                                <div className="font-semibold">{aerodrome.icao_code}</div>
+                                <div className="text-gray-600">{aerodrome.name}</div>
+                              </button>
+                            ))}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    </td>
+                    <td className="border border-gray-300 p-1">
                       <Input
-                        value={entry.de}
-                        onChange={(e) => updateEntry(index, 'de', e.target.value)}
+                        type="time"
+                        value={entry.ac}
+                        onChange={(e) => updateEntry(index, 'ac', e.target.value)}
+                        disabled={!canAddOrEdit}
+                        className="h-7 text-xs w-20 border-cyan-200 focus:border-cyan-500"
+                      />
+                    </td>
+                    <td className="border border-gray-300 p-1">
+                      <Input
+                        type="time"
+                        value={entry.dep}
+                        onChange={(e) => updateEntry(index, 'dep', e.target.value)}
+                        disabled={!canAddOrEdit}
+                        className="h-7 text-xs w-20 border-cyan-200 focus:border-cyan-500"
+                      />
+                    </td>
+                    <td className="border border-gray-300 p-1">
+                      <Input
+                        type="time"
+                        value={entry.pou}
+                        onChange={(e) => updateEntry(index, 'pou', e.target.value)}
+                        disabled={!canAddOrEdit}
+                        className="h-7 text-xs w-20 border-cyan-200 focus:border-cyan-500"
+                      />
+                    </td>
+                    <td className="border border-gray-300 p-1">
+                      <Input
+                        type="time"
+                        value={entry.cor}
+                        onChange={(e) => updateEntry(index, 'cor', e.target.value)}
+                        disabled={!canAddOrEdit}
+                        className="h-7 text-xs w-20 border-cyan-200 focus:border-cyan-500"
+                      />
+                    </td>
+                    <td className="border border-gray-300 p-1">
+                      <Input
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="01:30"
+                        pattern="^\d{1,2}:\d{2}$"
+                        value={entry.tvoo}
+                        onChange={(e) => updateEntry(index, 'tvoo', e.target.value)}
                         disabled={!canAddOrEdit}
                         className="h-7 text-xs w-16 border-cyan-200 focus:border-cyan-500"
                       />
@@ -591,6 +705,18 @@ export default function DiarioBordoDetalhes() {
                         pattern="^\d{1,2}:\d{2}$"
                         value={entry.tdia}
                         onChange={(e) => updateEntry(index, 'tdia', e.target.value)}
+                        disabled={!canAddOrEdit}
+                        className="h-7 text-xs w-16 border-cyan-200 focus:border-cyan-500"
+                      />
+                    </td>
+                    <td className="border border-gray-300 p-1">
+                      <Input
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="01:30"
+                        pattern="^\d{1,2}:\d{2}$"
+                        value={entry.tnoit}
+                        onChange={(e) => updateEntry(index, 'tnoit', e.target.value)}
                         disabled={!canAddOrEdit}
                         className="h-7 text-xs w-16 border-cyan-200 focus:border-cyan-500"
                       />
