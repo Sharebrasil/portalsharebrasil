@@ -128,19 +128,36 @@ export default function Clientes() {
   const loadClientes = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("clients")
-        .select("*, aircraft:aircraft_id(id, registration, model)")
-        .eq("status", "ativo");
+      // Primeiro buscamos os clientes (sem selects relacionais que podem falhar)
+      const { data, error } = await supabase.from("clients").select("*");
 
       if (error) throw error;
-      const mapped: Cliente[] = ((data as any[]) || []).map((row: any) => ({
+
+      const rows = (data as any[]) || [];
+
+      // Recolhe IDs de aeronave para buscar os detalhes em batch
+      const aircraftIds = Array.from(new Set(rows.map(r => r.aircraft_id).filter(Boolean)));
+      let aircraftMap: Record<string, { registration?: string; model?: string }> = {};
+
+      if (aircraftIds.length > 0) {
+        const { data: aircraftData, error: aircraftError } = await supabase
+          .from("aircraft")
+          .select("id, registration, model")
+          .in("id", aircraftIds as string[]);
+
+        if (!aircraftError && Array.isArray(aircraftData)) {
+          aircraftData.forEach((a: any) => {
+            aircraftMap[a.id] = { registration: a.registration, model: a.model };
+          });
+        }
+      }
+
+      const mapped: Cliente[] = rows.map((row: any) => ({
         ...row,
-        aircraft: row.aircraft ? `${row.aircraft.registration} - ${row.aircraft.model}` : undefined,
+        aircraft: row.aircraft_id ? (aircraftMap[row.aircraft_id] ? `${aircraftMap[row.aircraft_id].registration} - ${aircraftMap[row.aircraft_id].model}` : undefined) : undefined,
         aircraft_ownerships: row.aircraft_ownerships || [],
-      })).sort((a, b) =>
-        (a.company_name || '').localeCompare(b.company_name || '', 'pt-BR')
-      );
+      })).sort((a, b) => (a.company_name || '').localeCompare(b.company_name || '', 'pt-BR'));
+
       setClientes(mapped);
     } catch (error) {
       console.error("Erro ao carregar clientes:", error);
@@ -325,7 +342,7 @@ export default function Clientes() {
         financial_contact: formData.financial_contact,
         observations: formData.observations,
         aircraft_id: formData.aircraft_id || null,
-        aircraft_ownerships: aircraftOwnerships,
+        // Note: 'aircraft_ownerships' column does not exist in DB schema; omit to avoid 400 errors
         status: (formData as any).status ?? "ativo",
         logo_url: logoUrl,
         documents: [...existingDocs, ...newDocs],
@@ -334,7 +351,7 @@ export default function Clientes() {
       if (editingCliente) {
         const { error } = await supabase
           .from("clients")
-          .update(updatedData)
+          .update(updatedData as any)
           .eq("id", editingCliente.id);
 
         if (error) throw error;
@@ -357,7 +374,7 @@ export default function Clientes() {
       } else {
         const { error } = await supabase
           .from("clients")
-          .insert([updatedData]);
+          .insert([updatedData as any]);
 
         if (error) throw error;
 

@@ -169,6 +169,19 @@ export default function RelatorioViagem() {
       valor_total: 0
     };
 
+    // Normalize optional tripulante2 value coming from the Select (we use "none" as placeholder)
+    if ((reportData as any).tripulante2 === 'none') {
+      (reportData as any).tripulante2 = null;
+    }
+
+    // If cliente was selected as an id in the Select, turn it back into the company_name
+    if ((reportData as any).cliente) {
+      const sel = clientes.find(c => c.id === (reportData as any).cliente);
+      if (sel) {
+        (reportData as any).cliente = sel.company_name || '';
+      }
+    }
+
     if (currentReport) {
       const { error } = await supabase
         .from('travel_reports')
@@ -422,7 +435,8 @@ export default function RelatorioViagem() {
                       </SelectTrigger>
                       <SelectContent>
                         {clientes.map(client => (
-                          <SelectItem key={client.id} value={client.company_name}>
+                          // use client.id as the Select value to guarantee a non-empty value
+                          <SelectItem key={client.id} value={client.id}>
                             {client.company_name}
                           </SelectItem>
                         ))}
@@ -490,14 +504,14 @@ export default function RelatorioViagem() {
                       <SelectTrigger>
                         <SelectValue placeholder={isLoadingTripulantes ? "Carregando..." : "Selecione o tripulante"} />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="">Nenhum</SelectItem>
-                        {tripulantes.map(crew => (
-                          <SelectItem key={crew.id} value={crew.full_name}>
-                            {crew.full_name} - {crew.canac}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
+                        <SelectContent>
+                          <SelectItem value="none">Nenhum</SelectItem>
+                          {tripulantes.map(crew => (
+                            <SelectItem key={crew.id} value={crew.full_name}>
+                              {crew.full_name} - {crew.canac}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
                     </Select>
                   </div>
                 </div>
