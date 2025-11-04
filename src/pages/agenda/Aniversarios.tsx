@@ -127,7 +127,7 @@ export default function Aniversarios() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {loading ? (
+            {isLoading ? (
               <div className="flex items-center justify-center py-12 text-muted-foreground">
                 Carregando aniversários...
               </div>
