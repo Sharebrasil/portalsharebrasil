@@ -31,10 +31,6 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      // Shim server-only modules to prevent them from being bundled into browser code
-      'jsonwebtoken': path.resolve(__dirname, 'src/shims/jwt-browser.ts'),
-      'jws': path.resolve(__dirname, 'src/shims/jws.ts'),
-      'safe-buffer': path.resolve(__dirname, 'src/shims/safe-buffer.ts')
     },
   },
 }));
