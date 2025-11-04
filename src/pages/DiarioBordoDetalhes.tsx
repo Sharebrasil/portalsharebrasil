@@ -158,11 +158,14 @@ export default function DiarioBordoDetalhes() {
     const { data, error } = await supabase
       .from('logbook_entries')
       .select('*')
-      .eq('logbook_month_id', logbookMonth.id)
-      .order('entry_date', { ascending: true });
+      .eq('aircraft_id', logbookMonth.aircraft_id)
+      .gte('flight_date', logbookMonth.start_date)
+      .lte('flight_date', logbookMonth.end_date)
+      .order('flight_date', { ascending: true });
 
     if (error) {
-      console.error('Error loading entries:', error);
+      console.error('Error loading entries:', error.message || JSON.stringify(error));
+      toast.error(`Erro ao carregar entradas: ${error.message || 'Unknown error'}`);
       return;
     }
 
