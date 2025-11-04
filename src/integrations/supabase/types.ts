@@ -1160,45 +1160,60 @@ export type Database = {
       receipts: {
         Row: {
           amount: number
+          amount_text: string | null
           created_at: string | null
           id: string
           issue_date: string
+          number_doc: string | null
+          observacoes: string | null
           payer_address: string | null
           payer_city: string | null
           payer_document: string | null
           payer_name: string
           payer_uf: string | null
+          payoff_number: string | null
           receipt_number: string
           service_description: string
-          user_id: string
+          updated_at: string | null
+          user_id: string | null
         }
         Insert: {
           amount: number
+          amount_text?: string | null
           created_at?: string | null
           id?: string
           issue_date: string
+          number_doc?: string | null
+          observacoes?: string | null
           payer_address?: string | null
           payer_city?: string | null
           payer_document?: string | null
           payer_name: string
           payer_uf?: string | null
+          payoff_number?: string | null
           receipt_number: string
           service_description: string
-          user_id: string
+          updated_at?: string | null
+          user_id?: string | null
         }
         Update: {
           amount?: number
+          amount_text?: string | null
           created_at?: string | null
           id?: string
           issue_date?: string
+          number_doc?: string | null
+          observacoes?: string | null
           payer_address?: string | null
           payer_city?: string | null
           payer_document?: string | null
           payer_name?: string
           payer_uf?: string | null
+          payoff_number?: string | null
           receipt_number?: string
           service_description?: string
-          user_id?: string
+          updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }

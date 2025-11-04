@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+// Importações de componentes de UI e hooks
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,11 +11,32 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Receipt, Download, Eye, Plus, Star, Users, Trash2, FolderPlus, FileText } from "lucide-react";
+
+// Biblioteca para o Preview Local (ainda necessária para o botão "Visualizar")
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { numberToCurrencyWordsPtBr } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+
+// 🎯 URL EXATA FORNECIDA PELO USUÁRIO 
+const EDGE_FUNCTION_URL = "https://jilmlmdgeyzubylncpjy.supabase.co/functions/v1/recibo-pdf";
+
+// --- Configurações do Emissor FIXAS para o modelo (Simulação de Company Settings) ---
+// Normalmente, você buscaria isso da tabela 'company_settings' no seu DB
+const EMITTER_DEFAULT_SETTINGS = {
+  name: "SHARE BRASIL SERVICOS ADMINISTRATIVOS",
+  cnpj: "00.968.643/0001-26",
+  address: "Avenida Presidente Arthur Bernardes, 1457, Centro-Sul",
+  city: "Várzea Grande",
+  state: "MT",
+  phone: "(65) 99772-9847",
+  logo_url: "https://example.com/share_brasil_logo.png" // Substitua pela sua URL real
+};
+// ---------------------------------------------------------------------------------
+
+
+// [Interfaces de Dados: Mantidas, pois definem o payload para a Edge Function]
 
 interface FavoritePayer {
   id: string;
@@ -42,12 +64,64 @@ type SuggestionItem =
 
 const LOGO_FALLBACK = "https://cdn.builder.io/api/v1/image/assets%2F7985eb4f070c4737bdb55def52f94842%2Fca8ebec9b8374e83bee3347e23f6dbfb?format=webp&width=400";
 
+
+interface PayerData {
+  name: string;
+  cpf_cnpj: string;
+  address: string;
+  city: string;
+  uf: string;
+}
+
+interface EmitterData extends PayerData {
+  // Campos da empresa que serão passados
+}
+
+interface ItemData {
+  description: string;
+  quantity: number | string;
+  price: string; // Já formatado em BRL
+  total: string; // Já formatado em BRL
+}
+
+interface ReceiptTableInsert {
+  receipt_number: string;
+  issue_date: string;
+  amount: number;
+  amount_text: string;
+  service_description: string;
+  number_doc: string | null;
+  payoff_number: string | null;
+  payer_name: string;
+  payer_document: string;
+  payer_address: string | null;
+  payer_city: string | null;
+  payer_uf: string | null;
+  user_id: string;
+  observacoes: string | null;
+  recibo_pdf_url?: string; // Será preenchido na Edge Function
+  receipt_type: "reembolso" | "pagamento";
+}
+
+interface EdgeFunctionPayload {
+  filename: string;
+  receipt_number: string;
+  total_value: string;
+  emitter: EmitterData;
+  payer: PayerData;
+  items: ItemData[];
+  observation: string;
+  amount_text: string;
+  recepit_table_insert?: ReceiptTableInsert;
+}
+
+
 export default function EmissaoRecibo() {
   const { user } = useAuth();
   const { toast } = useToast();
 
   const [numero, setNumero] = useState("");
-  const [dataEmissao, setDataEmissao] = useState<string>("");
+  const [dataEmissao, setDataEmissao] = useState<string>(formatDateLocalYYYYMMDD(new Date())); // Default para hoje
   const [valor, setValor] = useState<string>("");
   const [valorExtenso, setValorExtenso] = useState<string>("");
   const [servico, setServico] = useState("");
@@ -77,9 +151,12 @@ export default function EmissaoRecibo() {
 
   const canSaveFavorite = useMemo(() => !!(pagadorNome && pagadorDocumento && user?.id), [pagadorNome, pagadorDocumento, user?.id]);
 
+
+  // --- Funções Auxiliares (mantidas e adaptadas) ---
   useEffect(() => {
     const n = parseFloat(valor.replace(",", "."));
     if (!isNaN(n)) setValorExtenso(numberToCurrencyWordsPtBr(n));
+    else setValorExtenso("");
   }, [valor]);
 
   useEffect(() => {
@@ -93,6 +170,7 @@ export default function EmissaoRecibo() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // [Lógica de Sugestão e Autocomplete: Mantida]
   useEffect(() => {
     if (debounceRef.current) {
       window.clearTimeout(debounceRef.current);
@@ -105,7 +183,6 @@ export default function EmissaoRecibo() {
 
     debounceRef.current = window.setTimeout(async () => {
       const term = pagadorNome.trim();
-
       const results: SuggestionItem[] = [];
 
       try {
@@ -129,7 +206,7 @@ export default function EmissaoRecibo() {
           );
         }
       } catch (error) {
-        // Ignore if table doesn't exist; we'll still show client suggestions
+        // Ignorar se a tabela não existir
       }
 
       try {
@@ -149,7 +226,7 @@ export default function EmissaoRecibo() {
           })
         );
       } catch (error) {
-        // No clients available
+        // Ignorar
       }
 
       setSuggestions(results);
@@ -257,12 +334,12 @@ export default function EmissaoRecibo() {
     void loadFavoritePayers();
   }, [user?.id]);
 
-  const formatDateLocalYYYYMMDD = (d: Date) => {
+  function formatDateLocalYYYYMMDD(d: Date): string {
     const y = d.getFullYear();
     const m = (d.getMonth() + 1).toString().padStart(2, "0");
     const day = d.getDate().toString().padStart(2, "0");
     return `${y}-${m}-${day}`;
-  };
+  }
 
   const formatDateDisplay = (dateStr: string) => {
     if (!dateStr) return "";
@@ -273,281 +350,327 @@ export default function EmissaoRecibo() {
     return new Date(dateStr).toLocaleDateString("pt-BR");
   };
 
-  const saveReceipt = async (): Promise<string | null> => {
-    if (!user?.id) {
-      toast({ title: "Sessão necessária", description: "Faça login para salvar o recibo." });
-      return null;
-    }
-    const recNumber = await ensureNumero();
-    const issueDate = (dataEmissao && dataEmissao.length >= 10) ? dataEmissao : formatDateLocalYYYYMMDD(new Date());
-    const amountNum = parseFloat(valor || "0");
-
-    if (!recNumber || !issueDate || !amountNum || !servico.trim() || !pagadorNome.trim() || !pagadorDocumento.trim()) {
-      toast({ title: "Preencha os campos obrigatórios", description: "Número, data, valor, serviço e dados do pagador." });
-      return null;
-    }
-
-    const { error } = await supabase.from("receipts" as any).insert({
-      receipt_number: recNumber,
-      issue_date: issueDate,
-      amount: amountNum,
-      amount_text: valorExtenso,
-      service_description: servico,
-      number_doc: numeroDoc || null,
-      payoff_number: prazoMaximoQuitacao || null,
-      payer_name: pagadorNome,
-      payer_document: pagadorDocumento,
-      payer_address: pagadorEndereco || null,
-      payer_city: pagadorCidade || null,
-      payer_uf: pagadorUF || null,
-      user_id: user.id,
-      observacoes: observacoes || null,
-    });
-
-    if (error) {
-      toast({ title: "Erro ao salvar recibo", description: "Verifique se a tabela receipts existe no Supabase." });
-      return null;
-    }
-
-    toast({ title: "Recibo salvo", description: recNumber });
-    return recNumber;
-  };
-
   const fetchCompanySettings = async () => {
-    const { data } = await supabase
-      .from("company_settings")
-      .select("name, cnpj, address, city, state, phone, logo_url")
-      .order("created_at", { ascending: false })
-      .limit(1);
-    return data && data.length > 0 ? data[0] : null;
+    // Em vez de buscar do DB, usamos as configurações fixas do modelo.
+    // Se você quiser buscar do DB, descomente o código original:
+    // const { data } = await supabase.from("company_settings").select("name, cnpj, address, city, state, phone, logo_url").order("created_at", { ascending: false }).limit(1);
+    // return data && data.length > 0 ? data[0] : null;
+
+    return EMITTER_DEFAULT_SETTINGS;
   };
 
-  const drawPdf = async (recNumber: string): Promise<Uint8Array> => {
-    const company = await fetchCompanySettings();
+  // --- CHAMADA PARA A EDGE FUNCTION (Gerar/Upload) ---
+  const callEdgeFunctionToGeneratePDF = async (recNumber: string, emitter: any): Promise<string> => {
     const amountNum = parseFloat(valor || "0");
+    const formattedAmount = formatBRL(amountNum);
 
-    const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([595, 842]); // A4
-    const { width, height } = page.getSize();
-    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-
-    const MARGIN = 50;
-    let y = height - 80;
-
-    // Helper function
-    const wrapText = (text: string, maxWidth: number, fontRef: any, size: number): string[] => {
-      const words = text.split(/\s+/);
-      const lines: string[] = [];
-      let line = "";
-      for (const w of words) {
-        const test = line ? `${line} ${w}` : w;
-        if (fontRef.widthOfTextAtSize(test, size) > maxWidth && line) {
-          lines.push(line);
-          line = w;
-        } else {
-          line = test;
-        }
-      }
-      if (line) lines.push(line);
-      return lines;
-    };
-
-    // Logo
-    let logoImage: any = null;
-    try {
-      const logoBytes = await fetch(company?.logo_url || LOGO_FALLBACK).then(r => r.arrayBuffer());
-      logoImage = await pdfDoc.embedPng(logoBytes);
-      page.drawImage(logoImage, { x: MARGIN, y: y - 35, width: 80, height: 35 });
-    } catch {
-      page.drawText(company?.name || "EMISSOR", { x: MARGIN, y: y, size: 10, font: bold });
+    if (!recNumber || !dataEmissao || !amountNum || !servico.trim() || !pagadorNome.trim() || !pagadorDocumento.trim()) {
+      throw new Error("Preencha os campos obrigatórios (Número, Data, Valor, Serviço e dados do Pagador).");
     }
 
-    // Title centered
-    const title = "RECIBO DE PAGAMENTO";
-    page.drawText(title, {
-      x: width / 2 - bold.widthOfTextAtSize(title, 16) / 2,
-      y: y - 10,
-      size: 16,
-      font: bold
-    });
+    const payload: EdgeFunctionPayload = {
+      filename: `recibo-${recNumber}.pdf`,
+      receipt_number: recNumber,
+      total_value: formattedAmount,
+      amount_text: valorExtenso || numberToCurrencyWordsPtBr(amountNum),
+      observation: observacoes || '',
 
-    // Value box on right
-    const valueBox = {
-      width: 110,
-      height: 50,
-      x: width - MARGIN - 110,
-      y: y - 50
+      emitter: {
+        name: emitter?.name || "EMISSOR",
+        cpf_cnpj: emitter?.cnpj || '',
+        address: emitter?.address || '',
+        city: emitter?.city || '',
+        uf: emitter?.state || '',
+      },
+
+      payer: {
+        name: pagadorNome,
+        cpf_cnpj: pagadorDocumento,
+        address: pagadorEndereco || '',
+        city: pagadorCidade || '',
+        uf: pagadorUF || '',
+      },
+
+      items: [{
+        description: servico,
+        quantity: 1,
+        price: formattedAmount,
+        total: formattedAmount,
+      }],
+
+      recepit_table_insert: {
+        receipt_number: recNumber,
+        issue_date: (dataEmissao && dataEmissao.length >= 10) ? dataEmissao : formatDateLocalYYYYMMDD(new Date()),
+        amount: amountNum,
+        amount_text: valorExtenso || numberToCurrencyWordsPtBr(amountNum),
+        service_description: servico,
+        number_doc: numeroDoc || null,
+        payoff_number: prazoMaximoQuitacao || null,
+        payer_name: pagadorNome,
+        payer_document: pagadorDocumento,
+        payer_address: pagadorEndereco || null,
+        payer_city: pagadorCidade || null,
+        payer_uf: pagadorUF || null,
+        user_id: user!.id,
+        observacoes: observacoes || null,
+        receipt_type: receiptType,
+      }
     };
 
-    page.drawRectangle({
-      x: valueBox.x,
-      y: valueBox.y,
-      width: valueBox.width,
-      height: valueBox.height,
-      borderColor: rgb(0.6, 0.6, 0.6),
-      borderWidth: 1
+    const response = await fetch(EDGE_FUNCTION_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${supabase.auth.session()?.access_token || ''}`,
+      },
+      body: JSON.stringify(payload),
     });
 
-    page.drawText(formatBRL(amountNum), {
-      x: valueBox.x + 10,
-      y: valueBox.y + 30,
-      size: 12,
-      font: bold
-    });
-
-    page.drawText("Número do recibo:", {
-      x: valueBox.x + 10,
-      y: valueBox.y + 18,
-      size: 7,
-      font
-    });
-
-    page.drawText(recNumber, {
-      x: valueBox.x + 10,
-      y: valueBox.y + 8,
-      size: 8,
-      font
-    });
-
-    y -= 80;
-
-    // Emitter section (left column)
-    page.drawText("Emissor", { x: MARGIN, y, size: 8, font: bold });
-    y -= 12;
-
-    const emitterLines = [
-      company?.name || "",
-      company?.cnpj ? `CNPJ: ${company.cnpj}` : "",
-      company?.address || "",
-      company?.city && company?.state ? `${company.city} - ${company.state}` : ""
-    ].filter(Boolean);
-
-    emitterLines.forEach(line => {
-      page.drawText(line, { x: MARGIN, y, size: 7, font });
-      y -= 10;
-    });
-
-    // Payer section (right column)
-    let yPayer = height - 160;
-    const xPayer = width / 2 + 20;
-
-    page.drawText("Pagador", { x: xPayer, y: yPayer, size: 8, font: bold });
-    yPayer -= 12;
-
-    page.drawText(pagadorNome.toUpperCase(), { x: xPayer, y: yPayer, size: 8, font: bold });
-    yPayer -= 10;
-
-    page.drawText(`CNPJ: ${pagadorDocumento}`, { x: xPayer, y: yPayer, size: 7, font });
-    yPayer -= 10;
-
-    // Table
-    y = Math.min(y, yPayer) - 30;
-    let tableY = y;
-
-    // Header line
-    page.drawLine({
-      start: { x: MARGIN, y: tableY },
-      end: { x: width - MARGIN, y: tableY },
-      thickness: 1,
-      color: rgb(0, 0, 0)
-    });
-
-    tableY -= 15;
-    page.drawText("DESCRIÇÃO", { x: MARGIN + 5, y: tableY, size: 8, font: bold });
-    page.drawText("TOTAL", { x: width - MARGIN - 60, y: tableY, size: 8, font: bold });
-
-    tableY -= 3;
-    page.drawLine({
-      start: { x: MARGIN, y: tableY },
-      end: { x: width - MARGIN, y: tableY },
-      thickness: 0.5
-    });
-
-    // Description
-    tableY -= 15;
-    const descLines = wrapText(servico, width - MARGIN * 2 - 100, font, 8);
-    descLines.forEach((line, idx) => {
-      page.drawText(line, { x: MARGIN + 5, y: tableY - (idx * 12), size: 8, font });
-      if (idx === 0) {
-        page.drawText(formatBRL(amountNum), {
-          x: width - MARGIN - 60,
-          y: tableY - (idx * 12),
-          size: 8,
-          font
-        });
-      }
-    });
-
-    tableY -= (descLines.length * 12) + 15;
-
-    // Total line
-    page.drawLine({
-      start: { x: MARGIN, y: tableY },
-      end: { x: width - MARGIN, y: tableY },
-      thickness: 0.5
-    });
-
-    // OBS section
-    tableY -= 30;
-
-    const valorExtensoText = valorExtenso || numberToCurrencyWordsPtBr(amountNum);
-    const obsText = receiptType === "pagamento"
-      ? `Declaração: Recebemos de ${pagadorNome.toUpperCase()}, a importância de ${valorExtensoText.toLowerCase()}, referente aos itens listados acima. Para maior clareza, firmo o presente recibo para que produza seus efeitos, dando plena, geral e irrevogável quitação pelo valor recebido.`
-      : `OBS: Declaro, para os devidos fins, que o presente recibo é emitido antecipadamente a título de solicitação de reembolso referente às despesas efetuadas por esta empresa em benefício do cliente acima identificado.\n\nRessalta-se que o presente documento somente terá validade e produzirá seus efeitos legais após a efetiva quitação do valor nele indicado, mediante comprovação do respectivo pagamento.\n\nPara maior clareza e segurança das partes, firmo o presente recibo, que permanecerá condicionado ao cumprimento integral da obrigação de pagamento até a data de quitação.`;
-
-    page.drawText("OBS:", { x: MARGIN, y: tableY, size: 8, font: bold });
-    tableY -= 12;
-
-    const obsLines = wrapText(obsText.replace(/^OBS:\s*/, ''), width - MARGIN * 2, font, 7);
-    obsLines.forEach((line, idx) => {
-      page.drawText(line, { x: MARGIN, y: tableY - (idx * 10), size: 7, font });
-    });
-
-    tableY -= (obsLines.length * 10) + 30;
-
-    // Date
-    const todayLocal = formatDateLocalYYYYMMDD(new Date());
-    const issueDateFormatted = formatDateDisplay(todayLocal);
-    const cityText = company?.city || pagadorCidade || "Várzea Grande";
-    const dataCidadeText = `${cityText}, ${issueDateFormatted}`;
-
-    page.drawText(dataCidadeText, { x: MARGIN, y: tableY, size: 8, font });
-
-    // Signature
-    const signY = tableY - 80;
-
-    if (logoImage) {
-      page.drawImage(logoImage, {
-        x: width / 2 - 40,
-        y: signY + 15,
-        width: 80,
-        height: 30
-      });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Erro de rede ou função desconhecido.' }));
+      throw new Error(`Erro ${response.status}: ${errorData.error || response.statusText}`);
     }
 
-    page.drawLine({
-      start: { x: width / 2 - 100, y: signY },
-      end: { x: width / 2 + 100, y: signY },
-      thickness: 0.5
-    });
-
-    const sigText = company?.name || "Assinatura";
-    page.drawText(sigText, {
-      x: width / 2 - font.widthOfTextAtSize(sigText, 7) / 2,
-      y: signY - 12,
-      size: 7,
-      font
-    });
-
-
-    const bytes = await pdfDoc.save();
-    return bytes;
+    const data: { url: string } = await response.json();
+    return data.url;
   };
 
+
+  // --- FUNÇÃO AJUSTADA: Gera PDF e faz Upload via Edge Function ---
+  const onGerarPDF = async () => {
+    try {
+      if (!user?.id) {
+        toast({ title: "Sessão necessária", description: "Faça login para gerar o recibo." });
+        return;
+      }
+
+      const recNumber = await ensureNumero();
+
+      // 1. Obter as configurações da empresa (Emissor) - Usando as settings fixas do modelo
+      const company = await fetchCompanySettings();
+
+      // 2. Chamar a Edge Function para Gerar PDF, Upload no Storage e Inserir no DB
+      const publicUrl = await callEdgeFunctionToGeneratePDF(recNumber, company);
+
+      // 3. Feedback e Preparar Preview
+      setPreviewUrl(publicUrl);
+      setIsPreviewOpen(true);
+      toast({ title: "Recibo gerado", description: recNumber });
+      await loadReceipts();
+      await maybeSaveFavorite();
+
+    } catch (e: any) {
+      toast({ title: "Erro ao gerar PDF", description: e?.message || "Verifique se a Edge Function está implantada e a URL correta." });
+    }
+  };
+
+  // --- FUNÇÃO AJUSTADA: Visualizar (Recria o PDF localmente para o preview) ---
   const onVisualizar = async () => {
     try {
       const recNumber = await ensureNumero();
+
+      const drawPdf = async (recNumber: string): Promise<Uint8Array> => {
+        const company = await fetchCompanySettings(); // Pega as settings
+        const amountNum = parseFloat(valor || "0");
+        const pdfDoc = await PDFDocument.create();
+        const page = pdfDoc.addPage([595, 842]); // A4
+        const { width, height } = page.getSize();
+        const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+        const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+        const MARGIN = 50;
+        let y = height - 80;
+
+        const wrapText = (text: string, maxWidth: number, fontRef: any, size: number): string[] => {
+          const words = text.split(/\s+/);
+          const lines: string[] = [];
+          let line = "";
+          for (const w of words) {
+            const test = line ? `${line} ${w}` : w;
+            if (fontRef.widthOfTextAtSize(test, size) > maxWidth && line) {
+              lines.push(line);
+              line = w;
+            } else {
+              line = test;
+            }
+          }
+          if (line) lines.push(line);
+          return lines;
+        };
+
+        // --- Layout do Modelo (Ajustado para o Preview Local) ---
+        let logoImage: any = null;
+        try {
+          const logoBytes = await fetch(company?.logo_url || LOGO_FALLBACK).then(r => r.arrayBuffer());
+          logoImage = await pdfDoc.embedPng(logoBytes);
+          page.drawImage(logoImage, { x: MARGIN, y: y - 35, width: 80, height: 35 });
+        } catch {
+          page.drawText(company?.name || "EMISSOR", { x: MARGIN, y: y, size: 10, font: bold });
+        }
+
+        const title = "RECIBO DE PAGAMENTO";
+        page.drawText(title, {
+          x: width / 2 - bold.widthOfTextAtSize(title, 16) / 2,
+          y: y - 10,
+          size: 16,
+          font: bold
+        });
+
+        // Caixa de Valor (Canto Superior Direito)
+        const valueBox = {
+          width: 110,
+          height: 50,
+          x: width - MARGIN - 110,
+          y: y - 50
+        };
+
+        page.drawRectangle({
+          x: valueBox.x,
+          y: valueBox.y,
+          width: valueBox.width,
+          height: valueBox.height,
+          borderColor: rgb(0.6, 0.6, 0.6),
+          borderWidth: 1
+        });
+
+        page.drawText(formatBRL(amountNum), {
+          x: valueBox.x + 10,
+          y: valueBox.y + 30,
+          size: 12,
+          font: bold
+        });
+
+        // Número do Recibo na Caixa
+        page.drawText("Número do recibo:", {
+          x: valueBox.x + 10,
+          y: valueBox.y + 18,
+          size: 7,
+          font
+        });
+
+        page.drawText(recNumber, {
+          x: valueBox.x + 10,
+          y: valueBox.y + 8,
+          size: 8,
+          font
+        });
+
+        // Dados do Emissor (Canto Superior Esquerdo, Abaixo do Logo)
+        y -= 80;
+        const xEmitter = MARGIN;
+        page.drawText("Emissor:", { x: xEmitter, y, size: 8, font: bold });
+        y -= 12;
+
+        const emitterLines = [
+          company?.name || "EMISSOR",
+          company?.cnpj ? `CNPJ: ${company.cnpj}` : "",
+          company?.address || "",
+          company?.city && company?.state ? `${company.city} - ${company.state}, ${company?.phone}` : ""
+        ].filter(Boolean);
+
+        emitterLines.forEach(line => {
+          page.drawText(line, { x: xEmitter, y, size: 7, font });
+          y -= 10;
+        });
+
+        // Dados do Pagador (Canto Superior Centralizado)
+        let yPayer = height - 160;
+        const xPayer = width / 2 - 10; // Centralizado
+
+        page.drawText("Pagador:", { x: xPayer, y: yPayer, size: 8, font: bold });
+        yPayer -= 12;
+
+        page.drawText(pagadorNome.toUpperCase(), { x: xPayer, y: yPayer, size: 8, font: bold });
+        yPayer -= 10;
+
+        page.drawText(`CNPJ: ${pagadorDocumento}`, { x: xPayer, y: yPayer, size: 7, font });
+        yPayer -= 10;
+
+        // Título da Descrição
+        y = Math.min(y, yPayer) - 30;
+        let tableY = y;
+
+        page.drawText("DESCRIÇÃO", { x: MARGIN + 5, y: tableY, size: 9, font: bold });
+        page.drawText("TOTAL", { x: width - MARGIN - 60, y: tableY, size: 9, font: bold });
+        tableY -= 3;
+
+        page.drawLine({ start: { x: MARGIN, y: tableY }, end: { x: width - MARGIN, y: tableY }, thickness: 1, color: rgb(0, 0, 0) });
+        tableY -= 15;
+
+        // Descrição do Serviço
+        const descLines = wrapText(servico, width - MARGIN * 2 - 100, font, 8);
+        descLines.forEach((line, idx) => {
+          page.drawText(line, { x: MARGIN + 5, y: tableY - (idx * 12), size: 8, font });
+          if (idx === 0) {
+            page.drawText(formatBRL(amountNum), {
+              x: width - MARGIN - 60,
+              y: tableY - (idx * 12),
+              size: 8,
+              font
+            });
+          }
+        });
+        tableY -= (descLines.length * 12) + 15;
+
+        page.drawLine({ start: { x: MARGIN, y: tableY }, end: { x: width - MARGIN, y: tableY }, thickness: 0.5 });
+        tableY -= 30;
+
+        // Bloco de Observações (adaptado do modelo)
+        const valorExtensoText = valorExtenso || numberToCurrencyWordsPtBr(amountNum);
+
+        const obsText = receiptType === "pagamento"
+          ? `Declaração: Recebemos de ${pagadorNome.toUpperCase()}, a importância de ${valorExtensoText.toLowerCase()}, referente aos itens listados acima. Para maior clareza, firmo o presente recibo para que produza seus efeitos, dando plena, geral e irrevogável quitação pelo valor recebido.`
+          : `OBS: Declaro, para os devidos fins, que o presente recibo é emitido antecipadamente a título de solicitação de reembolso referente às despesas efetuadas por esta empresa em benefício do cliente acima identificado.\n\nRessalta-se que o presente documento somente terá validade e produzirá seus efeitos legais após a efetiva quitação do valor nele indicado, mediante comprovação do respectivo pagamento.\n\nPara maior clareza e segurança das partes, firmo o presente recibo, que permanecerá condicionado ao cumprimento integral da obrigação de pagamento até a data de quitação.`;
+
+        // Adiciona a observação do modelo (sem o "OBS:" inicial, pois já está na variável)
+        const obsLines = wrapText(obsText, width - MARGIN * 2, font, 8);
+        obsLines.forEach((line, idx) => {
+          page.drawText(line, { x: MARGIN, y: tableY - (idx * 10), size: 8, font });
+        });
+        tableY -= (obsLines.length * 10) + 30;
+
+        // Data e Cidade
+        const todayLocal = new Date();
+        const issueDateFormatted = todayLocal.toLocaleDateString("pt-BR").split("/");
+        const cityText = company?.city || pagadorCidade || "Várzea Grande";
+        const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+        const month = monthNames[todayLocal.getMonth()];
+        const year = todayLocal.getFullYear();
+        const day = todayLocal.getDate();
+
+        const dataCidadeText = `${cityText}, ${day} de ${month} de ${year}`;
+
+        page.drawText(dataCidadeText, { x: MARGIN, y: tableY, size: 9, font: bold });
+
+        // Assinatura
+        const signY = tableY - 80;
+
+        if (logoImage) {
+          page.drawImage(logoImage, {
+            x: width / 2 - 40,
+            y: signY + 15,
+            width: 80,
+            height: 30
+          });
+        }
+
+        page.drawLine({
+          start: { x: width / 2 - 100, y: signY },
+          end: { x: width / 2 + 100, y: signY },
+          thickness: 0.5
+        });
+
+        const sigText = "setor financeiro Share Brasil";
+        page.drawText(sigText, {
+          x: width / 2 - font.widthOfTextAtSize(sigText, 7) / 2,
+          y: signY - 12,
+          size: 7,
+          font
+        });
+
+        const bytes = await pdfDoc.save();
+        return bytes;
+      };
+
       const bytes = await drawPdf(recNumber);
       const blob = new Blob([bytes], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
@@ -558,21 +681,16 @@ export default function EmissaoRecibo() {
     }
   };
 
-  const onGerarPDF = async () => {
+
+  // --- FUNÇÃO AJUSTADA: Download de Recibo Existente ---
+  const onDownloadReciboExistente = async (receiptNumber: string) => {
     try {
-      const recNumber = await saveReceipt();
-      if (!recNumber) return;
-      const bytes = await drawPdf(recNumber);
-      const blob = new Blob([bytes], { type: "application/pdf" });
-      const file = new File([blob], `recibo-${recNumber}.pdf`, { type: "application/pdf" });
-      const path = `${user?.id}/recibo-${recNumber}.pdf`;
-      await supabase.storage.from("recibos").upload(path, file, { upsert: true });
-      setPreviewUrl(URL.createObjectURL(blob));
-      setIsPreviewOpen(true);
-      toast({ title: "Recibo gerado", description: recNumber });
-      await loadReceipts();
+      const fileName = `recibo-${receiptNumber}.pdf`;
+      const downloadUrl = `${EDGE_FUNCTION_URL}?file=${encodeURIComponent(fileName)}`;
+      window.open(downloadUrl, '_blank');
+
     } catch (e: any) {
-      toast({ title: "Erro ao gerar PDF", description: e?.message || "" });
+      toast({ title: "Erro no Download", description: e?.message || "Falha ao iniciar download via Edge Function." });
     }
   };
 
@@ -584,7 +702,7 @@ export default function EmissaoRecibo() {
             <h1 className="text-3xl font-bold text-foreground">Emissão de Recibo</h1>
             <p className="text-muted-foreground mt-2">Gere recibos para pagamentos e serviços prestados</p>
           </div>
-          <Button className="flex items-center gap-2">
+          <Button className="flex items-center gap-2" onClick={() => { /* Limpar campos */ }}>
             <Plus className="h-4 w-4" />
             Novo Recibo
           </Button>
@@ -604,8 +722,8 @@ export default function EmissaoRecibo() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex gap-2">
-                  <Input placeholder="Nova descrição" value={newFavoriteDescription} onChange={(e)=>setNewFavoriteDescription(e.target.value)} />
-                  <Button onClick={async()=>{
+                  <Input placeholder="Nova descrição" value={newFavoriteDescription} onChange={(e) => setNewFavoriteDescription(e.target.value)} />
+                  <Button onClick={async () => {
                     if (!user?.id || !newFavoriteDescription.trim()) return;
                     const { error } = await supabase.from("favorite_services" as any).insert({ description: newFavoriteDescription.trim(), user_id: user.id });
                     if (!error) { setNewFavoriteDescription(""); await loadFavoriteDescriptions(); toast({ title: "Descrição adicionada" }); }
@@ -619,14 +737,14 @@ export default function EmissaoRecibo() {
                     <div key={d.id} className="flex items-center justify-between rounded border p-2">
                       <span className="text-sm">{d.description}</span>
                       <div className="flex gap-2">
-                        <Button variant="outline" size="sm" onClick={()=>setServico(d.description)}>Usar</Button>
-                        <Button variant="destructive" size="sm" onClick={async()=>{ await supabase.from("favorite_services" as any).delete().eq("id", d.id); await loadFavoriteDescriptions(); }}>
+                        <Button variant="outline" size="sm" onClick={() => setServico(d.description)}>Usar</Button>
+                        <Button variant="destructive" size="sm" onClick={async () => { await supabase.from("favorite_services" as any).delete().eq("id", d.id); await loadFavoriteDescriptions(); }}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
                   ))}
-                  {favoriteDescriptions.length===0 && <div className="text-sm text-muted-foreground">Nenhuma descrição favorita</div>}
+                  {favoriteDescriptions.length === 0 && <div className="text-sm text-muted-foreground">Nenhuma descrição favorita</div>}
                 </div>
               </CardContent>
             </Card>
@@ -642,34 +760,28 @@ export default function EmissaoRecibo() {
                   <div key={r.id} className="flex items-center justify-between rounded border p-2">
                     <div className="text-sm">{r.receipt_number} • {formatDateDisplay(r.issue_date)} • {formatBRL(r.amount)}</div>
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={async()=>{
-                        const path = `${user?.id}/recibo-${r.receipt_number}.pdf`;
-                        const { data } = await supabase.storage.from("recibos").createSignedUrl(path, 3600);
-                        if (data?.signedUrl) window.open(data.signedUrl, "_blank");
+                      <Button variant="outline" size="sm" onClick={async () => {
+                        const path = `recibo-${r.receipt_number}.pdf`;
+                        const { data } = supabase.storage.from("recibos").getPublicUrl(path);
+                        if (data?.publicUrl) window.open(data.publicUrl, "_blank");
                       }}>
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Button variant="outline" size="sm" onClick={async()=>{
-                        const path = `${user?.id}/recibo-${r.receipt_number}.pdf`;
-                        const { data: fileData } = await supabase.storage.from("recibos").download(path);
-                        if (fileData) {
-                          const url = URL.createObjectURL(fileData);
-                          const link = document.createElement("a");
-                          link.href = url;
-                          link.download = `recibo-${r.receipt_number}.pdf`;
-                          link.click();
-                          URL.revokeObjectURL(url);
-                        }
-                      }}>
+                      <Button variant="outline" size="sm" onClick={() => onDownloadReciboExistente(r.receipt_number)}>
                         <Download className="h-4 w-4" />
                       </Button>
-                      <Button variant="destructive" size="sm" onClick={async()=>{ const path = `${user?.id}/recibo-${r.receipt_number}.pdf`; await supabase.storage.from("recibos").remove([path]); await supabase.from("receipts" as any).delete().eq("id", r.id); await loadReceipts(); }}>
+                      <Button variant="destructive" size="sm" onClick={async () => {
+                        const path = `recibo-${r.receipt_number}.pdf`;
+                        await supabase.storage.from("recibos").remove([path]);
+                        await supabase.from("receipts" as any).delete().eq("id", r.id);
+                        await loadReceipts();
+                      }}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
                 ))}
-                {recentReceipts.length===0 && <div className="text-sm text-muted-foreground">Nenhum recibo</div>}
+                {recentReceipts.length === 0 && <div className="text-sm text-muted-foreground">Nenhum recibo</div>}
               </CardContent>
             </Card>
           </TabsContent>
@@ -687,14 +799,14 @@ export default function EmissaoRecibo() {
                       <div className="text-muted-foreground text-xs">{p.document}</div>
                     </div>
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={()=>applySuggestion({ type: "favorite", id: p.id, label: p.name, sublabel: p.document, value: p })}>Usar</Button>
-                      <Button variant="destructive" size="sm" onClick={async()=>{ await supabase.from("favorite_payers" as any).delete().eq("id", p.id); await loadFavoritePayers(); }}>
+                      <Button variant="outline" size="sm" onClick={() => applySuggestion({ type: "favorite", id: p.id, label: p.name, sublabel: p.document, value: p })}>Usar</Button>
+                      <Button variant="destructive" size="sm" onClick={async () => { await supabase.from("favorite_payers" as any).delete().eq("id", p.id); await loadFavoritePayers(); }}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
                 ))}
-                {favoritePayers.length===0 && <div className="text-sm text-muted-foreground">Nenhum pagador favorito</div>}
+                {favoritePayers.length === 0 && <div className="text-sm text-muted-foreground">Nenhum pagador favorito</div>}
               </CardContent>
             </Card>
           </TabsContent>
@@ -725,7 +837,7 @@ export default function EmissaoRecibo() {
               </div>
               <div className="space-y-2">
                 <Label>Tipo de Recibo</Label>
-                <RadioGroup value={receiptType} onValueChange={(v)=>setReceiptType(v as any)} className="grid grid-cols-2 gap-3">
+                <RadioGroup value={receiptType} onValueChange={(v) => setReceiptType(v as "reembolso" | "pagamento")} className="grid grid-cols-2 gap-3">
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem id="tipo-reembolso" value="reembolso" />
                     <Label htmlFor="tipo-reembolso" className="cursor-pointer">Solicitação de reembolso</Label>
@@ -747,11 +859,11 @@ export default function EmissaoRecibo() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="numero-doc"><p>Número Doc</p></Label>
-                  <Input id="numero-doc" placeholder="Ex.: 4004" value={numeroDoc} onChange={(e)=>setNumeroDoc(e.target.value)} />
+                  <Input id="numero-doc" placeholder="Ex.: REC2025.044 (se diferente do número do recibo)" value={numeroDoc} onChange={(e) => setNumeroDoc(e.target.value)} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="prazo">Prazo Máximo de Quitação</Label>
-                  <Input id="prazo" type="date" value={prazoMaximoQuitacao} onChange={(e)=>setPrazoMaximoQuitacao(e.target.value)} />
+                  <Input id="prazo" type="date" value={prazoMaximoQuitacao} onChange={(e) => setPrazoMaximoQuitacao(e.target.value)} />
                 </div>
               </div>
             </CardContent>
@@ -790,15 +902,12 @@ export default function EmissaoRecibo() {
                             <div className="flex items-center gap-2">
                               <Star className="h-4 w-4 text-primary" />
                               <div>
-                                <div className="font-medium">{s.label}</div>
-                                {s.sublabel && <div className="text-xs text-muted-foreground">{s.sublabel}</div>}
+                                <span className="font-medium">{s.label}</span>
+                                <span className="text-xs text-muted-foreground ml-2">{s.sublabel}</span>
                               </div>
                             </div>
                           </button>
                         ))}
-                      {suggestions.some((s) => s.type === "favorite") && suggestions.some((s) => s.type === "client") && (
-                        <div className="h-px bg-border my-1" />
-                      )}
                       {suggestions
                         .filter((s) => s.type === "client")
                         .map((s) => (
@@ -812,8 +921,8 @@ export default function EmissaoRecibo() {
                             <div className="flex items-center gap-2">
                               <Users className="h-4 w-4 text-muted-foreground" />
                               <div>
-                                <div className="font-medium">{s.label}</div>
-                                {s.sublabel && <div className="text-xs text-muted-foreground">{s.sublabel}</div>}
+                                <span className="font-medium">{s.label}</span>
+                                <span className="text-xs text-muted-foreground ml-2">{s.sublabel}</span>
                               </div>
                             </div>
                           </button>
@@ -824,62 +933,49 @@ export default function EmissaoRecibo() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="pagador-documento">CPF/CNPJ</Label>
-                <Input id="pagador-documento" placeholder="000.000.000-00" value={pagadorDocumento} onChange={(e) => setPagadorDocumento(e.target.value)} />
+                <Input id="pagador-documento" placeholder="00.000.000/0000-00" value={pagadorDocumento} onChange={(e) => setPagadorDocumento(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="pagador-endereco">Endereço</Label>
-                <Input id="pagador-endereco" placeholder="Endereço completo" value={pagadorEndereco} onChange={(e) => setPagadorEndereco(e.target.value)} />
+                <Label htmlFor="pagador-endereco">Endereço (Rua, Número, Bairro)</Label>
+                <Input id="pagador-endereco" placeholder="Rua, Número, Bairro" value={pagadorEndereco} onChange={(e) => setPagadorEndereco(e.target.value)} />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
+              <div className="grid grid-cols-3 gap-4">
+                <div className="col-span-2 space-y-2">
                   <Label htmlFor="pagador-cidade">Cidade</Label>
                   <Input id="pagador-cidade" placeholder="Cidade" value={pagadorCidade} onChange={(e) => setPagadorCidade(e.target.value)} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="pagador-uf">UF</Label>
-                  <Input id="pagador-uf" placeholder="UF" value={pagadorUF} onChange={(e) => setPagadorUF(e.target.value)} />
+                  <Input id="pagador-uf" placeholder="UF" maxLength={2} value={pagadorUF} onChange={(e) => setPagadorUF(e.target.value.toUpperCase())} />
                 </div>
               </div>
-
-              <div className="flex items-center gap-2 pt-2">
-                <Checkbox id="add-favorito" checked={addAsFavorite} onCheckedChange={(v) => setAddAsFavorite(Boolean(v))} />
-                <Label htmlFor="add-favorito" className="cursor-pointer">Adicionar como favorito</Label>
-              </div>
-
-              <div className="flex gap-2 pt-4">
-                <Button variant="outline" className="flex-1" onClick={onVisualizar}>
-                  <Eye className="h-4 w-4 mr-2" />
-                  Visualizar
-                </Button>
-                <Button className="flex-1" onClick={onGerarPDF}>
-                  <Download className="h-4 w-4 mr-2" />
-                  Gerar PDF
-                </Button>
+              <div className="flex items-center space-x-2">
+                <Checkbox id="save-favorite" checked={addAsFavorite} onCheckedChange={(checked) => setAddAsFavorite(!!checked)} disabled={!canSaveFavorite} />
+                <Label htmlFor="save-favorite">Adicionar como pagador favorito</Label>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Recibos Emitidos Recentemente</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center py-8 text-muted-foreground">
-              <Receipt className="mx-auto h-12 w-12 mb-2 opacity-50" />
-              <p>Nenhum recibo emitido ainda</p>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="flex justify-end gap-3 mt-6">
+          <Button variant="secondary" onClick={onVisualizar} disabled={!valor || !servico}>
+            <Eye className="h-4 w-4 mr-2" /> Visualizar (Preview Local)
+          </Button>
+          <Button onClick={onGerarPDF} disabled={!valor || !servico || !pagadorNome}>
+            <Download className="h-4 w-4 mr-2" /> Gerar PDF e Salvar
+          </Button>
+        </div>
       </div>
 
-      <Dialog open={isPreviewOpen} onOpenChange={(open)=>{ setIsPreviewOpen(open); if(!open && previewUrl){ URL.revokeObjectURL(previewUrl); setPreviewUrl(null); } }}>
-        <DialogContent className="max-w-4xl h-[80vh]">
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContent className="sm:max-w-[800px] h-[90vh]">
           <DialogHeader>
-            <DialogTitle>Pré-visualização do Recibo</DialogTitle>
+            <DialogTitle>Pré-visualização do Recibo {numero}</DialogTitle>
           </DialogHeader>
-          <div className="w-full h-full">
-            {previewUrl && <iframe src={previewUrl} className="w-full h-full rounded" />}
+          <div className="h-full">
+            {previewUrl && (
+              <iframe src={previewUrl} className="w-full h-full border-none" title="Recibo Preview" />
+            )}
           </div>
         </DialogContent>
       </Dialog>

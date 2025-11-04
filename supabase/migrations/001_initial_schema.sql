@@ -11,6 +11,13 @@ CREATE TYPE public.app_role AS ENUM (
   'piloto_chefe'
 );
 
+CREATE TYPE public.contact_type AS ENUM (
+  'Cotista',
+  'Colaboradores',
+  'Fornecedores',
+  'Hoteis'
+);
+
 -- ============================================
 -- Table: user_profiles
 -- ============================================
@@ -255,20 +262,23 @@ FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 -- ============================================
 CREATE TABLE IF NOT EXISTS public.contacts (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
-  origin text NOT NULL,
+  type public.contact_type NOT NULL,
   name text NOT NULL,
-  email text,
   phone text,
-  city text,
-  role text,
-  company text,
+  email text,
+  company_name text,
+  position text,
+  notes text,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
+  address text,
+  category public.contact_type,
+  city text,
   CONSTRAINT contacts_pkey PRIMARY KEY (id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_contacts_origin ON public.contacts USING btree (origin);
 CREATE INDEX IF NOT EXISTS idx_contacts_name ON public.contacts USING btree (name);
+CREATE INDEX IF NOT EXISTS idx_contacts_type ON public.contacts USING btree (type);
 
 -- ============================================
 -- Table: flight_schedules
@@ -577,18 +587,23 @@ CREATE INDEX IF NOT EXISTS idx_payslips_payment_date ON public.payslips USING bt
 CREATE TABLE IF NOT EXISTS public.receipts (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   receipt_number text NOT NULL UNIQUE,
-  payer_name text NOT NULL,
-  service_description text NOT NULL,
+  issue_date date NOT NULL,
   amount numeric(10, 2) NOT NULL,
-  emission_date date NOT NULL,
-  payment_date date,
-  notes text,
+  amount_text text,
+  service_description text NOT NULL,
+  number_doc text,
+  payoff_number text,
+  payer_name text NOT NULL,
+  payer_document text,
+  payer_address text,
+  payer_city text,
+  payer_uf text,
   observacoes text,
-  created_by uuid,
+  user_id uuid,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
   CONSTRAINT receipts_pkey PRIMARY KEY (id),
-  CONSTRAINT receipts_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users (id) ON DELETE SET NULL
+  CONSTRAINT receipts_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users (id) ON DELETE SET NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_receipts_receipt_number ON public.receipts USING btree (receipt_number);
@@ -741,7 +756,7 @@ INSERT INTO "public"."hoteis" ("id", "nome", "telefone", "cidade", "preco_single
 ('7984c3a6-8f5f-463e-9f1b-bb8b3eb4a0b4', 'PLAZA HOTEL - ÁGUA BOA', '(66) 99621-4502', NULL, NULL, NULL, 'R. Três, 292 - Centro, Água Boa - MT, 78635-000', '2025-10-14 22:35:13.435619+00'),
 ('84287178-45af-4594-a0f4-7ffd6f65767e', 'Plaza Hotel', '66 99621-4502', NULL, '205.00', '310.00', 'R. Três, 292 - Centro - Água Boa - MT', '2025-10-14 22:35:13.435619+00'),
 ('87b86fdb-38e8-4456-b647-10ac8fe902ea', 'PLAZA HOTEL - MINEIROS GO', '(64) 9950-2853', NULL, NULL, NULL, 'BR-364 - Zona Rural, Mineiros - GO, 75830-000', '2025-10-14 22:35:13.435619+00'),
-('8be78f27-e8f2-4492-af57-d67d62137b01', 'HOLIDAY INN ANHEMBI - SÃO PAULO', '(11) 2107-8844', NULL, NULL, NULL, 'Rua Professor Milton Rodriguez #100 - Parque Anhembi, São Paulo - SP, 02009-040', '2025-10-14 22:35:13.435619+00'),
+('8be78f27-e8f2-4492-af57-d67d62137b01', 'HOLIDAY INN ANHEMBI - S��O PAULO', '(11) 2107-8844', NULL, NULL, NULL, 'Rua Professor Milton Rodriguez #100 - Parque Anhembi, São Paulo - SP, 02009-040', '2025-10-14 22:35:13.435619+00'),
 ('923f2255-2693-43b3-9364-fe1b7da545d1', 'FLAMBOYANT - PORTO VELHO', '(69) 3225-2102', NULL, NULL, NULL, 'Av. Tiradentes, 2979 - Industrial, Porto Velho - RO, 76821-001', '2025-10-14 22:35:13.435619+00'),
 ('a21816c7-b6c2-4307-9bc0-4c37c8412c7c', 'HOTEL ANA DÁLIA - SORRISO', '(66) 99726-8050', NULL, NULL, NULL, 'Av. Luiz Amadeu Lodi, 1395 - Bom Jesus, Sorriso - MT, 78896-130', '2025-10-14 22:35:13.435619+00'),
 ('a356a42c-ef9e-4d7d-b105-37fcadb9c2ed', 'HOTEL ACAPU - RIO VERDE GO', '(64) 3612-1095', NULL, NULL, NULL, 'Rua Demolíncio de Carvalho, Quadra O, Lotes 8 ao 15 - Jardim Brasilia, Rio Verde - GO, 75906-275', '2025-10-14 22:35:13.435619+00'),

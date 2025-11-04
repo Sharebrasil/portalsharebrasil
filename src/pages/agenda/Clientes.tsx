@@ -287,16 +287,65 @@ export default function Clientes() {
     const filePath = `${path}/${fileName}`;
 
     const { error: uploadError, data } = await supabase.storage
-      .from("client-files")
+      .from("client-documents")
       .upload(filePath, file);
 
     if (uploadError) throw uploadError;
 
     const { data: urlData } = supabase.storage
-      .from("client-files")
+      .from("client-documents")
       .getPublicUrl(filePath);
 
     return urlData.publicUrl;
+  };
+
+  const deleteDocumentFile = async (documentUrl: string) => {
+    try {
+      const urlParts = documentUrl.split("/");
+      const bucketPath = urlParts.slice(urlParts.indexOf("client-documents") + 1).join("/");
+
+      if (!bucketPath) return;
+
+      const { error } = await supabase.storage
+        .from("client-documents")
+        .remove([bucketPath]);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error("Erro ao deletar arquivo:", error);
+    }
+  };
+
+  const deleteClientDocuments = async (documents: ClientDocument[] = []) => {
+    for (const doc of documents) {
+      await deleteDocumentFile(doc.url);
+    }
+  };
+
+  const removeDocumentFromEditing = async (index: number) => {
+    const docToRemove = editingCliente?.documents?.[index];
+    if (!docToRemove) return;
+
+    try {
+      await deleteDocumentFile(docToRemove.url);
+
+      if (editingCliente?.documents) {
+        const updatedDocs = editingCliente.documents.filter((_, i) => i !== index);
+        setEditingCliente({ ...editingCliente, documents: updatedDocs });
+
+        toast({
+          title: "Sucesso",
+          description: "Documento removido",
+        });
+      }
+    } catch (error) {
+      console.error("Erro ao remover documento:", error);
+      toast({
+        title: "Erro",
+        description: "Erro ao remover documento",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleSave = async () => {
@@ -415,6 +464,12 @@ export default function Clientes() {
     if (!deleteId) return;
 
     try {
+      const clienteToDelete = clientes.find(c => c.id === deleteId);
+
+      if (clienteToDelete?.documents && clienteToDelete.documents.length > 0) {
+        await deleteClientDocuments(clienteToDelete.documents);
+      }
+
       const { error } = await supabase
         .from("clients")
         .delete()
@@ -1067,6 +1122,15 @@ export default function Clientes() {
                               {doc.name}
                             </a>
                           </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeDocumentFromEditing(index)}
+                            className="h-6 w-6 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
                         </div>
                       ))}
                     </div>
