@@ -617,15 +617,21 @@ export default function DiarioBordoDetalhes() {
 
         <Card className="p-6 bg-gradient-to-br from-cyan-500 to-cyan-700 border-0 rounded-lg shadow-xl">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-white">
-            <div className="space-y-2">
-              <div className="text-lg font-bold border-b border-cyan-300 pb-2 mb-3">INFORMAÇÕES DA AERONAVE</div>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="font-semibold">AERONAVE:</div>
-                <div className="font-bold text-lg">{aircraft?.registration}</div>
-                <div className="font-semibold">MODELO:</div>
-                <div>{aircraft?.model}</div>
-                <div className="font-semibold">CONS. MÉD:</div>
-                <div className="font-bold">{aircraft?.fuel_consumption} L/H</div>
+            <div className="space-y-3">
+              <div className="text-lg font-bold border-b border-cyan-300 pb-2">INFORMAÇÕES DA AERONAVE</div>
+              <div className="space-y-1">
+                <div className="flex items-baseline gap-2">
+                  <span className="font-semibold">AERONAVE:</span>
+                  <span className="font-bold text-lg">{aircraft?.registration}</span>
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <span className="font-semibold">MODELO:</span>
+                  <span>{aircraft?.model}</span>
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <span className="font-semibold">CONS. MÉD:</span>
+                  <span className="font-bold">{aircraft?.fuel_consumption} L/H</span>
+                </div>
               </div>
             </div>
             <div>
