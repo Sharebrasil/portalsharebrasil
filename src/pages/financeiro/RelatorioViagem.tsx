@@ -1354,7 +1354,7 @@ const TravelReports = () => {
                   value={currentReport.tripulante || ''}
                   onChange={(e) => handleInputChange('tripulante', e.target.value)}
                   placeholder="Digite o nome completo"
-                  className="p-2 border rounded-md"
+                  className="p-2 border rounded-md bg-gray-800 border-gray-600 text-gray-100 placeholder-gray-500"
                 />
               </div>
             ) : null}
@@ -1396,7 +1396,7 @@ const TravelReports = () => {
                   value={currentReport.tripulante2 || ''}
                   onChange={(e) => handleInputChange('tripulante2', e.target.value)}
                   placeholder="Digite o nome completo"
-                  className="p-2 border rounded-md"
+                  className="p-2 border rounded-md bg-gray-800 border-gray-600 text-gray-100 placeholder-gray-500"
                 />
               </div>
             ) : null}
@@ -1517,13 +1517,13 @@ const TravelReports = () => {
                   </div>
                 </div>
                 <div className="flex flex-col">
-                  <label className="text-xs font-medium mb-1">Descrição</label>
+                  <label className="text-xs font-medium mb-1 text-gray-200">Descrição</label>
                   <input
                     type="text"
                     value={despesa.descricao || ''}
                     onChange={(e) => handleDespesaChange(index, 'descricao', e.target.value)}
                     placeholder="Breve descrição da despesa"
-                    className="p-2 border rounded-md text-sm"
+                    className="p-2 border rounded-md text-sm bg-gray-800 border-gray-600 text-gray-100 placeholder-gray-500"
                   />
                 </div>
               </div>
