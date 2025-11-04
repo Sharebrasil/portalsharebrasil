@@ -174,7 +174,7 @@ export function FlightPlanDialog({ open, onOpenChange }: FlightPlanDialogProps) 
       const [aircraftRes, crewRes, clientsRes] = await Promise.all([
         supabase.from("aircraft").select("id, registration, model"),
         supabase.from("crew_members").select("id, full_name, canac").eq("status", "active"),
-        supabase.from("clients").select("id, company_name, cnpj"),
+        supabase.from("clients").select("id, company_name, cnpj").eq("status", "ativo"),
       ]);
 
       if (aircraftRes.error) throw aircraftRes.error;
