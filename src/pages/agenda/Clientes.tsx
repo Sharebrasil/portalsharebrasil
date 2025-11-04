@@ -287,13 +287,13 @@ export default function Clientes() {
     const filePath = `${path}/${fileName}`;
 
     const { error: uploadError, data } = await supabase.storage
-      .from("client-files")
+      .from("client-documents")
       .upload(filePath, file);
 
     if (uploadError) throw uploadError;
 
     const { data: urlData } = supabase.storage
-      .from("client-files")
+      .from("client-documents")
       .getPublicUrl(filePath);
 
     return urlData.publicUrl;
