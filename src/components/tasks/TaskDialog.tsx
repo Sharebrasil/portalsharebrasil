@@ -99,7 +99,8 @@ export default function TaskDialog({ open, onOpenChange, task, onSave }: TaskDia
       .order("full_name", { ascending: true });
 
     if (error) {
-      console.error("Erro ao carregar usuários:", error);
+      const errorMsg = error?.message || JSON.stringify(error);
+      console.error("Erro ao carregar usuários - Detalhes:", errorMsg, error);
       toast.error("Não foi possível carregar a lista de usuários");
       return;
     }
