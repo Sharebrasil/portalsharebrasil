@@ -19,7 +19,7 @@ serve(async (req) => {
 
     // Create admin client with service role
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-    
+
     // Create regular client to check permissions
     const authHeader = req.headers.get('Authorization')!;
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
@@ -40,7 +40,7 @@ serve(async (req) => {
       .select('role')
       .eq('user_id', user.id);
 
-    const hasPermission = userRoles?.some(r => 
+    const hasPermission = userRoles?.some(r =>
       ['admin', 'gestor_master', 'financeiro_master'].includes(r.role)
     );
 
@@ -51,19 +51,35 @@ serve(async (req) => {
       );
     }
 
-    // List all users from auth
-    const { data: users, error } = await supabaseAdmin.auth.admin.listUsers();
+    // List all users
+    const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers();
 
-    if (error) {
-      console.error('Error listing users:', error);
+    if (listError) {
+      console.error('Error listing users:', listError);
       return new Response(
-        JSON.stringify({ error: error.message }),
+        JSON.stringify({ error: listError.message }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    // Get roles for all users
+    const { data: allRoles } = await supabaseAdmin
+      .from('user_roles')
+      .select('user_id, role');
+
+    // Combine user data with roles
+    const usersWithRoles = users.map(u => ({
+      id: u.id,
+      email: u.email,
+      created_at: u.created_at,
+      email_confirmed_at: u.email_confirmed_at,
+      roles: allRoles?.filter(r => r.user_id === u.id).map(r => r.role) || []
+    }));
+
+    console.log('Users listed successfully');
+
     return new Response(
-      JSON.stringify({ users: users.users }),
+      JSON.stringify({ users: usersWithRoles }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
