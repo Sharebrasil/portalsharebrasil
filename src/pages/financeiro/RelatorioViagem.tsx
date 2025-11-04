@@ -1271,7 +1271,7 @@ const TravelReports = () => {
           <h2 className="text-lg font-semibold border-b pb-2 flex items-center"><Folder size={18} className="mr-2 text-blue-600" /> Informações da Viagem</h2>
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col">
-              <label className="text-sm font-medium mb-1">Cliente *</label>
+              <label className="text-sm font-medium mb-1 text-gray-200">Cliente *</label>
               <Select 
                 value={currentReport.cliente || ''} 
                 onValueChange={(value) => {
@@ -1293,7 +1293,7 @@ const TravelReports = () => {
               </Select>
             </div>
             <div className="flex flex-col">
-              <label className="text-sm font-medium mb-1">Aeronave *</label>
+              <label className="text-sm font-medium mb-1 text-gray-200">Aeronave *</label>
               <Select 
                 value={currentReport.aeronave || ''} 
                 onValueChange={(value) => handleInputChange('aeronave', value)}
@@ -1310,7 +1310,7 @@ const TravelReports = () => {
             </div>
             <div className="flex flex-col">
               <div className="flex items-center justify-between mb-1">
-                <label className="text-sm font-medium">Tripulante *</label>
+                <label className="text-sm font-medium text-gray-200">Tripulante *</label>
                 {!showSecondTripulante && (
                   <button
                     type="button"
@@ -1348,7 +1348,7 @@ const TravelReports = () => {
             </div>
             {isOutroTripulante || !tripulanteSelectValue ? (
               <div className="flex flex-col">
-                <label className="text-sm font-medium mb-1">Nome do Tripulante *</label>
+                <label className="text-sm font-medium mb-1 text-gray-200">Nome do Tripulante *</label>
                 <input
                   type="text"
                   value={currentReport.tripulante || ''}
@@ -1362,7 +1362,7 @@ const TravelReports = () => {
             {showSecondTripulante && (
               <div className="flex flex-col">
                 <div className="flex items-center justify-between mb-1">
-                  <label className="text-sm font-medium">Tripulante 2</label>
+                  <label className="text-sm font-medium text-gray-200">Tripulante 2</label>
                 </div>
                 <Select
                   value={tripulante2SelectValue}
@@ -1390,7 +1390,7 @@ const TravelReports = () => {
             )}
             {showSecondTripulante && (isOutroTripulante2 || !tripulante2SelectValue) ? (
               <div className="flex flex-col">
-                <label className="text-sm font-medium mb-1">Nome do Tripulante 2</label>
+                <label className="text-sm font-medium mb-1 text-gray-200">Nome do Tripulante 2</label>
                 <input
                   type="text"
                   value={currentReport.tripulante2 || ''}
@@ -1402,40 +1402,40 @@ const TravelReports = () => {
             ) : null}
 
             <div className="flex flex-col">
-              <label className="text-sm font-medium mb-1">Trecho *</label>
+              <label className="text-sm font-medium mb-1 text-gray-200">Trecho *</label>
               <input
                 type="text"
                 value={currentReport.destino || ''}
                 onChange={(e) => handleInputChange('destino', e.target.value)}
                 placeholder="Cidade/País"
-                className="p-2 border rounded-md"
+                className="p-2 border rounded-md bg-gray-800 border-gray-600 text-gray-100 placeholder-gray-500"
               />
             </div>
             <div className="flex flex-col">
-              <label className="text-sm font-medium mb-1">Data Início *</label>
+              <label className="text-sm font-medium mb-1 text-gray-200">Data Início *</label>
               <input
                 type="date"
                 value={currentReport.data_inicio || ''}
                 onChange={(e) => handleInputChange('data_inicio', e.target.value)}
-                className="p-2 border rounded-md"
+                className="p-2 border rounded-md bg-gray-800 border-gray-600 text-gray-100 placeholder-gray-500"
               />
             </div>
             <div className="flex flex-col">
-              <label className="text-sm font-medium mb-1">Data Fim</label>
+              <label className="text-sm font-medium mb-1 text-gray-200">Data Fim</label>
               <input
                 type="date"
                 value={currentReport.data_fim || ''}
                 onChange={(e) => handleInputChange('data_fim', e.target.value)}
-                className="p-2 border rounded-md"
+                className="p-2 border rounded-md bg-gray-800 border-gray-600 text-gray-100 placeholder-gray-500"
               />
             </div>
             <div className="col-span-2 flex flex-col">
-              <label className="text-sm font-medium mb-1">Observações</label>
+              <label className="text-sm font-medium mb-1 text-gray-200">Observações</label>
               <textarea
                 value={currentReport.observacoes || ''}
                 onChange={(e) => handleInputChange('observacoes', e.target.value)}
                 placeholder="Notas ou informações adicionais sobre a viagem"
-                className="p-2 border rounded-md h-20"
+                className="p-2 border rounded-md h-20 bg-gray-800 border-gray-600 text-gray-100 placeholder-gray-500"
               />
             </div>
           </div>
