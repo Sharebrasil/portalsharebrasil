@@ -541,8 +541,7 @@ export default function DiarioBordoDetalhes() {
                   <th rowSpan={2} className="border border-gray-300 p-2 bg-[rgb(0,206,209)] text-white font-bold">DEP</th>
                   <th rowSpan={2} className="border border-gray-300 p-2 bg-[rgb(0,206,209)] text-white font-bold">POU</th>
                   <th rowSpan={2} className="border border-gray-300 p-2 bg-[rgb(0,206,209)] text-white font-bold">COR</th>
-                  <th colSpan={4} className="border border-gray-300 p-2 bg-[rgb(0,206,209)] text-white font-bold">TEMPO DE VOO</th>
-                  <th rowSpan={2} className="border border-gray-300 p-2 bg-[rgb(0,206,209)] text-white font-bold">IFR</th>
+                  <th colSpan={5} className="border border-gray-300 p-2 bg-[rgb(0,206,209)] text-white font-bold">TEMPO DE VOO</th>
                   <th rowSpan={2} className="border border-gray-300 p-2 bg-[rgb(0,206,209)] text-white font-bold">POUSOS</th>
                   <th colSpan={2} className="border border-gray-300 p-2 bg-[rgb(0,206,209)] text-white font-bold">COMBUSTÍVEL</th>
                   <th rowSpan={2} className="border border-gray-300 p-2 bg-[rgb(0,206,209)] text-white font-bold">CÉLULA</th>
