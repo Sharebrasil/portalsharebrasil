@@ -464,6 +464,12 @@ export default function Clientes() {
     if (!deleteId) return;
 
     try {
+      const clienteToDelete = clientes.find(c => c.id === deleteId);
+
+      if (clienteToDelete?.documents && clienteToDelete.documents.length > 0) {
+        await deleteClientDocuments(clienteToDelete.documents);
+      }
+
       const { error } = await supabase
         .from("clients")
         .delete()
