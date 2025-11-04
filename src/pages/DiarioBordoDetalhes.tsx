@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 import { ArrowLeft, Plus, Check } from "lucide-react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -437,6 +438,23 @@ export default function DiarioBordoDetalhes() {
     }
   };
 
+  const updateHorimetro = async (field: 'horimetro_inicio' | 'horimetro_final' | 'horimetro_ativo', value: number) => {
+    if (!logbookMonth) return;
+
+    const { error } = await supabase
+      .from('logbook_months')
+      .update({ [field]: value })
+      .eq('id', logbookMonth.id);
+
+    if (error) {
+      console.error(`Erro ao atualizar ${field}:`, error);
+      toast.error(`Erro ao atualizar horimetro`);
+      return;
+    }
+
+    refetchMonth();
+  };
+
   const closeMonth = async () => {
     if (!logbookMonth) return;
     if (!canConfirm) {
@@ -465,14 +483,81 @@ export default function DiarioBordoDetalhes() {
   if (!logbookMonth) {
     return (
       <Layout>
-        <div className="container mx-auto p-6">
+        <div className="container mx-auto p-6 space-y-6">
           <div className="flex items-center gap-4 mb-6">
             <Button variant="ghost" size="icon" onClick={() => navigate('/diario-bordo')}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <h1 className="text-2xl font-bold">Diário de Bordo não encontrado</h1>
+            <div>
+              <h1 className="text-2xl font-bold">Diário de Bordo não encontrado</h1>
+              <p className="text-muted-foreground mt-1">Selecione um mês/ano que tenha diário criado ou crie um novo</p>
+            </div>
           </div>
-          <p>Crie um diário de bordo para este ano e aeronave.</p>
+
+          <Card className="p-6">
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-lg font-semibold mb-4">Selecionar Mês e Ano</h2>
+                <div className="flex gap-4 mb-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="month-select">Mês</Label>
+                    <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                      <SelectTrigger className="w-48">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {MONTHS.map((month, idx) => (
+                          <SelectItem key={idx} value={String(idx + 1)}>
+                            {month}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="year-select">Ano</Label>
+                    <Select value={selectedYear} onValueChange={setSelectedYear}>
+                      <SelectTrigger className="w-48">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - 5 + i).map(year => (
+                          <SelectItem key={year} value={String(year)}>
+                            {year}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <Button onClick={() => refetchMonth()} className="bg-cyan-600 hover:bg-cyan-700">
+                  Buscar Diário
+                </Button>
+              </div>
+
+              <div className="border-t pt-6">
+                <h2 className="text-lg font-semibold mb-4">Criar Novo Diário</h2>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Se o diário para {MONTHS[parseInt(selectedMonth) - 1]}/{selectedYear} não existe, você pode criá-lo agora.
+                </p>
+                <Button
+                  onClick={() => setCreateLogbookOpen(true)}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  Criar Novo Diário de Bordo
+                </Button>
+              </div>
+            </div>
+          </Card>
+
+          <CreateLogbookDialog
+            open={createLogbookOpen}
+            onOpenChange={setCreateLogbookOpen}
+            aircraft={allAircraft || []}
+            initialAircraftId={aircraftId}
+            initialYear={parseInt(selectedYear)}
+            initialMonth={parseInt(selectedMonth)}
+          />
         </div>
       </Layout>
     );
@@ -548,36 +633,96 @@ export default function DiarioBordoDetalhes() {
         </div>
 
         <Card className="p-6 bg-gradient-to-br from-cyan-500 to-cyan-700 border-0 rounded-lg shadow-xl">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-white">
-            <div className="space-y-2">
-              <div className="text-lg font-bold border-b border-cyan-300 pb-2 mb-3">INFORMAÇÕES DA AERONAVE</div>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="font-semibold">AERONAVE:</div>
-                <div className="font-bold text-lg">{aircraft?.registration}</div>
-                <div className="font-semibold">MODELO:</div>
-                <div>{aircraft?.model}</div>
-                <div className="font-semibold">CONS. MÉD:</div>
-                <div className="font-bold">{aircraft?.fuel_consumption} L/H</div>
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-white">
+              <div className="space-y-3">
+                <div className="text-lg font-bold border-b border-cyan-300 pb-2">INFORMAÇÕES DA AERONAVE</div>
+                <div className="space-y-1">
+                  <div className="flex items-baseline gap-2">
+                    <span className="font-semibold">AERONAVE:</span>
+                    <span className="font-bold text-lg">{aircraft?.registration}</span>
+                  </div>
+                  <div className="flex items-baseline gap-2">
+                    <span className="font-semibold">MODELO:</span>
+                    <span>{aircraft?.model}</span>
+                  </div>
+                  <div className="flex items-baseline gap-2">
+                    <span className="font-semibold">CONS. MÉD:</span>
+                    <span className="font-bold">{aircraft?.fuel_consumption} L/H</span>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div>
-              <div className="text-lg font-bold border-b border-cyan-300 pb-2 mb-3">HORAS DE CÉLULA</div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-white/20 rounded-lg p-3 backdrop-blur-sm">
-                  <div className="text-cyan-100 font-semibold text-sm mb-1">ANTERIOR:</div>
-                  <div className="text-2xl font-bold">{cellStart.toFixed(1)} H</div>
+
+              <div className="space-y-3">
+                <div className="text-lg font-bold border-b border-cyan-300 pb-2">HORIMETRO</div>
+                <div className="space-y-2">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold">INÍCIO:</label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      value={logbookMonth?.horimetro_inicio || 0}
+                      onChange={(e) => {
+                        const newValue = parseFloat(e.target.value) || 0;
+                        updateHorimetro('horimetro_inicio', newValue);
+                      }}
+                      disabled={!canAddOrEdit}
+                      className="h-8 text-sm bg-white/20 border-white/50 text-white placeholder:text-white/50"
+                      placeholder="0.0"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold">FINAL:</label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      value={logbookMonth?.horimetro_final || 0}
+                      onChange={(e) => {
+                        const newValue = parseFloat(e.target.value) || 0;
+                        updateHorimetro('horimetro_final', newValue);
+                      }}
+                      disabled={!canAddOrEdit}
+                      className="h-8 text-sm bg-white/20 border-white/50 text-white placeholder:text-white/50"
+                      placeholder="0.0"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold">ATIVO:</label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      value={logbookMonth?.horimetro_ativo || 0}
+                      onChange={(e) => {
+                        const newValue = parseFloat(e.target.value) || 0;
+                        updateHorimetro('horimetro_ativo', newValue);
+                      }}
+                      disabled={!canAddOrEdit}
+                      className="h-8 text-sm bg-white/20 border-white/50 text-white placeholder:text-white/50"
+                      placeholder="0.0"
+                    />
+                  </div>
                 </div>
-                <div className="bg-white/20 rounded-lg p-3 backdrop-blur-sm">
-                  <div className="text-cyan-100 font-semibold text-sm mb-1">ATUAL:</div>
-                  <div className="text-2xl font-bold">{cellEnd.toFixed(1)} H</div>
-                </div>
-                <div className="bg-orange-500/30 rounded-lg p-3 backdrop-blur-sm border border-orange-300">
-                  <div className="text-orange-100 font-semibold text-sm mb-1">PREV.:</div>
-                  <div className="text-2xl font-bold text-orange-100">{cellPrev.toFixed(1)} H</div>
-                </div>
-                <div className="bg-red-500/30 rounded-lg p-3 backdrop-blur-sm border border-red-300">
-                  <div className="text-red-100 font-semibold text-sm mb-1">DISP.:</div>
-                  <div className="text-2xl font-bold text-red-100">{cellDisp.toFixed(1)} H</div>
+              </div>
+
+              <div>
+                <div className="text-lg font-bold border-b border-cyan-300 pb-2 mb-3">HORAS DE CÉLULA</div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-white/20 rounded-lg p-3 backdrop-blur-sm">
+                    <div className="text-cyan-100 font-semibold text-sm mb-1">ANTERIOR:</div>
+                    <div className="text-2xl font-bold">{cellStart.toFixed(1)} H</div>
+                  </div>
+                  <div className="bg-white/20 rounded-lg p-3 backdrop-blur-sm">
+                    <div className="text-cyan-100 font-semibold text-sm mb-1">ATUAL:</div>
+                    <div className="text-2xl font-bold">{cellEnd.toFixed(1)} H</div>
+                  </div>
+                  <div className="bg-orange-500/30 rounded-lg p-3 backdrop-blur-sm border border-orange-300">
+                    <div className="text-orange-100 font-semibold text-sm mb-1">PREV.:</div>
+                    <div className="text-2xl font-bold text-orange-100">{cellPrev.toFixed(1)} H</div>
+                  </div>
+                  <div className="bg-red-500/30 rounded-lg p-3 backdrop-blur-sm border border-red-300">
+                    <div className="text-red-100 font-semibold text-sm mb-1">DISP.:</div>
+                    <div className="text-2xl font-bold text-red-100">{cellDisp.toFixed(1)} H</div>
+                  </div>
                 </div>
               </div>
             </div>

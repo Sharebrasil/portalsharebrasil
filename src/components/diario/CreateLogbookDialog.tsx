@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -43,11 +43,31 @@ export function CreateLogbookDialog({
   const [fuelConsumption, setFuelConsumption] = useState<string>("");
   const [cellularHours, setCellularHours] = useState<string>("0");
   const [dailyRate, setDailyRate] = useState<string>("");
+  const [baseAerodrome, setBaseAerodrome] = useState<string>("");
+  const [aerodromes, setAerodromes] = useState<Array<{ id: string; icao_code: string; name: string }>>([]);
 
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
 
   const selectedAircraftData = aircraft.find(a => a.id === selectedAircraft);
+
+  useEffect(() => {
+    const loadAerodromes = async () => {
+      const { data, error } = await supabase
+        .from('aerodromes')
+        .select('id, icao_code, name')
+        .order('icao_code');
+
+      if (error) {
+        console.error("Erro ao carregar aeródromos:", error);
+        return;
+      }
+
+      setAerodromes(data || []);
+    };
+
+    loadAerodromes();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,15 +85,37 @@ export function CreateLogbookDialog({
     setLoading(true);
 
     try {
+      const year = parseInt(selectedYear);
+      const month = parseInt(selectedMonth);
+
+      const { data: existingLogbook, error: checkError } = await supabase
+        .from('logbook_months')
+        .select('id')
+        .eq('aircraft_id', selectedAircraft)
+        .eq('year', year)
+        .eq('month', month)
+        .maybeSingle();
+
+      if (checkError) {
+        throw checkError;
+      }
+
+      if (existingLogbook) {
+        toast.error("Diário de bordo já existe para este mês, ano e aeronave");
+        setLoading(false);
+        return;
+      }
+
       const monthData = {
         aircraft_id: selectedAircraft,
-        year: parseInt(selectedYear),
-        month: parseInt(selectedMonth),
+        year: year,
+        month: month,
         is_closed: false,
         celula_anterior: parseFloat(cellularHours) || 0,
         celula_atual: parseFloat(cellularHours) || 0,
         fuel_consumption: parseFloat(fuelConsumption),
         daily_rate: dailyRate ? parseFloat(dailyRate) : null,
+        base_aerodrome: baseAerodrome || null,
       };
 
       const { error, data } = await supabase
@@ -82,12 +124,7 @@ export function CreateLogbookDialog({
         .select();
 
       if (error) {
-        if (error.code === '23505') {
-          toast.error("Diário de bordo já existe para este mês, ano e aeronave");
-        } else {
-          throw error;
-        }
-        return;
+        throw error;
       }
 
       toast.success("Diário de bordo criado com sucesso!");
@@ -103,6 +140,7 @@ export function CreateLogbookDialog({
       setFuelConsumption("");
       setCellularHours("0");
       setDailyRate("");
+      setBaseAerodrome("");
     } catch (error: any) {
       console.error("Erro ao criar diário de bordo:", error);
       toast.error(error.message || "Não foi possível criar o diário de bordo");
@@ -208,6 +246,22 @@ export function CreateLogbookDialog({
             <p className="text-xs text-muted-foreground">
               Deixe em branco se a aeronave não tem valor de diária definido
             </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="baseAerodrome">Aeródromo Base</Label>
+            <Select value={baseAerodrome} onValueChange={setBaseAerodrome}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o aeródromo base (opcional)" />
+              </SelectTrigger>
+              <SelectContent>
+                {aerodromes.map((aero) => (
+                  <SelectItem key={aero.id} value={aero.icao_code}>
+                    {aero.icao_code} - {aero.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="flex justify-end gap-3 mt-6">

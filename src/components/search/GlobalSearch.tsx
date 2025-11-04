@@ -25,7 +25,7 @@ const searchData: SearchResult[] = [
   // Financeiro
   { id: '6', title: 'Configuração da Empresa', description: 'Dados da empresa', type: 'page', path: '/financeiro/config', icon: DollarSign },
   { id: '7', title: 'Emissão de Recibo', description: 'Gerar recibos', type: 'page', path: '/financeiro/recibo', icon: Receipt },
-  { id: '8', title: 'Relatório de Viagem', description: 'Relatórios de despesas', type: 'page', path: '/financeiro/viagem', icon: Plane },
+  { id: '8', title: 'Relat��rio de Viagem', description: 'Relatórios de despesas', type: 'page', path: '/financeiro/viagem', icon: Plane },
   { id: '9', title: 'Cobrança', description: 'Gestão de cobranças', type: 'page', path: '/financeiro/cobranca', icon: DollarSign },
   { id: '10', title: 'Solicitação de Compras', description: 'Requisições de materiais', type: 'page', path: '/financeiro/compras', icon: File },
   
