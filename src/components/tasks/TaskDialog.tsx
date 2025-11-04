@@ -94,7 +94,7 @@ export default function TaskDialog({ open, onOpenChange, task, onSave }: TaskDia
   const fetchUsers = useCallback(async () => {
     const { data, error } = await supabase
       .from("user_profiles")
-      .select("id, full_name, tipo")
+      .select("id, full_name")
       .order("full_name", { ascending: true });
 
     if (error) {
