@@ -331,8 +331,7 @@ export default function EmissaoRecibo() {
     // const payerAddress = pagadorEndereco || ""; // Não usado na visualização do cabeçalho
 
     const pdfDoc = await PDFDocument.create();
-    // Aumentei a altura da página ligeiramente para garantir espaço no topo se for necessário ajustar a escala
-    const page = pdfDoc.addPage([420, 595]);
+    const page = pdfDoc.addPage([595, 842]); // A4
     const { width, height } = page.getSize();
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
