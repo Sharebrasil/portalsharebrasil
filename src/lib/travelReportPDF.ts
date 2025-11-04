@@ -255,18 +255,112 @@ const generateHTMLReport = (report: TravelReport, currentFullName = 'Usuário') 
     `;
 };
 
-export const generatePDF = async (report: TravelReport, currentFullName?: string) => {
+export const generatePDF = async (report: TravelReport, currentFullName?: string): Promise<Blob | null> => {
   const htmlContent = generateHTMLReport(report, currentFullName);
-  const tempDiv = document.createElement('div');
-  tempDiv.innerHTML = htmlContent;
-  tempDiv.style.position = 'absolute';
-  tempDiv.style.left = '-9999px';
-  document.body.appendChild(tempDiv);
+  // criar elemento temporário invisível
+  const element = document.createElement('div');
+  element.innerHTML = htmlContent;
+
+  // evitar impacto visual
+  element.style.position = 'absolute';
+  element.style.left = '-9999px';
+  element.style.top = '0';
+  document.body.appendChild(element);
+
+  const fetchToDataUrl = async (url: string): Promise<string | null> => {
+    try {
+      const res = await fetch(url, { mode: 'cors' });
+      if (!res.ok) throw new Error('network');
+      const blob = await res.blob();
+      return await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch (e) {
+      return null;
+    }
+  };
 
   try {
+    // substituir elementos de comprovante em PDF por nota textual (html2pdf não renderiza PDFs embutidos)
+    try {
+      const receiptImgs = Array.from(element.querySelectorAll('.receipt-image')) as HTMLImageElement[];
+      for (const ri of receiptImgs) {
+        const src = ri.getAttribute('src') || '';
+        if (src.startsWith('data:application/pdf')) {
+          const note = document.createElement('div');
+          note.textContent = 'PDF anexado (não é exibido no PDF).';
+          note.setAttribute('style', 'font-size:12px;color:#555;margin-top:6px;');
+          ri.replaceWith(note);
+        }
+      }
+    } catch {}
+
+    // converter imagens externas para data URLs para evitar problemas de CORS
+    const imgs = Array.from(element.querySelectorAll('img')) as HTMLImageElement[];
+    for (const img of imgs) {
+      try {
+        const src = img.getAttribute('src') || '';
+        if (!src) { img.remove(); continue; }
+        if (src.startsWith('data:')) continue;
+        const abs = new URL(src, window.location.href).href;
+        const dataUrl = await fetchToDataUrl(abs);
+        if (dataUrl) {
+          img.setAttribute('src', dataUrl as string);
+        } else {
+          // remove imagem se não for possível obter
+          console.warn('Não foi possível carregar imagem para PDF:', src);
+          img.remove();
+        }
+      } catch (e) {
+        img.remove();
+      }
+    }
+
+    // tratar imagens de comprovante muito altas para evitar quebra ruim
+    try {
+      const receiptImgs = Array.from(element.querySelectorAll('.receipt-image')) as HTMLImageElement[];
+      for (const ri of receiptImgs) {
+        const src = ri.getAttribute('src');
+        if (!src) continue;
+        await new Promise<void>((resolve) => {
+          const im = new Image();
+          im.onload = () => {
+            if (im.naturalHeight > 1000) {
+              const parent = ri.closest('.receipt-item') as HTMLElement | null;
+              if (parent) parent.style.pageBreakBefore = 'always';
+            }
+            resolve();
+          };
+          im.onerror = () => resolve();
+          im.src = src;
+        });
+      }
+    } catch {}
+
+    // remover elemento que possa ter sido inserido para fullpage logo
+    try {
+      const fullpageLogo = element.querySelector('#fullpage-logo');
+      if (fullpageLogo) fullpageLogo.remove();
+    } catch {}
+
+    // configurar html2pdf
     const config = generatePDFConfig(report.numero);
-    await html2pdf().set(config).from(tempDiv).save();
+
+    // gerar PDF para obter o Blob e retornar
+    const worker: any = (html2pdf() as any).set(config).from(element).toPdf();
+    const blob: Blob = await worker.get('pdf').then((pdf: any) => pdf.output('blob'));
+
+    // opcional: salvar localmente (quem chamar decide)
+    // await worker.save(); // não salvar automaticamente aqui
+
+    return blob;
+  } catch (error) {
+    console.error('Erro ao gerar PDF:', error);
+    return null;
   } finally {
-    document.body.removeChild(tempDiv);
+    try { document.body.removeChild(element); } catch {}
   }
 };

@@ -20,7 +20,7 @@ interface Notification {
   created_at: string;
 }
 
-function NotificationBell() {
+const NotificationBell: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
