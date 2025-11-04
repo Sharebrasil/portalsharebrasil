@@ -205,6 +205,49 @@ const GestaoSalarios = () => {
     "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
   ];
 
+  const handleOpenSalaryDialog = (salary?: any) => {
+    if (salary) {
+      setEditingSalaryId(salary.id);
+      setSalaryForm({
+        user_id: salary.user_id || "",
+        position: salary.position || "",
+        department: salary.department || "",
+        gross_salary: salary.gross_salary || "",
+        net_salary: salary.net_salary || "",
+        benefits: salary.benefits || "",
+      });
+    } else {
+      setEditingSalaryId(null);
+      setSalaryForm({
+        user_id: "",
+        position: "",
+        department: "",
+        gross_salary: "",
+        net_salary: "",
+        benefits: "",
+      });
+    }
+    setIsSalaryDialogOpen(true);
+  };
+
+  const handleSaveSalary = async () => {
+    if (!salaryForm.user_id || !salaryForm.gross_salary) {
+      toast.error("Preencha os campos obrigatórios (Funcionário e Salário Bruto)");
+      return;
+    }
+
+    const data = {
+      user_id: salaryForm.user_id,
+      position: salaryForm.position,
+      department: salaryForm.department,
+      gross_salary: parseFloat(salaryForm.gross_salary),
+      net_salary: parseFloat(salaryForm.net_salary || salaryForm.gross_salary),
+      benefits: salaryForm.benefits,
+    };
+
+    saveSalaryMutation.mutate(data);
+  };
+
   if (isRolesLoading) {
     return (
       <Layout>
@@ -399,7 +442,7 @@ const GestaoSalarios = () => {
                                 </div>
                               </div>
                               <div>
-                                <Label>Observa��ões</Label>
+                                <Label>Observações</Label>
                                 <Textarea defaultValue={payment.observations || ""} />
                               </div>
                             </div>
