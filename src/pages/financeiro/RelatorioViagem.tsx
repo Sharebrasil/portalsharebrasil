@@ -1498,7 +1498,7 @@ const TravelReports = () => {
                   </div>
                   <div className="flex flex-col">
                     <label className="text-xs font-medium mb-1">Comprovante</label>
-                    <label className={`flex items-center justify-center p-2 border rounded-md cursor-pointer text-sm ${despesa.comprovante_url ? 'bg-green-100 border-green-400 text-green-700' : 'bg-white border-gray-300 hover:bg-gray-100'}`}>
+                    <label className={`flex items-center justify-center p-2 border rounded-md cursor-pointer text-sm ${despesa.comprovante_url ? 'bg-green-900 border-green-600 text-green-300' : 'bg-gray-800 border-gray-600 hover:bg-gray-700'}`}>
                       {uploadingIndex === index ? (
                         <span>Carregando...</span>
                       ) : (
@@ -1530,7 +1530,7 @@ const TravelReports = () => {
             ))}
           </div>
           
-          <button onClick={addDespesa} className="w-full flex items-center justify-center space-x-2 p-2 border-2 border-dashed border-gray-300 text-gray-600 rounded-md hover:border-blue-400 hover:text-blue-600 transition">
+          <button onClick={addDespesa} className="w-full flex items-center justify-center space-x-2 p-2 border-2 border-dashed border-gray-600 text-gray-400 rounded-md hover:border-blue-400 hover:text-blue-400 transition">
             <Plus size={20} />
             <span>Adicionar Despesa</span>
           </button>
@@ -1546,24 +1546,24 @@ const TravelReports = () => {
 
           <h2 className="text-lg font-semibold border-b pb-2 pt-4 flex items-center"><Clock size={18} className="mr-2 text-red-600" /> Resumo e Totais</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="border p-4 rounded-lg bg-white shadow-sm">
-              <h3 className="text-md font-bold mb-2 text-blue-800">Totais por Categoria</h3>
-              <div className="space-y-1 text-sm">
+            <div className="border p-4 rounded-lg bg-gray-900 shadow-sm border-gray-700">
+              <h3 className="text-md font-bold mb-2 text-blue-300">Totais por Categoria</h3>
+              <div className="space-y-1 text-sm text-gray-200">
                 <div className="flex justify-between"><span>Combustível:</span> <span className="font-semibold">R$ {currentReport.total_combustivel.toFixed(2).replace('.', ',')}</span></div>
                 <div className="flex justify-between"><span>Hospedagem:</span> <span className="font-semibold">R$ {currentReport.total_hospedagem.toFixed(2).replace('.', ',')}</span></div>
                 <div className="flex justify-between"><span>Alimentação:</span> <span className="font-semibold">R$ {currentReport.total_alimentacao.toFixed(2).replace('.', ',')}</span></div>
                 <div className="flex justify-between"><span>Transporte:</span> <span className="font-semibold">R$ {currentReport.total_transporte.toFixed(2).replace('.', ',')}</span></div>
                 <div className="flex justify-between"><span>Outros:</span> <span className="font-semibold">R$ {currentReport.total_outros.toFixed(2).replace('.', ',')}</span></div>
-                <div className="flex justify-between pt-2 border-t font-bold text-lg text-green-600"><span>TOTAL GERAL:</span> <span>R$ {currentReport.valor_total.toFixed(2).replace('.', ',')}</span></div>
+                <div className="flex justify-between pt-2 border-t border-gray-700 font-bold text-lg text-green-400"><span>TOTAL GERAL:</span> <span>R$ {currentReport.valor_total.toFixed(2).replace('.', ',')}</span></div>
               </div>
             </div>
-            <div className="border p-4 rounded-lg bg-white shadow-sm">
-              <h3 className="text-md font-bold mb-2 text-blue-800">Totais por Pagador</h3>
-              <div className="space-y-1 text-sm">
+            <div className="border p-4 rounded-lg bg-gray-900 shadow-sm border-gray-700">
+              <h3 className="text-md font-bold mb-2 text-blue-300">Totais por Pagador</h3>
+              <div className="space-y-1 text-sm text-gray-200">
                 <div className="flex justify-between"><span>Tripulante:</span> <span className="font-semibold">R$ {currentReport.total_tripulante.toFixed(2).replace('.', ',')}</span></div>
                 <div className="flex justify-between"><span>Cliente:</span> <span className="font-semibold">R$ {currentReport.total_cliente.toFixed(2).replace('.', ',')}</span></div>
                 <div className="flex justify-between"><span>ShareBrasil:</span> <span className="font-semibold">R$ {currentReport.total_share_brasil.toFixed(2).replace('.', ',')}</span></div>
-                <div className="flex justify-between pt-2 border-t font-bold text-lg text-green-600"><span>TOTAL GERAL:</span> <span>R$ {currentReport.valor_total.toFixed(2).replace('.', ',')}</span></div>
+                <div className="flex justify-between pt-2 border-t border-gray-700 font-bold text-lg text-green-400"><span>TOTAL GERAL:</span> <span>R$ {currentReport.valor_total.toFixed(2).replace('.', ',')}</span></div>
               </div>
             </div>
           </div>
