@@ -925,6 +925,31 @@ export default function DiarioBordoDetalhes() {
             <option key={crew.canac} value={crew.canac}>{crew.full_name} - {crew.canac}</option>
           ))}
         </datalist>
+
+        <AlertDialog open={showNextMonthDialog} onOpenChange={setShowNextMonthDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Próximo Mês Disponível</AlertDialogTitle>
+              <AlertDialogDescription>
+                O diário de bordo de {MONTHS[parseInt(selectedMonth) - 1]} está fechado.
+                Deseja abrir o diário de {MONTHS[parseInt(selectedMonth)]} de {selectedYear}?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="flex gap-3 justify-end">
+              <AlertDialogCancel>Não</AlertDialogCancel>
+              <AlertDialogAction onClick={openNextMonth}>Sim</AlertDialogAction>
+            </div>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <CreateLogbookDialog
+          open={createLogbookOpen}
+          onOpenChange={setCreateLogbookOpen}
+          aircraft={allAircraft || []}
+          initialAircraftId={aircraftId}
+          initialYear={parseInt(selectedYear)}
+          initialMonth={parseInt(selectedMonth) + 1}
+        />
       </div>
     </Layout>
   );
