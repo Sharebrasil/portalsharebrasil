@@ -303,25 +303,32 @@ const TravelReports = () => {
   };
 
   // Gerar número sequencial local (fallback) com sufixo do ano e reset anual por cliente
+  // Formato: ABC001/2025 (3 letras do cliente + número sequencial + ano)
   const generateReportNumberLocal = (cliente) => {
-    const yy = String(new Date().getFullYear()).slice(-2);
-    if (!cliente) return `REL001/${yy}`;
+    const yyyy = String(new Date().getFullYear());
+    if (!cliente) return `XXX001/${yyyy}`;
+
+    // Extrair 3 primeiras letras do cliente (maiúsculas)
+    const clienteLetras = cliente.substring(0, 3).toUpperCase().padEnd(3, 'X');
+
+    // Encontrar o número máximo para este cliente no ano atual
     const maxNumber = (reports || [])
       .filter((report:any) => report.cliente === cliente)
       .reduce((max:number, report:any) => {
         const raw = String(report.numero || '');
-        const yearSuffix = (raw.match(/\/(\d{2})\b/) || [null, null])[1];
+        const yearSuffix = (raw.match(/\/(\d{4})\b/) || [null, null])[1];
         const createdYear = (()=>{ try { return String(report.createdAt || '').slice(0,4); } catch { return null; } })();
-        const isSameYear = yearSuffix ? (yearSuffix === yy) : (createdYear === String(new Date().getFullYear()));
+        const isSameYear = yearSuffix ? (yearSuffix === yyyy) : (createdYear === yyyy);
         if (!isSameYear) return max;
-        const match = raw.match(/REL\s*(\d+)/i);
+        const match = raw.match(/\d+/);
         if (match) {
-          const num = parseInt(match[1]);
+          const num = parseInt(match[0]);
           return num > max ? num : max;
         }
         return max;
       }, 0);
-    return `REL${String(maxNumber + 1).padStart(3, '0')}/${yy}`;
+
+    return `${clienteLetras}${String(maxNumber + 1).padStart(3, '0')}/${yyyy}`;
   };
 
   // Usar a função RPC generate_travel_report_number do banco
