@@ -687,10 +687,9 @@ export default function DiarioBordoDetalhes() {
                     </td>
                     <td className="border border-gray-300 p-1">
                       <Input
-                        type="text"
-                        inputMode="numeric"
-                        placeholder="01:30"
-                        pattern="^\d{1,2}:\d{2}$"
+                        type="number"
+                        step="0.1"
+                        placeholder="1.5"
                         value={entry.tvoo}
                         onChange={(e) => updateEntry(index, 'tvoo', e.target.value)}
                         disabled={!canAddOrEdit}
@@ -699,10 +698,9 @@ export default function DiarioBordoDetalhes() {
                     </td>
                     <td className="border border-gray-300 p-1">
                       <Input
-                        type="text"
-                        inputMode="numeric"
-                        placeholder="01:30"
-                        pattern="^\d{1,2}:\d{2}$"
+                        type="number"
+                        step="0.1"
+                        placeholder="1.5"
                         value={entry.tdia}
                         onChange={(e) => updateEntry(index, 'tdia', e.target.value)}
                         disabled={!canAddOrEdit}
@@ -711,10 +709,9 @@ export default function DiarioBordoDetalhes() {
                     </td>
                     <td className="border border-gray-300 p-1">
                       <Input
-                        type="text"
-                        inputMode="numeric"
-                        placeholder="01:30"
-                        pattern="^\d{1,2}:\d{2}$"
+                        type="number"
+                        step="0.1"
+                        placeholder="1.5"
                         value={entry.tnoit}
                         onChange={(e) => updateEntry(index, 'tnoit', e.target.value)}
                         disabled={!canAddOrEdit}
@@ -723,22 +720,9 @@ export default function DiarioBordoDetalhes() {
                     </td>
                     <td className="border border-gray-300 p-1">
                       <Input
-                        type="text"
-                        inputMode="numeric"
-                        placeholder="01:30"
-                        pattern="^\d{1,2}:\d{2}$"
-                        value={entry.tnoit}
-                        onChange={(e) => updateEntry(index, 'tnoit', e.target.value)}
-                        disabled={!canAddOrEdit}
-                        className="h-7 text-xs w-16 border-cyan-200 focus:border-cyan-500"
-                      />
-                    </td>
-                    <td className="border border-gray-300 p-1">
-                      <Input
-                        type="text"
-                        inputMode="numeric"
-                        placeholder="01:30"
-                        pattern="^\d{1,2}:\d{2}$"
+                        type="number"
+                        step="0.1"
+                        placeholder="1.5"
                         value={entry.total}
                         onChange={(e) => updateEntry(index, 'total', e.target.value)}
                         disabled={!canAddOrEdit}
@@ -747,10 +731,9 @@ export default function DiarioBordoDetalhes() {
                     </td>
                     <td className="border border-gray-300 p-1">
                       <Input
-                        type="text"
-                        inputMode="numeric"
-                        placeholder="00:00"
-                        pattern="^\d{1,2}:\d{2}$"
+                        type="number"
+                        step="0.1"
+                        placeholder="0.5"
                         value={entry.ifr}
                         onChange={(e) => updateEntry(index, 'ifr', e.target.value)}
                         disabled={!canAddOrEdit}
