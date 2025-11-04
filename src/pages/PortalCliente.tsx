@@ -115,6 +115,7 @@ export default function PortalCliente() {
             year
           )
         `)
+        .eq('status', 'ativo')
         .not('aircraft_id', 'is', null);
 
       if (error) throw error;

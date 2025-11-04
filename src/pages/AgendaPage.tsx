@@ -208,6 +208,7 @@ export default function AgendaPage() {
         const clientsQuery = supabase
           .from("clients")
           .select("id,cnpj,observations,created_at,updated_at,company_name,address,phone,email,city,uf,status,aircraft_id")
+          .eq("status", "ativo")
           .order("company_name", { ascending: true });
 
         if (likePattern) {

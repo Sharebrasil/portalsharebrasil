@@ -77,12 +77,106 @@ export default function GestaoFuncionarios() {
   const [isCreating, setIsCreating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editEmployeeForm, setEditEmployeeForm] = useState<EditEmployeeForm | null>(null);
+  const [showAuthUserSelection, setShowAuthUserSelection] = useState(false);
+  const [authenticatedUsers, setAuthenticatedUsers] = useState<any[]>([]);
+  const [loadingAuthUsers, setLoadingAuthUsers] = useState(false);
+  const [selectedAuthUser, setSelectedAuthUser] = useState<any | null>(null);
 
   // Resetar o estado de edição ao selecionar um novo funcionário
   const handleSelectEmployee = (employee: Employee) => {
     setSelectedEmployee(employee);
     setIsCreating(false);
     setIsEditing(false); // Sempre desativa a edição ao selecionar
+  };
+
+  // Buscar usuários autenticados do Supabase (menos admin)
+  const fetchAuthenticatedUsers = async () => {
+    setLoadingAuthUsers(true);
+    try {
+      const { data: users, error } = await supabase.auth.admin.listUsers();
+
+      if (error) throw error;
+
+      // Filtrar usuários: remover admins e aqueles que já têm perfil de funcionário
+      const filteredUsers = users?.users?.filter((user: any) => {
+        const isAdmin = user.user_metadata?.roles?.includes('admin');
+        return !isAdmin;
+      }) || [];
+
+      setAuthenticatedUsers(filteredUsers);
+    } catch (error) {
+      console.error("Erro ao buscar usuários autenticados:", error);
+      toast({
+        title: "Erro ao buscar usuários",
+        description: "Não foi possível carregar a lista de usuários autenticados",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingAuthUsers(false);
+    }
+  };
+
+  // Criar funcionário a partir de usuário autenticado
+  const createEmployeeFromAuthUser = async (authUser: any, role: AppRole) => {
+    try {
+      // Buscar dados do perfil do usuário no Supabase se existir
+      const { data: existingProfile } = await supabase
+        .from("user_profiles")
+        .select("*")
+        .eq("id", authUser.id)
+        .single();
+
+      let userId = authUser.id;
+
+      if (!existingProfile) {
+        // Criar novo perfil se não existir
+        const { data: newProfile, error: profileError } = await supabase
+          .from("user_profiles")
+          .insert({
+            id: authUser.id,
+            email: authUser.email,
+            full_name: authUser.user_metadata?.full_name || authUser.email.split("@")[0],
+            display_name: authUser.user_metadata?.full_name || authUser.email.split("@")[0],
+            employment_status: "ativo",
+            is_authenticated_user: true,
+          })
+          .select()
+          .single();
+
+        if (profileError) throw profileError;
+        userId = newProfile.id;
+      }
+
+      // Verificar se já tem role
+      const { data: existingRoles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId);
+
+      if (!existingRoles || existingRoles.length === 0) {
+        const { error: roleError } = await supabase
+          .from("user_roles")
+          .insert({ user_id: userId, role });
+
+        if (roleError) throw roleError;
+      }
+
+      toast({
+        title: "Funcionário criado com sucesso!",
+        description: `Perfil criado para ${authUser.email}`,
+      });
+
+      setShowAuthUserSelection(false);
+      setSelectedAuthUser(null);
+      setAuthenticatedUsers([]);
+      queryClient.invalidateQueries({ queryKey: ["employees"] });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao criar funcionário",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   };
 
   // Preencher o formulário de edição ao iniciar
@@ -167,7 +261,7 @@ export default function GestaoFuncionarios() {
   // Create employee mutation (mantido)
   const createEmployeeMutation = useMutation({
     mutationFn: async (employee: typeof newEmployee) => {
-      // ... (lógica de criação de funcionário - MANTIDA)
+      // ... (lógica de criação de funcion��rio - MANTIDA)
       let userId: string;
 
       if (employee.is_authenticated_user) {
@@ -728,6 +822,109 @@ export default function GestaoFuncionarios() {
     );
   };
 
+  // Componente para seleção de usuário autenticado
+  const AuthUserSelectionComponent = () => {
+    const [selectedRole, setSelectedRole] = useState<AppRole>("tripulante");
+
+    return (
+      <>
+        <CardHeader>
+          <CardTitle>Associar Usuário Autenticado</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Selecione um usuário autenticado para criar um perfil de funcionário
+            </p>
+
+            {loadingAuthUsers ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <Label>Usuários Disponíveis</Label>
+                  <ScrollArea className="h-[300px] border rounded-lg p-3">
+                    <div className="space-y-2">
+                      {authenticatedUsers.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-4">
+                          Nenhum usuário autenticado disponível
+                        </p>
+                      ) : (
+                        authenticatedUsers.map((user: any) => (
+                          <div
+                            key={user.id}
+                            className={`p-3 border rounded-lg cursor-pointer transition-smooth ${
+                              selectedAuthUser?.id === user.id
+                                ? "bg-primary/10 border-primary"
+                                : "hover:bg-accent border-border"
+                            }`}
+                            onClick={() => setSelectedAuthUser(user)}
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <p className="font-medium text-sm">{user.email}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {user.user_metadata?.full_name || "Sem nome"}
+                                </p>
+                              </div>
+                              <input
+                                type="radio"
+                                checked={selectedAuthUser?.id === user.id}
+                                onChange={() => setSelectedAuthUser(user)}
+                                className="mt-1"
+                              />
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </ScrollArea>
+                </div>
+
+                {selectedAuthUser && (
+                  <div className="space-y-2">
+                    <Label htmlFor="auth_role">Função *</Label>
+                    <Select value={selectedRole} onValueChange={(value) => setSelectedRole(value as AppRole)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {APP_ROLE_VALUES.filter((role) => ROLES_TO_DISPLAY.includes(role)).map((role) => (
+                          <SelectItem key={role} value={role}>
+                            {ROLE_LABELS[role]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                <div className="flex gap-2 pt-4">
+                  <Button
+                    onClick={() => {
+                      if (selectedAuthUser) {
+                        createEmployeeFromAuthUser(selectedAuthUser, selectedRole);
+                      }
+                    }}
+                    disabled={!selectedAuthUser}
+                  >
+                    <UserPlus className="mr-2 h-4 w-4" />
+                    Criar Funcionário
+                  </Button>
+                  <Button variant="outline" onClick={() => setShowAuthUserSelection(false)}>
+                    Cancelar
+                  </Button>
+                </div>
+              </>
+            )}
+          </div>
+        </CardContent>
+      </>
+    );
+  };
+
   return (
     <Layout>
       <div className="p-6 space-y-6">
@@ -738,10 +935,22 @@ export default function GestaoFuncionarios() {
               Gerencie perfis, documentos e informações dos colaboradores
             </p>
           </div>
-          <Button onClick={() => { setIsCreating(true); setSelectedEmployee(null); setIsEditing(false); }}>
-            <UserPlus className="mr-2 h-4 w-4" />
-            Novo Funcionário
-          </Button>
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowAuthUserSelection(true);
+                fetchAuthenticatedUsers();
+              }}
+            >
+              <UserPlus className="mr-2 h-4 w-4" />
+              Associar Usuário
+            </Button>
+            <Button onClick={() => { setIsCreating(true); setSelectedEmployee(null); setIsEditing(false); }}>
+              <UserPlus className="mr-2 h-4 w-4" />
+              Novo Funcionário
+            </Button>
+          </div>
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -808,7 +1017,9 @@ export default function GestaoFuncionarios() {
 
           {/* Detalhes do funcionário ou formulário de criação/edição */}
           <Card className="lg:col-span-2">
-            {isCreating ? (
+            {showAuthUserSelection ? (
+              <AuthUserSelectionComponent />
+            ) : isCreating ? (
               // Formulário de Criação (Mantido)
               <>
                 <CardHeader>

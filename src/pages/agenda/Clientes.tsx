@@ -131,6 +131,7 @@ export default function Clientes() {
       const { data, error } = await supabase
         .from("clients")
         .select("*, aircraft:aircraft_id(id, registration, model)")
+        .eq("status", "ativo")
         .order("company_name");
 
       if (error) throw error;

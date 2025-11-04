@@ -3,10 +3,24 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Loader2 } from "lucide-react";
+import { Loader2, Trash2, Power } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export function UsersList() {
-  const { data: users, isLoading } = useQuery({
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+
+  const { data: users, isLoading, refetch } = useQuery({
     queryKey: ["users"],
     queryFn: async () => {
       const { data, error } = await supabase.functions.invoke("list-users");
@@ -14,6 +28,56 @@ export function UsersList() {
       return data.users || [];
     },
   });
+
+  const handleDeleteUser = async () => {
+    if (!selectedUser) return;
+
+    try {
+      setDeletingUserId(selectedUser.id);
+      const { error } = await supabase.auth.admin.deleteUser(selectedUser.id);
+
+      if (error) throw error;
+
+      toast.success(`Usuário ${selectedUser.email} removido com sucesso`);
+      setShowDeleteDialog(false);
+      setSelectedUser(null);
+      await refetch();
+    } catch (error) {
+      console.error("Erro ao deletar usuário:", error);
+      toast.error("Erro ao remover usuário");
+    } finally {
+      setDeletingUserId(null);
+    }
+  };
+
+  const handleDeactivateUser = async (user: any) => {
+    try {
+      const isInactive = user.user_metadata?.status === "inactive" || user.banned_until;
+
+      if (isInactive) {
+        // Ativar usuário
+        const { error } = await supabase.auth.admin.updateUserById(user.id, {
+          user_metadata: { status: "active" },
+        });
+
+        if (error) throw error;
+        toast.success(`Usuário ${user.email} ativado com sucesso`);
+      } else {
+        // Desativar usuário
+        const { error } = await supabase.auth.admin.updateUserById(user.id, {
+          user_metadata: { status: "inactive" },
+        });
+
+        if (error) throw error;
+        toast.success(`Usuário ${user.email} desativado com sucesso`);
+      }
+
+      await refetch();
+    } catch (error) {
+      console.error("Erro ao alternar status do usuário:", error);
+      toast.error("Erro ao alternar status do usuário");
+    }
+  };
 
   if (isLoading) {
     return (
@@ -67,54 +131,102 @@ export function UsersList() {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Lista de Usuários</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Email</TableHead>
-                <TableHead>Roles</TableHead>
-                <TableHead>Data de Criação</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {users?.map((user: any) => (
-                <TableRow key={user.id}>
-                  <TableCell className="font-medium">{user.email}</TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {user.roles && user.roles.length > 0 ? (
-                        user.roles.map((role: string) => (
-                          <Badge
-                            key={role}
-                            className={`${getRoleColor(role)} text-xs`}
-                            variant="outline"
-                          >
-                            {getRoleLabel(role)}
-                          </Badge>
-                        ))
-                      ) : (
-                        <span className="text-muted-foreground text-sm">Sem roles</span>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>{new Date(user.created_at).toLocaleDateString('pt-BR')}</TableCell>
-                  <TableCell>
-                    <Badge variant={user.email_confirmed_at ? "default" : "secondary"}>
-                      {user.email_confirmed_at ? "Confirmado" : "Pendente"}
-                    </Badge>
-                  </TableCell>
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle>Lista de Usuários</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Departamento</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </CardContent>
-    </Card>
+              </TableHeader>
+              <TableBody>
+                {users
+                  ?.filter((user: any) => !user.roles?.includes("admin"))
+                  .map((user: any) => {
+                    const isInactive = user.user_metadata?.status === "inactive" || user.banned_until;
+                    return (
+                      <TableRow key={user.id}>
+                        <TableCell className="font-medium">{user.email}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {user.roles && user.roles.length > 0 ? (
+                              user.roles.map((role: string) => (
+                                <Badge
+                                  key={role}
+                                  className={`${getRoleColor(role)} text-xs`}
+                                  variant="outline"
+                                >
+                                  {getRoleLabel(role)}
+                                </Badge>
+                              ))
+                            ) : (
+                              <span className="text-muted-foreground text-sm">Sem departamento</span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={isInactive ? "secondary" : "default"}>
+                            {isInactive ? "Inativo" : "Ativo"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <button
+                              onClick={() => handleDeactivateUser(user)}
+                              className="p-1 text-muted-foreground hover:text-warning transition-colors"
+                              title={isInactive ? "Ativar usuário" : "Desativar usuário"}
+                              aria-label={isInactive ? "Ativar usuário" : "Desativar usuário"}
+                            >
+                              <Power className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                setSelectedUser(user);
+                                setShowDeleteDialog(true);
+                              }}
+                              className="p-1 text-muted-foreground hover:text-destructive transition-colors"
+                              title="Excluir usuário"
+                              aria-label="Excluir usuário"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogTitle>Excluir usuário</AlertDialogTitle>
+          <AlertDialogDescription>
+            Tem certeza que deseja remover permanentemente o usuário {selectedUser?.email}? Esta ação não pode ser desfeita.
+          </AlertDialogDescription>
+          <div className="flex justify-end gap-3">
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteUser}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deletingUserId === selectedUser?.id}
+            >
+              {deletingUserId === selectedUser?.id ? "Removendo..." : "Remover"}
+            </AlertDialogAction>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

@@ -84,27 +84,68 @@ export default function Agendamentos() {
   const [selectedAircraft, setSelectedAircraft] = useState("all");
   const [statusTab, setStatusTab] = useState<"pendentes" | "todos">("todos");
 
-  const { data: schedules, isLoading, refetch } = useQuery({
+  const { data: schedules, isLoading, refetch, error: queryError } = useQuery({
     queryKey: ["flight-schedules", selectedAircraft],
     queryFn: async () => {
-      let query = supabase
-        .from("flight_schedules")
-        .select(`
-          *,
-          aircraft:aircraft_id(registration, model),
-          client:client_id(company_name),
-          crew:crew_member_id(full_name)
-        `)
-        .order("flight_date", { ascending: false })
-        .order("flight_time", { ascending: false });
+      try {
+        let query = supabase
+          .from("flight_schedules")
+          .select(`
+            *,
+            aircraft:aircraft_id(registration, model),
+            crew:crew_member_id(full_name)
+          `)
+          .order("flight_date", { ascending: false })
+          .order("flight_time", { ascending: false });
 
-      if (selectedAircraft !== "all") {
-        query = query.eq("aircraft_id", selectedAircraft);
+        if (selectedAircraft !== "all") {
+          query = query.eq("aircraft_id", selectedAircraft);
+        }
+
+        const { data, error } = await query;
+        if (error) {
+          console.error("Query error details:", JSON.stringify(error, null, 2));
+          console.error("Error message:", error.message);
+          console.error("Error code:", error.code);
+          throw new Error(`${error.message} (${error.code})`);
+        }
+
+        // Fetch client data separately and attach to schedules
+        if (data && data.length > 0) {
+          const clientIds = [...new Set(data.map((s: any) => s.client_id).filter(Boolean))];
+          let clients: any[] = [];
+
+          if (clientIds.length > 0) {
+            const { data: clientData, error: clientError } = await supabase
+              .from("clients")
+              .select("id, company_name")
+              .in("id", clientIds);
+
+            if (!clientError && clientData) {
+              clients = clientData;
+            }
+          }
+
+          const clientMap = new Map(clients.map((c: any) => [c.id, c.company_name]));
+          const enrichedData = data.map((schedule: any) => ({
+            ...schedule,
+            client: schedule.client_id ? { company_name: clientMap.get(schedule.client_id) || "Não informado" } : null,
+          }));
+
+          console.log("Schedules loaded:", enrichedData);
+          return enrichedData;
+        }
+
+        console.log("Schedules loaded:", data);
+        return data;
+      } catch (error) {
+        console.error("Error fetching schedules:", error);
+        if (error instanceof Error) {
+          console.error("Error stack:", error.stack);
+          throw new Error(error.message);
+        }
+        throw error;
       }
-      
-      const { data, error } = await query;
-      if (error) throw error;
-      return data;
     },
   });
 
@@ -266,6 +307,13 @@ export default function Agendamentos() {
             </CardTitle>
           </CardHeader>
           <CardContent>
+            {queryError && (
+              <div className="bg-destructive/20 border border-destructive text-destructive p-4 rounded-md mb-4">
+                <p className="font-semibold">Erro ao carregar agendamentos:</p>
+                <p className="text-sm mt-1 font-mono">{queryError instanceof Error ? queryError.message : String(queryError)}</p>
+                <p className="text-xs mt-2 opacity-75">Verifique o console do navegador (F12) para mais detalhes</p>
+              </div>
+            )}
             {isLoading ? (
               <div className="text-center text-muted-foreground py-12">
                 Carregando agendamentos...
