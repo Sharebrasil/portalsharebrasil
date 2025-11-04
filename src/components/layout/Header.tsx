@@ -15,7 +15,7 @@ import { GlobalSearch } from "@/components/search/GlobalSearch";
 import { UserFormDialog, type UserFormSubmitValues } from "@/components/admin/UserFormDialog";
 
 const NotificationBell = lazy(() =>
-  import("@/components/notifications/NotificationBell").then(m => ({ default: m.NotificationBell }))
+  import("@/components/notifications/NotificationBell")
 );
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
