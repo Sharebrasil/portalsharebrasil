@@ -72,7 +72,7 @@ const App = () => {
               <Route path="/plano-voo" element={renderProtected(<PlanoVoo />)} />
               <Route path="/plano-voo/criar/:scheduleId" element={renderProtected(<PlanoVooForm />)} />
               <Route path="/financeiro/conciliacao" element={renderProtected(<ConciliacaoBancaria />)} />
-              <Route path="/configuracoes/empresa" element={renderProtected(<ConfigEmpresa />)} />
+              <Route path="/financeiro/config" element={renderProtected(<ConfigEmpresa />)} />
               <Route path="/financeiro/recibo" element={renderProtected(<EmissaoRecibo />)} />
               <Route path="/financeiro/viagem" element={renderProtected(<RelatorioViagem />)} />
               <Route path="/financeiro/compras" element={renderProtected(<SolicitacaoCompras />)} />
