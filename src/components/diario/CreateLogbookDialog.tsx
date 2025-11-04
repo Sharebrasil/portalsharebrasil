@@ -115,6 +115,7 @@ export function CreateLogbookDialog({
         celula_atual: parseFloat(cellularHours) || 0,
         fuel_consumption: parseFloat(fuelConsumption),
         daily_rate: dailyRate ? parseFloat(dailyRate) : null,
+        base_aerodrome: baseAerodrome || null,
       };
 
       const { error, data } = await supabase
