@@ -133,3 +133,41 @@ CREATE POLICY "contacts_delete_authenticated" ON public.contacts
   FOR DELETE
   TO authenticated
   USING (true);
+
+-- ============================================
+-- Enable RLS on receipts table
+-- ============================================
+ALTER TABLE public.receipts ENABLE ROW LEVEL SECURITY;
+
+-- ============================================
+-- Policy: Allow authenticated users to SELECT receipts
+-- ============================================
+CREATE POLICY "receipts_select_authenticated" ON public.receipts
+  FOR SELECT
+  TO authenticated
+  USING (true);
+
+-- ============================================
+-- Policy: Allow authenticated users to INSERT receipts
+-- ============================================
+CREATE POLICY "receipts_insert_authenticated" ON public.receipts
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (true);
+
+-- ============================================
+-- Policy: Allow authenticated users to UPDATE receipts
+-- ============================================
+CREATE POLICY "receipts_update_authenticated" ON public.receipts
+  FOR UPDATE
+  TO authenticated
+  USING (true)
+  WITH CHECK (true);
+
+-- ============================================
+-- Policy: Allow authenticated users to DELETE receipts
+-- ============================================
+CREATE POLICY "receipts_delete_authenticated" ON public.receipts
+  FOR DELETE
+  TO authenticated
+  USING (true);
