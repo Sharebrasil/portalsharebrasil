@@ -299,6 +299,55 @@ export default function Clientes() {
     return urlData.publicUrl;
   };
 
+  const deleteDocumentFile = async (documentUrl: string) => {
+    try {
+      const urlParts = documentUrl.split("/");
+      const bucketPath = urlParts.slice(urlParts.indexOf("client-documents") + 1).join("/");
+
+      if (!bucketPath) return;
+
+      const { error } = await supabase.storage
+        .from("client-documents")
+        .remove([bucketPath]);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error("Erro ao deletar arquivo:", error);
+    }
+  };
+
+  const deleteClientDocuments = async (documents: ClientDocument[] = []) => {
+    for (const doc of documents) {
+      await deleteDocumentFile(doc.url);
+    }
+  };
+
+  const removeDocumentFromEditing = async (index: number) => {
+    const docToRemove = editingCliente?.documents?.[index];
+    if (!docToRemove) return;
+
+    try {
+      await deleteDocumentFile(docToRemove.url);
+
+      if (editingCliente?.documents) {
+        const updatedDocs = editingCliente.documents.filter((_, i) => i !== index);
+        setEditingCliente({ ...editingCliente, documents: updatedDocs });
+
+        toast({
+          title: "Sucesso",
+          description: "Documento removido",
+        });
+      }
+    } catch (error) {
+      console.error("Erro ao remover documento:", error);
+      toast({
+        title: "Erro",
+        description: "Erro ao remover documento",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleSave = async () => {
     try {
       if (!formData.company_name || !formData.cnpj) {
