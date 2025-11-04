@@ -284,7 +284,8 @@ export default function Agendamentos() {
             {queryError && (
               <div className="bg-destructive/20 border border-destructive text-destructive p-4 rounded-md mb-4">
                 <p className="font-semibold">Erro ao carregar agendamentos:</p>
-                <p className="text-sm mt-1">{(queryError as Error).message}</p>
+                <p className="text-sm mt-1 font-mono">{queryError instanceof Error ? queryError.message : String(queryError)}</p>
+                <p className="text-xs mt-2 opacity-75">Verifique o console do navegador (F12) para mais detalhes</p>
               </div>
             )}
             {isLoading ? (
