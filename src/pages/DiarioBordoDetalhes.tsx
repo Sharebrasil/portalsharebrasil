@@ -664,7 +664,7 @@ export default function DiarioBordoDetalhes() {
                       value={logbookMonth?.horimetro_inicio || 0}
                       onChange={(e) => {
                         const newValue = parseFloat(e.target.value) || 0;
-                        // Update the local state if needed for display
+                        updateHorimetro('horimetro_inicio', newValue);
                       }}
                       disabled={!canAddOrEdit}
                       className="h-8 text-sm bg-white/20 border-white/50 text-white placeholder:text-white/50"
@@ -679,6 +679,7 @@ export default function DiarioBordoDetalhes() {
                       value={logbookMonth?.horimetro_final || 0}
                       onChange={(e) => {
                         const newValue = parseFloat(e.target.value) || 0;
+                        updateHorimetro('horimetro_final', newValue);
                       }}
                       disabled={!canAddOrEdit}
                       className="h-8 text-sm bg-white/20 border-white/50 text-white placeholder:text-white/50"
@@ -693,6 +694,7 @@ export default function DiarioBordoDetalhes() {
                       value={logbookMonth?.horimetro_ativo || 0}
                       onChange={(e) => {
                         const newValue = parseFloat(e.target.value) || 0;
+                        updateHorimetro('horimetro_ativo', newValue);
                       }}
                       disabled={!canAddOrEdit}
                       className="h-8 text-sm bg-white/20 border-white/50 text-white placeholder:text-white/50"
