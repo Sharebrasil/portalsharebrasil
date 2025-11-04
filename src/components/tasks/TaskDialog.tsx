@@ -51,7 +51,6 @@ interface Task {
 interface UserProfile {
   id: string;
   full_name: string;
-  tipo: string | null;
 }
 
 export default function TaskDialog({ open, onOpenChange, task, onSave }: TaskDialogProps) {
