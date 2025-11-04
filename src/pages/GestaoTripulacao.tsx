@@ -233,6 +233,33 @@ export default function GestaoDeTripulacao() {
           </div>
         </div>
 
+        {/* Resumo de Estatísticas */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card onClick={() => setShowInactive(false)} className="cursor-pointer">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <User className="h-8 w-8 text-primary" />
+                <div>
+                  <p className="text-2xl font-bold">{activeCrewMembers.length}</p>
+                  <p className="text-sm text-muted-foreground">Tripulantes Ativos</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card onClick={() => setShowInactive(true)} className="cursor-pointer">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <Folder className="h-8 w-8 text-muted-foreground" />
+                <div>
+                  <p className="text-2xl font-bold">{inactiveCrewMembers.length}</p>
+                  <p className="text-sm text-muted-foreground">Tripulantes Inativos</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Header com busca */}
         <Card>
           <CardHeader>
@@ -242,9 +269,12 @@ export default function GestaoDeTripulacao() {
           </CardHeader>
         </Card>
 
-        {/* Grid de Cards de Tripulantes */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredCrewMembers.map(crew => <Card key={crew.id} className="group hover:shadow-lg transition-all duration-300 hover:border-primary/50 overflow-hidden">
+        {/* Tripulantes Ativos */}
+        {activeCrewMembers.length > 0 && (
+          <div>
+            <h2 className="text-xl font-semibold mb-4">Tripulantes Ativos</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {activeCrewMembers.map(crew => <Card key={crew.id} className="group hover:shadow-lg transition-all duration-300 hover:border-primary/50 overflow-hidden">
               <CardContent className="p-6 space-y-4">
                 {/* Avatar e Badge de Status */}
                 <div className="flex flex-col items-center space-y-3">
@@ -302,7 +332,91 @@ export default function GestaoDeTripulacao() {
                 </div>
               </CardContent>
             </Card>)}
-        </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tripulantes Inativos */}
+        {inactiveCrewMembers.length > 0 && (
+          <div className="space-y-3">
+            <button
+              type="button"
+              className="w-full flex items-center justify-between rounded-md border border-border bg-card px-4 py-3 text-left hover:bg-accent transition-colors"
+              onClick={() => setShowInactive((v) => !v)}
+              aria-expanded={showInactive}
+            >
+              <div className="flex items-center gap-2">
+                <Folder className="h-5 w-5 text-muted-foreground" />
+                <span className="text-xl font-semibold text-foreground">Tripulantes Inativos</span>
+                <Badge variant="secondary">{inactiveCrewMembers.length}</Badge>
+              </div>
+              <span className="text-sm text-muted-foreground">{showInactive ? 'Ocultar' : 'Abrir pasta'}</span>
+            </button>
+
+            {showInactive && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {inactiveCrewMembers.map(crew => <Card key={crew.id} className="group hover:shadow-lg transition-all duration-300 hover:border-primary/50 overflow-hidden opacity-75">
+                    <CardContent className="p-6 space-y-4">
+                      {/* Avatar e Badge de Status */}
+                      <div className="flex flex-col items-center space-y-3">
+                        <div className="relative">
+                          <Avatar className="h-24 w-24 border-4 border-background shadow-lg">
+                            <AvatarImage src={crew.photo_url} alt={crew.full_name} />
+                            <AvatarFallback className="bg-primary/10 text-primary text-2xl font-bold">
+                              {crew.full_name.split(' ').map(n => n[0]).slice(0, 2).join('')}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2">
+                            <Badge variant="destructive" className="whitespace-nowrap shadow-md">
+                              Inativo
+                            </Badge>
+                          </div>
+                        </div>
+
+                        {/* Nome */}
+                        <div className="text-center space-y-1 w-full">
+                          <h3 className="font-bold text-lg leading-tight line-clamp-2">
+                            {crew.full_name}
+                          </h3>
+                        </div>
+                      </div>
+
+                      {/* Informações */}
+                      <div className="space-y-2 pt-2 border-t">
+                        {crew.email && <div className="flex items-center gap-2 text-sm text-muted-foreground group/item hover:text-primary transition-colors">
+                            <Mail size={14} className="flex-shrink-0" />
+                            <span className="truncate">{crew.email}</span>
+                          </div>}
+                        {crew.phone && <div className="flex items-center gap-2 text-sm text-muted-foreground group/item hover:text-primary transition-colors">
+                            <Phone size={14} className="flex-shrink-0" />
+                            <span>{crew.phone}</span>
+                          </div>}
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="w-full justify-center bg-yellow-500/10 text-yellow-700 border-yellow-500/20">
+                            ANAC: {crew.canac}
+                          </Badge>
+                        </div>
+                      </div>
+
+                      {/* Botões de Ação */}
+                      <div className="grid grid-cols-2 gap-2 pt-2">
+                        <Button variant="outline" size="sm" onClick={() => navigate(`/tripulacao/${crew.id}?tab=dados`)} className="gap-2">
+                          <Eye size={14} />
+                          Detalhes
+                        </Button>
+                        {crew.phone && <Button variant="outline" size="sm" className="gap-2" asChild>
+
+                          </Button>}
+                        {crew.email && !crew.phone && <Button variant="outline" size="sm" className="gap-2" asChild>
+
+                          </Button>}
+                      </div>
+                    </CardContent>
+                  </Card>)}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Dialog de Detalhes do Tripulante */}
         <Dialog open={!!selectedCrew} onOpenChange={open => !open && setSelectedCrew(null)}>
