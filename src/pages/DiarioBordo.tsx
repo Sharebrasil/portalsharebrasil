@@ -149,7 +149,7 @@ export default function DiarioBordo() {
         )}
 
         {inactiveAircraft.length > 0 && (
-          <div className="space-y-3 mt-8">
+          <div className="space-y-3">
             <button
               type="button"
               className="w-full flex items-center justify-between rounded-md border border-border bg-card px-4 py-3 text-left"
