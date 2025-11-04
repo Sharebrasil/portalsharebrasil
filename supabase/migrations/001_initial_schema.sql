@@ -11,6 +11,13 @@ CREATE TYPE public.app_role AS ENUM (
   'piloto_chefe'
 );
 
+CREATE TYPE public.contact_type AS ENUM (
+  'Cotista',
+  'Colaboradores',
+  'Fornecedores',
+  'Hoteis'
+);
+
 -- ============================================
 -- Table: user_profiles
 -- ============================================
