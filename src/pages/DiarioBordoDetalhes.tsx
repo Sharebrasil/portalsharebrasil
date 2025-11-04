@@ -64,6 +64,9 @@ export default function DiarioBordoDetalhes() {
   const [paraSearchOpen, setParaSearchOpen] = useState<number | null>(null);
   const [deSearchValue, setDeSearchValue] = useState('');
   const [paraSearchValue, setParaSearchValue] = useState('');
+  const [showNextMonthDialog, setShowNextMonthDialog] = useState(false);
+  const [createLogbookOpen, setCreateLogbookOpen] = useState(false);
+  const [showDailyRateColumn, setShowDailyRateColumn] = useState(false);
 
   const canEdit = roles.some(role =>
     role === "admin" || role === "piloto_chefe" || role === "gestor_master" || role === "operacoes" || role === "tripulante"
