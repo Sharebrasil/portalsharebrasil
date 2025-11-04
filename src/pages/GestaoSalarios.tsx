@@ -7,12 +7,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
-import { Pencil, Trash2, Plus, Save, Loader2 } from "lucide-react";
+import { Pencil, Trash2, Plus, Save, Loader2, DollarSign } from "lucide-react";
 
 const GestaoSalarios = () => {
   const queryClient = useQueryClient();
@@ -21,14 +23,25 @@ const GestaoSalarios = () => {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedCrewMember, setSelectedCrewMember] = useState<string>("");
+  const [isSalaryDialogOpen, setIsSalaryDialogOpen] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [salaryForm, setSalaryForm] = useState({
+    user_id: "",
+    position: "",
+    department: "",
+    gross_salary: "",
+    net_salary: "",
+    benefits: "",
+    effective_date: new Date().toISOString().split("T")[0],
+  });
 
   const { isAdmin, isFinanceiroMaster, isGestorMaster, isLoading: isRolesLoading } = useUserRole();
   const isAllowed = isAdmin || isFinanceiroMaster || isGestorMaster;
 
   const { data: salaries = [] } = useQuery({
-    queryKey: ["salaries"],
+    queryKey: ["employee_salaries"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("salaries").select("*");
+      const { data, error } = await supabase.from("employee_salaries").select("*").order("created_at", { ascending: false });
       if (error) throw error;
       return data as any[];
     },
@@ -37,9 +50,12 @@ const GestaoSalarios = () => {
   const { data: crewMembers = [] } = useQuery({
     queryKey: ["crew_members"],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke("list-crew-members", { body: { status: "active" } });
+      const { data, error } = await supabase
+        .from("crew_members")
+        .select("*")
+        .order("full_name");
       if (error) throw new Error(error.message ?? "Erro ao carregar tripulantes");
-      return ((data as { crew_members?: any[] })?.crew_members ?? []) as any[];
+      return data as any[];
     },
   });
 
@@ -87,20 +103,46 @@ const GestaoSalarios = () => {
   const saveSalaryMutation = useMutation({
     mutationFn: async (data: any) => {
       if (editingSalaryId) {
-        const { error } = await supabase.from("salaries").update(data).eq("id", editingSalaryId);
+        const { error } = await supabase.from("employee_salaries").update(data).eq("id", editingSalaryId);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("salaries").insert(data);
+        const { error } = await supabase.from("employee_salaries").insert(data);
         if (error) throw error;
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["salaries"] });
+      queryClient.invalidateQueries({ queryKey: ["employee_salaries"] });
       toast.success("Salário salvo com sucesso!");
       setEditingSalaryId(null);
+      setIsSalaryDialogOpen(false);
+      setSalaryForm({
+        user_id: "",
+        position: "",
+        department: "",
+        gross_salary: "",
+        net_salary: "",
+        benefits: "",
+      });
     },
-    onError: () => {
+    onError: (error) => {
+      console.error("Erro ao salvar salário:", error);
       toast.error("Erro ao salvar salário");
+    },
+  });
+
+  const deleteSalaryMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("employee_salaries").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["employee_salaries"] });
+      toast.success("Salário deletado com sucesso!");
+      setDeleteId(null);
+    },
+    onError: (error) => {
+      console.error("Erro ao deletar sal��rio:", error);
+      toast.error("Erro ao deletar salário");
     },
   });
 
@@ -169,6 +211,52 @@ const GestaoSalarios = () => {
     "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
   ];
 
+  const handleOpenSalaryDialog = (salary?: any) => {
+    if (salary) {
+      setEditingSalaryId(salary.id);
+      setSalaryForm({
+        user_id: salary.user_id || "",
+        position: salary.position || "",
+        department: salary.department || "",
+        gross_salary: salary.gross_salary || "",
+        net_salary: salary.net_salary || "",
+        benefits: salary.benefits || "",
+        effective_date: salary.effective_date || new Date().toISOString().split("T")[0],
+      });
+    } else {
+      setEditingSalaryId(null);
+      setSalaryForm({
+        user_id: "",
+        position: "",
+        department: "",
+        gross_salary: "",
+        net_salary: "",
+        benefits: "",
+        effective_date: new Date().toISOString().split("T")[0],
+      });
+    }
+    setIsSalaryDialogOpen(true);
+  };
+
+  const handleSaveSalary = async () => {
+    if (!salaryForm.user_id || !salaryForm.gross_salary) {
+      toast.error("Preencha os campos obrigatórios (Funcionário e Salário Bruto)");
+      return;
+    }
+
+    const data = {
+      user_id: salaryForm.user_id,
+      position: salaryForm.position,
+      department: salaryForm.department,
+      gross_salary: parseFloat(salaryForm.gross_salary),
+      net_salary: parseFloat(salaryForm.net_salary || salaryForm.gross_salary),
+      benefits: salaryForm.benefits,
+      effective_date: salaryForm.effective_date,
+    };
+
+    saveSalaryMutation.mutate(data);
+  };
+
   if (isRolesLoading) {
     return (
       <Layout>
@@ -213,50 +301,77 @@ const GestaoSalarios = () => {
           <TabsContent value="salaries" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Salários Vigentes (Funcionários Ativos)</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex justify-end mb-4">
-                  <Button variant="default">
-                    <Save className="h-4 w-4 mr-2" />
-                    Salvar Alterações
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Salários Vigentes</CardTitle>
+                    <p className="text-sm text-muted-foreground mt-1">Gerencie salários, benefícios e informações de funcionários</p>
+                  </div>
+                  <Button onClick={() => handleOpenSalaryDialog()} className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    Adicionar Salário
                   </Button>
                 </div>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Funcionário</TableHead>
-                      <TableHead>Salário Bruto (R$)</TableHead>
-                      <TableHead>Salário Líquido (R$)</TableHead>
-                      <TableHead>Benefícios</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {(salaries as any[]).map((salary) => {
-                      const crewMember = (crewMembers as any[]).find((c) => c.user_id === salary.user_id);
-                      return (
-                        <TableRow key={salary.id}>
-                          <TableCell>
-                            <div>
+              </CardHeader>
+              <CardContent>
+                {(salaries as any[]).length === 0 ? (
+                  <div className="text-center py-12">
+                    <DollarSign className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">Nenhum salário cadastrado</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Funcionário</TableHead>
+                        <TableHead>Cargo</TableHead>
+                        <TableHead>Salário Bruto</TableHead>
+                        <TableHead>Salário Líquido</TableHead>
+                        <TableHead>Benefícios</TableHead>
+                        <TableHead className="w-24">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {(salaries as any[]).map((salary) => {
+                        const crewMember = (crewMembers as any[]).find((c) => c.user_id === salary.user_id);
+                        return (
+                          <TableRow key={salary.id}>
+                            <TableCell>
                               <div className="font-semibold">{crewMember?.full_name || "N/A"}</div>
-                              <div className="text-sm text-muted-foreground">{salary.position || "N/A"}</div>
-                              <div className="text-xs text-muted-foreground">{salary.department || "N/A"}</div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Input type="number" defaultValue={salary.gross_salary} className="w-32" />
-                          </TableCell>
-                          <TableCell>
-                            <Input type="number" defaultValue={salary.net_salary} className="w-32" />
-                          </TableCell>
-                          <TableCell>
-                            <Textarea defaultValue={salary.benefits || ""} className="min-h-[60px]" />
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
+                            </TableCell>
+                            <TableCell>{salary.position || "-"}</TableCell>
+                            <TableCell>
+                              <span className="font-semibold">R$ {parseFloat(salary.gross_salary || 0).toFixed(2)}</span>
+                            </TableCell>
+                            <TableCell>
+                              <span className="text-primary font-semibold">R$ {parseFloat(salary.net_salary || 0).toFixed(2)}</span>
+                            </TableCell>
+                            <TableCell>
+                              <span className="text-sm">{salary.benefits ? `✓ Sim` : "Não"}</span>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleOpenSalaryDialog(salary)}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => setDeleteId(salary.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -426,6 +541,154 @@ const GestaoSalarios = () => {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Dialog para Criar/Editar Salário */}
+        <Dialog open={isSalaryDialogOpen} onOpenChange={setIsSalaryDialogOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>
+                {editingSalaryId ? "Editar Salário" : "Adicionar Novo Salário"}
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="user_id">Funcionário *</Label>
+                <Select
+                  value={salaryForm.user_id}
+                  onValueChange={(value) => setSalaryForm({ ...salaryForm, user_id: value })}
+                >
+                  <SelectTrigger id="user_id">
+                    <SelectValue placeholder="Selecione o funcionário" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(crewMembers as any[])
+                      .filter((member) => member.user_id)
+                      .map((member) => (
+                        <SelectItem key={member.user_id} value={member.user_id}>
+                          {member.full_name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="position">Cargo</Label>
+                  <Input
+                    id="position"
+                    placeholder="Ex: Piloto, Tripulante"
+                    value={salaryForm.position}
+                    onChange={(e) => setSalaryForm({ ...salaryForm, position: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="department">Departamento</Label>
+                  <Input
+                    id="department"
+                    placeholder="Ex: Operações"
+                    value={salaryForm.department}
+                    onChange={(e) => setSalaryForm({ ...salaryForm, department: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="gross_salary">Salário Bruto (R$) *</Label>
+                  <Input
+                    id="gross_salary"
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={salaryForm.gross_salary}
+                    onChange={(e) => setSalaryForm({ ...salaryForm, gross_salary: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="net_salary">Salário Líquido (R$)</Label>
+                  <Input
+                    id="net_salary"
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={salaryForm.net_salary}
+                    onChange={(e) => setSalaryForm({ ...salaryForm, net_salary: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="benefits">Benefícios</Label>
+                <Textarea
+                  id="benefits"
+                  placeholder="Ex: Vale alimentação, Vale transporte, Plano de saúde..."
+                  value={salaryForm.benefits}
+                  onChange={(e) => setSalaryForm({ ...salaryForm, benefits: e.target.value })}
+                  rows={3}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="effective_date">Data de Vigência</Label>
+                <Input
+                  id="effective_date"
+                  type="date"
+                  value={salaryForm.effective_date}
+                  onChange={(e) => setSalaryForm({ ...salaryForm, effective_date: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setIsSalaryDialogOpen(false)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleSaveSalary}
+                disabled={saveSalaryMutation.isPending}
+              >
+                {saveSalaryMutation.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Salvando...
+                  </>
+                ) : (
+                  "Salvar"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog para Deletar Salário */}
+        <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Deletar Salário</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza que deseja deletar este registro de salário? Esta ação não pode ser desfeita.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  if (deleteId) {
+                    deleteSalaryMutation.mutate(deleteId);
+                  }
+                }}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Deletar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </Layout>
   );

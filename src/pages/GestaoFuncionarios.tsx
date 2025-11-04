@@ -26,7 +26,8 @@ import {
   User as UserIcon,
   Edit,
   Save,
-  X
+  X,
+  Loader2
 } from "lucide-react";
 import { APP_ROLE_VALUES, ROLE_LABELS, type AppRole } from "@/lib/roles";
 import { formatRoleLabel } from "@/lib/roles";
@@ -93,14 +94,13 @@ export default function GestaoFuncionarios() {
   const fetchAuthenticatedUsers = async () => {
     setLoadingAuthUsers(true);
     try {
-      const { data: users, error } = await supabase.auth.admin.listUsers();
+      const { data, error } = await supabase.functions.invoke('list-users');
 
       if (error) throw error;
 
       // Filtrar usuários: remover admins e aqueles que já têm perfil de funcionário
-      const filteredUsers = users?.users?.filter((user: any) => {
-        const isAdmin = user.user_metadata?.roles?.includes('admin');
-        return !isAdmin;
+      const filteredUsers = data?.users?.filter((user: any) => {
+        return !user.roles?.includes('admin');
       }) || [];
 
       setAuthenticatedUsers(filteredUsers);
