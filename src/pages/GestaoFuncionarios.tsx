@@ -77,6 +77,10 @@ export default function GestaoFuncionarios() {
   const [isCreating, setIsCreating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editEmployeeForm, setEditEmployeeForm] = useState<EditEmployeeForm | null>(null);
+  const [showAuthUserSelection, setShowAuthUserSelection] = useState(false);
+  const [authenticatedUsers, setAuthenticatedUsers] = useState<any[]>([]);
+  const [loadingAuthUsers, setLoadingAuthUsers] = useState(false);
+  const [selectedAuthUser, setSelectedAuthUser] = useState<any | null>(null);
 
   // Resetar o estado de edição ao selecionar um novo funcionário
   const handleSelectEmployee = (employee: Employee) => {
