@@ -556,6 +556,7 @@ export default function DiarioBordoDetalhes() {
                   <th className="border border-gray-300 p-1.5 text-[10px] bg-cyan-600 text-white font-semibold">T DIA</th>
                   <th className="border border-gray-300 p-1.5 text-[10px] bg-cyan-600 text-white font-semibold">T NOITE</th>
                   <th className="border border-gray-300 p-1.5 text-[10px] bg-cyan-600 text-white font-semibold">TOTAL</th>
+                  <th className="border border-gray-300 p-1.5 text-[10px] bg-cyan-600 text-white font-semibold">IFR</th>
                   <th className="border border-gray-300 p-1.5 text-[10px] bg-cyan-600 text-white font-semibold">ABAST</th>
                   <th className="border border-gray-300 p-1.5 text-[10px] bg-cyan-600 text-white font-semibold">FUEL</th>
                   <th className="border border-gray-300 p-1.5 text-[10px] bg-cyan-600 text-white font-semibold">PIC</th>
