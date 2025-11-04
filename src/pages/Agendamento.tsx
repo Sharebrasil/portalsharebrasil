@@ -275,6 +275,12 @@ export default function Agendamentos() {
             </CardTitle>
           </CardHeader>
           <CardContent>
+            {queryError && (
+              <div className="bg-destructive/20 border border-destructive text-destructive p-4 rounded-md mb-4">
+                <p className="font-semibold">Erro ao carregar agendamentos:</p>
+                <p className="text-sm mt-1">{(queryError as Error).message}</p>
+              </div>
+            )}
             {isLoading ? (
               <div className="text-center text-muted-foreground py-12">
                 Carregando agendamentos...
