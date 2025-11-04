@@ -38,9 +38,9 @@ const GestaoSalarios = () => {
   const isAllowed = isAdmin || isFinanceiroMaster || isGestorMaster;
 
   const { data: salaries = [] } = useQuery({
-    queryKey: ["salaries"],
+    queryKey: ["employee_salaries"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("salaries").select("*");
+      const { data, error } = await supabase.from("employee_salaries").select("*").order("created_at", { ascending: false });
       if (error) throw error;
       return data as any[];
     },
@@ -102,15 +102,15 @@ const GestaoSalarios = () => {
   const saveSalaryMutation = useMutation({
     mutationFn: async (data: any) => {
       if (editingSalaryId) {
-        const { error } = await supabase.from("salaries").update(data).eq("id", editingSalaryId);
+        const { error } = await supabase.from("employee_salaries").update(data).eq("id", editingSalaryId);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("salaries").insert(data);
+        const { error } = await supabase.from("employee_salaries").insert(data);
         if (error) throw error;
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["salaries"] });
+      queryClient.invalidateQueries({ queryKey: ["employee_salaries"] });
       toast.success("Salário salvo com sucesso!");
       setEditingSalaryId(null);
       setIsSalaryDialogOpen(false);
@@ -123,22 +123,24 @@ const GestaoSalarios = () => {
         benefits: "",
       });
     },
-    onError: () => {
+    onError: (error) => {
+      console.error("Erro ao salvar salário:", error);
       toast.error("Erro ao salvar salário");
     },
   });
 
   const deleteSalaryMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("salaries").delete().eq("id", id);
+      const { error } = await supabase.from("employee_salaries").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["salaries"] });
+      queryClient.invalidateQueries({ queryKey: ["employee_salaries"] });
       toast.success("Salário deletado com sucesso!");
       setDeleteId(null);
     },
-    onError: () => {
+    onError: (error) => {
+      console.error("Erro ao deletar salário:", error);
       toast.error("Erro ao deletar salário");
     },
   });
