@@ -839,20 +839,77 @@ export default function Clientes() {
                 />
               </div>
 
-              <div>
-                <Label htmlFor="aircraft_id">Aeronave</Label>
-                <Select value={formData.aircraft_id} onValueChange={(v) => setFormData({ ...formData, aircraft_id: v })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione a aeronave" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {aircraftOptions.map((a) => (
-                      <SelectItem key={a.id} value={a.id}>
-                        {a.registration} - {a.model}
-                      </SelectItem>
+              <div className="col-span-2">
+                <div className="flex items-center justify-between mb-3">
+                  <Label>Aeronaves e Percentual de Sociedade</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={addAircraftOwnership}
+                    className="flex items-center gap-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Adicionar Aeronave
+                  </Button>
+                </div>
+
+                {aircraftOwnerships.length === 0 ? (
+                  <div className="p-4 border border-dashed rounded-lg text-center text-muted-foreground">
+                    Nenhuma aeronave adicionada. Clique em "Adicionar Aeronave" para começar.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {aircraftOwnerships.map((ownership, index) => (
+                      <div key={index} className="flex items-end gap-3 p-3 border rounded-lg bg-muted/50">
+                        <div className="flex-1">
+                          <Label className="text-xs text-muted-foreground mb-1 block">Aeronave</Label>
+                          <Select
+                            value={ownership.aircraft_id}
+                            onValueChange={(v) => updateAircraftOwnership(index, 'aircraft_id', v)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione a aeronave" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {aircraftOptions.map((a) => (
+                                <SelectItem key={a.id} value={a.id}>
+                                  {a.registration} - {a.model}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="w-32">
+                          <Label className="text-xs text-muted-foreground mb-1 block">Percentual (%)</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={ownership.ownership_percentage}
+                            onChange={(e) => updateAircraftOwnership(index, 'ownership_percentage', parseFloat(e.target.value) || 0)}
+                            placeholder="0"
+                            className="text-center"
+                          />
+                        </div>
+
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => removeAircraftOwnership(index)}
+                          className="h-9 w-9 p-0"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
                     ))}
-                  </SelectContent>
-                </Select>
+                    <div className="text-xs text-muted-foreground mt-2 p-2 bg-blue-50 rounded border border-blue-200">
+                      Total: {aircraftOwnerships.reduce((sum, a) => sum + (a.ownership_percentage || 0), 0).toFixed(1)}%
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div>
