@@ -247,6 +247,22 @@ export function CreateLogbookDialog({
             </p>
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="baseAerodrome">Aeródromo Base</Label>
+            <Select value={baseAerodrome} onValueChange={setBaseAerodrome}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o aeródromo base (opcional)" />
+              </SelectTrigger>
+              <SelectContent>
+                {aerodromes.map((aero) => (
+                  <SelectItem key={aero.id} value={aero.icao_code}>
+                    {aero.icao_code} - {aero.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="flex justify-end gap-3 mt-6">
             <Button
               type="button"
