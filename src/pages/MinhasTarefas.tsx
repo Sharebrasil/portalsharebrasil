@@ -158,25 +158,10 @@ export default function MinhasTarefas() {
       <div className="container mx-auto space-y-6 p-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold">Minhas Tarefas</h1>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              className="relative"
-              onClick={() => setShowNotifications((prev) => !prev)}
-            >
-              <Bell className="h-4 w-4" />
-              {notifications.length > 0 ? (
-                <Badge className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center p-0 text-xs">
-                  {notifications.length}
-                </Badge>
-              ) : null}
-            </Button>
-            <Button onClick={() => setIsDialogOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Nova Tarefa
-            </Button>
-          </div>
+          <Button onClick={() => setIsDialogOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Nova Tarefa
+          </Button>
         </div>
 
         {showNotifications && notifications.length > 0 ? (
