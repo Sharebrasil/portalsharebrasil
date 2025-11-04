@@ -326,23 +326,32 @@ export default function EmissaoRecibo() {
     const company = await fetchCompanySettings();
     const amountNum = parseFloat(valor || "0");
 
-    const emitterAddress = company ? [company.address].filter(Boolean).join("") : "";
-    const emitterCityState = company ? [company.city, company.state].filter(Boolean).join(" - ") : "";
-    // const payerAddress = pagadorEndereco || ""; // Não usado na visualização do cabeçalho
-
     const pdfDoc = await PDFDocument.create();
     const page = pdfDoc.addPage([595, 842]); // A4
     const { width, height } = page.getSize();
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-    // --- VARIÁVEIS DE POSIÇÃO ---
-    const MARGIN_X = 30;
-    const TOP_Y_START = height - 50; // Linha de partida para os elementos do topo (Logo, Título, Valor)
+    const MARGIN = 50;
+    let y = height - 80;
 
-    // Altura da linha de texto e espaçamento
-    const LINE_HEIGHT_SM = 11;
-    const LINE_HEIGHT_XS = 9;
+    // Helper function
+    const wrapText = (text: string, maxWidth: number, fontRef: any, size: number): string[] => {
+      const words = text.split(/\s+/);
+      const lines: string[] = [];
+      let line = "";
+      for (const w of words) {
+        const test = line ? `${line} ${w}` : w;
+        if (fontRef.widthOfTextAtSize(test, size) > maxWidth && line) {
+          lines.push(line);
+          line = w;
+        } else {
+          line = test;
+        }
+      }
+      if (line) lines.push(line);
+      return lines;
+    };
 
     // --- 1. LOGOTIPO E TÍTULO ---
     let logoImage: any = null;
