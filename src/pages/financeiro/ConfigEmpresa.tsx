@@ -8,7 +8,7 @@ import { DollarSign, Building, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-export function CompanySettings() { // Renomeado para refletir o foco
+export default function CompanySettings() { // Renomeado para refletir o foco
   const [companyConfig, setCompanyConfig] = useState({
     id: "",
     razaoSocial: "",

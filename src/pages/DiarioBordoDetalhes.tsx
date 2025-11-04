@@ -153,49 +153,52 @@ export default function DiarioBordoDetalhes() {
   }, [logbookMonth]);
 
   const loadEntries = async () => {
-    if (!logbookMonth) return;
+    if (!logbookMonth || !aircraftId) return;
+
+    const startDate = new Date(logbookMonth.year, logbookMonth.month - 1, 1).toISOString().split('T')[0];
+    const endDate = new Date(logbookMonth.year, logbookMonth.month, 0).toISOString().split('T')[0];
 
     const { data, error } = await supabase
       .from('logbook_entries')
       .select('*')
-      .eq('logbook_month_id', logbookMonth.id)
-      .order('entry_date', { ascending: true });
+      .eq('aircraft_id', aircraftId)
+      .gte('flight_date', startDate)
+      .lte('flight_date', endDate)
+      .order('flight_date', { ascending: true });
 
     if (error) {
-      console.error('Error loading entries:', error);
+      console.error('Error loading entries:', error.message || JSON.stringify(error));
+      toast.error(`Erro ao carregar entradas: ${error.message || 'Unknown error'}`);
       return;
     }
 
     const formattedEntries = data.map(entry => {
-      const flightMinutes = (Number(entry.flight_time_hours) || 0) * 60 + (Number(entry.flight_time_minutes) || 0)
-      const totalMinutes = Math.round((Number(entry.total_time) || 0) * 60) || flightMinutes
-      const nightMinutes = (Number(entry.night_time_hours) || 0) * 60 + (Number(entry.night_time_minutes) || 0)
-      const dayMinutes = Math.max(0, totalMinutes - nightMinutes)
+      const flightMinutes = Math.round((Number(entry.flight_time) || 0) * 60)
 
       return {
         id: entry.id,
-        data: entry.entry_date,
+        data: entry.flight_date,
         de: entry.departure_airport,
         para: entry.arrival_airport,
         ac: '',
         dep: entry.departure_time,
         pou: entry.arrival_time,
         cor: '',
-        tvoo: formatMinutesToHHMM(flightMinutes || totalMinutes),
-        tdia: formatMinutesToHHMM(dayMinutes),
-        tnoit: formatMinutesToHHMM(nightMinutes),
-        total: formatMinutesToHHMM(totalMinutes),
-        ifr: formatDecimalHoursToHHMM(entry.ifr_count ?? 0),
+        tvoo: formatMinutesToHHMM(flightMinutes),
+        tdia: formatMinutesToHHMM(flightMinutes),
+        tnoit: formatMinutesToHHMM(0),
+        total: formatMinutesToHHMM(flightMinutes),
+        ifr: '00:00',
         pousos: entry.landings?.toString() || '',
         abast: entry.fuel_added?.toString() || '',
-        fuel: entry.fuel_liters?.toString() || '',
-        ctm: entry.cell_after?.toString() || '',
-        pic: entry.pic_canac || '',
-        sic: entry.sic_canac || '',
-        diarias: entry.daily_rate?.toString() || '',
-        extras: entry.extras || '',
-        voo_para: entry.flight_number || '',
-        confere: entry.confirmed || false,
+        fuel: '',
+        ctm: '',
+        pic: entry.pilot_in_command || '',
+        sic: entry.copilot || '',
+        diarias: '',
+        extras: entry.observations || '',
+        voo_para: '',
+        confere: !!entry.verified_at,
       } as LogbookEntry
     });
 
