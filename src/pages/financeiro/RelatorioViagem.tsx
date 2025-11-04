@@ -1361,4 +1361,64 @@ const TravelReports = () => {
                         >
                             <ArrowLeft className="w-4 h-4 mr-2" />
                             Voltar para Listagem
-                        </Button
+                        </Button>
+                        <div className="space-x-2">
+                            {currentReport && currentReport.status !== 'finalized' && (
+                                <>
+                                    <Button 
+                                        onClick={() => saveReport('draft')} 
+                                        disabled={isGeneratingPdf || isSending} 
+                                        variant="secondary"
+                                    >
+                                        <Save className="w-4 h-4 mr-2" />
+                                        Salvar Rascunho
+                                    </Button>
+                                    <Button 
+                                        onClick={() => saveReport('finalized')} 
+                                        disabled={isGeneratingPdf || isSending || !currentReport.cliente || !currentReport.aeronave}
+                                    >
+                                        <Send className="w-4 h-4 mr-2" />
+                                        {isGeneratingPdf || isSending ? 'Finalizando...' : 'Finalizar e Enviar'}
+                                    </Button>
+                                </>
+                            )}
+                            {currentReport && currentReport.status === 'finalized' && (
+                                <Button 
+                                    onClick={async () => {
+                                        const url = await getReportPdfUrl(currentReport);
+                                        if (url) openPdfModal(url);
+                                    }} 
+                                    variant="outline"
+                                >
+                                    <Eye className="w-4 h-4 mr-2" />
+                                    Ver PDF Salvo
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+
+                    <ReportFormUI 
+                        currentReport={currentReport} 
+                        handleInputChange={handleInputChange} 
+                        handleDespesaChange={handleDespesaChange} 
+                        addDespesa={addDespesa} 
+                        removeDespesa={removeDespesa} 
+                        handleFileUpload={handleFileUpload}
+                        calculateDays={calculateDays}
+                        CATEGORIAS_DESPESA={CATEGORIAS_DESPESA}
+                        PAGADORES={PAGADORES}
+                        uploadingIndex={uploadingIndex}
+                        cliente={cliente}
+                        aeronaves={aeronaves}
+                        uniqueTripulantes={uniqueTripulantes}
+                        showSecondTripulante={showSecondTripulante}
+                        setShowSecondTripulante={setShowSecondTripulante}
+                        deleteCreatedReport={deleteCreatedReport}
+                    />
+                </div>
+            </div>
+        </Layout>
+    );
+};
+
+export default TravelReports;
