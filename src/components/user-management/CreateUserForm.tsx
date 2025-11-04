@@ -403,7 +403,7 @@ function ClientForm({ form, onSubmit, isLoading }: { form: any; onSubmit: any; i
 
   useEffect(() => {
     const fetchClients = async () => {
-      const { data } = await supabase.from("clients").select("id, company_name").order("company_name");
+      const { data } = await supabase.from("clients").select("id, company_name").eq("status", "ativo").order("company_name");
       if (data) setClients(data);
     };
     fetchClients();
