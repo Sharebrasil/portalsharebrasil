@@ -300,7 +300,7 @@ export default function TaskDialog({ open, onOpenChange, task, onSave }: TaskDia
                 <SelectContent>
                   {users.map((user) => (
                     <SelectItem key={user.id} value={user.id}>
-                      {user.full_name} {user.tipo ? `(${user.tipo})` : ""}
+                      {user.full_name}
                     </SelectItem>
                   ))}
                 </SelectContent>
