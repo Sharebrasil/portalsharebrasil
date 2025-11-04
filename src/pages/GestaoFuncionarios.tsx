@@ -261,7 +261,7 @@ export default function GestaoFuncionarios() {
   // Create employee mutation (mantido)
   const createEmployeeMutation = useMutation({
     mutationFn: async (employee: typeof newEmployee) => {
-      // ... (lógica de criação de funcionário - MANTIDA)
+      // ... (lógica de criação de funcion��rio - MANTIDA)
       let userId: string;
 
       if (employee.is_authenticated_user) {
@@ -1017,7 +1017,9 @@ export default function GestaoFuncionarios() {
 
           {/* Detalhes do funcionário ou formulário de criação/edição */}
           <Card className="lg:col-span-2">
-            {isCreating ? (
+            {showAuthUserSelection ? (
+              <AuthUserSelectionComponent />
+            ) : isCreating ? (
               // Formulário de Criação (Mantido)
               <>
                 <CardHeader>
