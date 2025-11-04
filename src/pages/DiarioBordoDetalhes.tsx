@@ -438,6 +438,23 @@ export default function DiarioBordoDetalhes() {
     }
   };
 
+  const updateHorimetro = async (field: 'horimetro_inicio' | 'horimetro_final' | 'horimetro_ativo', value: number) => {
+    if (!logbookMonth) return;
+
+    const { error } = await supabase
+      .from('logbook_months')
+      .update({ [field]: value })
+      .eq('id', logbookMonth.id);
+
+    if (error) {
+      console.error(`Erro ao atualizar ${field}:`, error);
+      toast.error(`Erro ao atualizar horimetro`);
+      return;
+    }
+
+    refetchMonth();
+  };
+
   const closeMonth = async () => {
     if (!logbookMonth) return;
     if (!canConfirm) {
