@@ -184,8 +184,18 @@ export default function DiarioBordoDetalhes() {
   useEffect(() => {
     if (logbookMonth) {
       loadEntries();
+      // Mostrar coluna de diária se houver valor configurado
+      setShowDailyRateColumn(logbookMonth.daily_rate ? true : false);
+
+      // Se o mês está fechado, mostrar diálogo para próximo mês
+      if (logbookMonth.is_closed) {
+        const nextMonth = parseInt(selectedMonth) + 1;
+        if (nextMonth <= 12) {
+          setShowNextMonthDialog(true);
+        }
+      }
     }
-  }, [logbookMonth]);
+  }, [logbookMonth, selectedMonth]);
 
   const loadEntries = async () => {
     if (!logbookMonth || !aircraftId) return;
