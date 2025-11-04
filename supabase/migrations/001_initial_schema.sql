@@ -587,18 +587,23 @@ CREATE INDEX IF NOT EXISTS idx_payslips_payment_date ON public.payslips USING bt
 CREATE TABLE IF NOT EXISTS public.receipts (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   receipt_number text NOT NULL UNIQUE,
-  payer_name text NOT NULL,
-  service_description text NOT NULL,
+  issue_date date NOT NULL,
   amount numeric(10, 2) NOT NULL,
-  emission_date date NOT NULL,
-  payment_date date,
-  notes text,
+  amount_text text,
+  service_description text NOT NULL,
+  number_doc text,
+  payoff_number text,
+  payer_name text NOT NULL,
+  payer_document text,
+  payer_address text,
+  payer_city text,
+  payer_uf text,
   observacoes text,
-  created_by uuid,
+  user_id uuid,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
   CONSTRAINT receipts_pkey PRIMARY KEY (id),
-  CONSTRAINT receipts_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users (id) ON DELETE SET NULL
+  CONSTRAINT receipts_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users (id) ON DELETE SET NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_receipts_receipt_number ON public.receipts USING btree (receipt_number);
