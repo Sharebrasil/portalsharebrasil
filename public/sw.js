@@ -1,6 +1,5 @@
-const CACHE_NAME = 'sharebrasil-cache-v1';
+const CACHE_NAME = 'sharebrasil-cache-v2';
 const ASSETS = [
-  '/',
   '/manifest.json',
   '/robots.txt',
 ];
@@ -14,7 +13,7 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.map((key) => (key === CACHE_NAME ? undefined : caches.delete(key))))
+      Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))
     ).then(() => self.clients.claim())
   );
 });
