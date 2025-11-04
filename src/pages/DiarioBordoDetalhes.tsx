@@ -12,6 +12,8 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatDecimalHoursToHHMM, parseHHMMToDecimal, formatMinutesToHHMM } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { CreateLogbookDialog } from "@/components/diario/CreateLogbookDialog";
 
 const MONTHS = [
   "JANEIRO", "FEVEREIRO", "MARÇO", "ABRIL", "MAIO", "JUNHO",
