@@ -556,11 +556,13 @@ const GestaoSalarios = () => {
                     <SelectValue placeholder="Selecione o funcionário" />
                   </SelectTrigger>
                   <SelectContent>
-                    {(crewMembers as any[]).map((member) => (
-                      <SelectItem key={member.user_id} value={member.user_id || ""}>
-                        {member.full_name}
-                      </SelectItem>
-                    ))}
+                    {(crewMembers as any[])
+                      .filter((member) => member.user_id)
+                      .map((member) => (
+                        <SelectItem key={member.user_id} value={member.user_id}>
+                          {member.full_name}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
