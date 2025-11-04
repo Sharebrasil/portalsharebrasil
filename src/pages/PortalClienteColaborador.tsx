@@ -103,11 +103,14 @@ export default function PortalCliente() {
       // Buscar clientes sem selects relacionais (evita 400 quando relação/schema falha)
       const { data, error } = await supabase
         .from('clients')
-        .select('*')
+        .select('id, company_name, share_percentage, aircraft_id, status, phone, email, city, address')
         .eq('status', 'ativo')
         .not('aircraft_id', 'is', null);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Detalhes do erro:', error);
+        throw error;
+      }
 
       const rows = (data as any[]) || [];
 
