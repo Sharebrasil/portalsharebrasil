@@ -43,11 +43,31 @@ export function CreateLogbookDialog({
   const [fuelConsumption, setFuelConsumption] = useState<string>("");
   const [cellularHours, setCellularHours] = useState<string>("0");
   const [dailyRate, setDailyRate] = useState<string>("");
+  const [baseAerodrome, setBaseAerodrome] = useState<string>("");
+  const [aerodromes, setAerodromes] = useState<Array<{ id: string; icao_code: string; name: string }>>([]);
 
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
 
   const selectedAircraftData = aircraft.find(a => a.id === selectedAircraft);
+
+  useEffect(() => {
+    const loadAerodromes = async () => {
+      const { data, error } = await supabase
+        .from('aerodromes')
+        .select('id, icao_code, name')
+        .order('icao_code');
+
+      if (error) {
+        console.error("Erro ao carregar aeródromos:", error);
+        return;
+      }
+
+      setAerodromes(data || []);
+    };
+
+    loadAerodromes();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
