@@ -532,6 +532,142 @@ const GestaoSalarios = () => {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Dialog para Criar/Editar Salário */}
+        <Dialog open={isSalaryDialogOpen} onOpenChange={setIsSalaryDialogOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>
+                {editingSalaryId ? "Editar Salário" : "Adicionar Novo Salário"}
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="user_id">Funcionário *</Label>
+                <Select
+                  value={salaryForm.user_id}
+                  onValueChange={(value) => setSalaryForm({ ...salaryForm, user_id: value })}
+                >
+                  <SelectTrigger id="user_id">
+                    <SelectValue placeholder="Selecione o funcionário" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(crewMembers as any[]).map((member) => (
+                      <SelectItem key={member.user_id} value={member.user_id || ""}>
+                        {member.full_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="position">Cargo</Label>
+                  <Input
+                    id="position"
+                    placeholder="Ex: Piloto, Tripulante"
+                    value={salaryForm.position}
+                    onChange={(e) => setSalaryForm({ ...salaryForm, position: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="department">Departamento</Label>
+                  <Input
+                    id="department"
+                    placeholder="Ex: Operações"
+                    value={salaryForm.department}
+                    onChange={(e) => setSalaryForm({ ...salaryForm, department: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="gross_salary">Salário Bruto (R$) *</Label>
+                  <Input
+                    id="gross_salary"
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={salaryForm.gross_salary}
+                    onChange={(e) => setSalaryForm({ ...salaryForm, gross_salary: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="net_salary">Salário Líquido (R$)</Label>
+                  <Input
+                    id="net_salary"
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={salaryForm.net_salary}
+                    onChange={(e) => setSalaryForm({ ...salaryForm, net_salary: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="benefits">Benefícios</Label>
+                <Textarea
+                  id="benefits"
+                  placeholder="Ex: Vale alimentação, Vale transporte, Plano de saúde..."
+                  value={salaryForm.benefits}
+                  onChange={(e) => setSalaryForm({ ...salaryForm, benefits: e.target.value })}
+                  rows={3}
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setIsSalaryDialogOpen(false)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleSaveSalary}
+                disabled={saveSalaryMutation.isPending}
+              >
+                {saveSalaryMutation.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Salvando...
+                  </>
+                ) : (
+                  "Salvar"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog para Deletar Salário */}
+        <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Deletar Salário</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza que deseja deletar este registro de salário? Esta ação não pode ser desfeita.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  if (deleteId) {
+                    deleteSalaryMutation.mutate(deleteId);
+                  }
+                }}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Deletar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </Layout>
   );
