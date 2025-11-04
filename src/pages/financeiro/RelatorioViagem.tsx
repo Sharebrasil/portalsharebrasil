@@ -1455,7 +1455,7 @@ const TravelReports = () => {
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                   <div className="flex flex-col">
-                    <label className="text-xs font-medium mb-1">Categoria</label>
+                    <label className="text-xs font-medium mb-1 text-gray-200">Categoria</label>
                     <Select 
                       value={despesa.categoria || ''} 
                       onValueChange={(value) => handleDespesaChange(index, 'categoria', value)}
@@ -1471,17 +1471,17 @@ const TravelReports = () => {
                     </Select>
                   </div>
                   <div className="flex flex-col">
-                    <label className="text-xs font-medium mb-1">Valor (R$)</label>
+                    <label className="text-xs font-medium mb-1 text-gray-200">Valor (R$)</label>
                     <input
                       type="number"
                       value={despesa.valor || ''}
                       onChange={(e) => handleDespesaChange(index, 'valor', e.target.value)}
                       placeholder="0.00"
-                      className="p-2 border rounded-md text-sm"
+                      className="p-2 border rounded-md text-sm bg-gray-800 border-gray-600 text-gray-100 placeholder-gray-500"
                     />
                   </div>
                   <div className="flex flex-col">
-                    <label className="text-xs font-medium mb-1">Pago Por</label>
+                    <label className="text-xs font-medium mb-1 text-gray-200">Pago Por</label>
                     <Select 
                       value={despesa.pago_por || ''} 
                       onValueChange={(value) => handleDespesaChange(index, 'pago_por', value)}
