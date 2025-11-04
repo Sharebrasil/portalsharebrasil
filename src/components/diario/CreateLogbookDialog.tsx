@@ -65,10 +65,31 @@ export function CreateLogbookDialog({
     setLoading(true);
 
     try {
+      const year = parseInt(selectedYear);
+      const month = parseInt(selectedMonth);
+
+      const { data: existingLogbook, error: checkError } = await supabase
+        .from('logbook_months')
+        .select('id')
+        .eq('aircraft_id', selectedAircraft)
+        .eq('year', year)
+        .eq('month', month)
+        .maybeSingle();
+
+      if (checkError) {
+        throw checkError;
+      }
+
+      if (existingLogbook) {
+        toast.error("Diário de bordo já existe para este mês, ano e aeronave");
+        setLoading(false);
+        return;
+      }
+
       const monthData = {
         aircraft_id: selectedAircraft,
-        year: parseInt(selectedYear),
-        month: parseInt(selectedMonth),
+        year: year,
+        month: month,
         is_closed: false,
         celula_anterior: parseFloat(cellularHours) || 0,
         celula_atual: parseFloat(cellularHours) || 0,
@@ -82,12 +103,7 @@ export function CreateLogbookDialog({
         .select();
 
       if (error) {
-        if (error.code === '23505') {
-          toast.error("Diário de bordo já existe para este mês, ano e aeronave");
-        } else {
-          throw error;
-        }
-        return;
+        throw error;
       }
 
       toast.success("Diário de bordo criado com sucesso!");
