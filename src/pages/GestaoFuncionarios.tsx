@@ -935,10 +935,22 @@ export default function GestaoFuncionarios() {
               Gerencie perfis, documentos e informações dos colaboradores
             </p>
           </div>
-          <Button onClick={() => { setIsCreating(true); setSelectedEmployee(null); setIsEditing(false); }}>
-            <UserPlus className="mr-2 h-4 w-4" />
-            Novo Funcionário
-          </Button>
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowAuthUserSelection(true);
+                fetchAuthenticatedUsers();
+              }}
+            >
+              <UserPlus className="mr-2 h-4 w-4" />
+              Associar Usuário
+            </Button>
+            <Button onClick={() => { setIsCreating(true); setSelectedEmployee(null); setIsEditing(false); }}>
+              <UserPlus className="mr-2 h-4 w-4" />
+              Novo Funcionário
+            </Button>
+          </div>
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
