@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sharebrasil-cache-v2';
+const CACHE_NAME = 'sharebrasil-cache-v3';
 const ASSETS = [
   '/manifest.json',
   '/robots.txt',
