@@ -32,6 +32,7 @@ const GestaoSalarios = () => {
     gross_salary: "",
     net_salary: "",
     benefits: "",
+    effective_date: new Date().toISOString().split("T")[0],
   });
 
   const { isAdmin, isFinanceiroMaster, isGestorMaster, isLoading: isRolesLoading } = useUserRole();
@@ -220,6 +221,7 @@ const GestaoSalarios = () => {
         gross_salary: salary.gross_salary || "",
         net_salary: salary.net_salary || "",
         benefits: salary.benefits || "",
+        effective_date: salary.effective_date || new Date().toISOString().split("T")[0],
       });
     } else {
       setEditingSalaryId(null);
@@ -230,6 +232,7 @@ const GestaoSalarios = () => {
         gross_salary: "",
         net_salary: "",
         benefits: "",
+        effective_date: new Date().toISOString().split("T")[0],
       });
     }
     setIsSalaryDialogOpen(true);
@@ -248,6 +251,7 @@ const GestaoSalarios = () => {
       gross_salary: parseFloat(salaryForm.gross_salary),
       net_salary: parseFloat(salaryForm.net_salary || salaryForm.gross_salary),
       benefits: salaryForm.benefits,
+      effective_date: salaryForm.effective_date,
     };
 
     saveSalaryMutation.mutate(data);
@@ -321,7 +325,7 @@ const GestaoSalarios = () => {
                         <TableHead>Funcionário</TableHead>
                         <TableHead>Cargo</TableHead>
                         <TableHead>Salário Bruto</TableHead>
-                        <TableHead>Salário Líquido</TableHead>
+                        <TableHead>Sal��rio Líquido</TableHead>
                         <TableHead>Benefícios</TableHead>
                         <TableHead className="w-24">Ações</TableHead>
                       </TableRow>
