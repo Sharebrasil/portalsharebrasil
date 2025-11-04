@@ -107,7 +107,7 @@ export default function DiarioBordoDetalhes() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('crew_members')
-        .select('canac, full_name')
+        .select('id, canac, full_name')
         .order('full_name');
 
       if (error) throw error;
@@ -160,11 +160,11 @@ export default function DiarioBordoDetalhes() {
 
     const { data, error } = await supabase
       .from('logbook_entries')
-      .select('*')
+      .select('*, pic:crew_members!pic_canac(id, canac), sic:crew_members!sic_canac(id, canac)')
       .eq('aircraft_id', aircraftId)
-      .gte('flight_date', startDate)
-      .lte('flight_date', endDate)
-      .order('flight_date', { ascending: true });
+      .gte('entry_date', startDate)
+      .lte('entry_date', endDate)
+      .order('entry_date', { ascending: true });
 
     if (error) {
       console.error('Error loading entries:', error.message || JSON.stringify(error));
@@ -173,32 +173,36 @@ export default function DiarioBordoDetalhes() {
     }
 
     const formattedEntries = data.map(entry => {
-      const flightMinutes = Math.round((Number(entry.flight_time) || 0) * 60)
+      const timeValue = Number(entry.time) || 0;
+      const nightHoursValue = Number(entry.night_hours) || 0;
+      const dayTimeValue = Number(entry.day_time) || 0;
+      const totalTimeValue = Number(entry.total_time) || 0;
+      const ifrTimeValue = Number(entry.ifr_time) || 0;
 
       return {
         id: entry.id,
-        data: entry.flight_date,
-        de: entry.departure_airport,
-        para: entry.arrival_airport,
-        ac: '',
-        dep: entry.departure_time,
-        pou: entry.arrival_time,
-        cor: '',
-        tvoo: formatMinutesToHHMM(flightMinutes),
-        tdia: formatMinutesToHHMM(flightMinutes),
-        tnoit: formatMinutesToHHMM(0),
-        total: formatMinutesToHHMM(flightMinutes),
-        ifr: '00:00',
-        pousos: entry.landings?.toString() || '',
+        data: entry.entry_date,
+        de: entry.departure_aerodrome || '',
+        para: entry.arrival_aerodrome || '',
+        ac: entry.ac_time ? new Date(entry.ac_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '',
+        dep: entry.dep_time ? new Date(entry.dep_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '',
+        pou: entry.pou_time ? new Date(entry.pou_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '',
+        cor: entry.cor_time ? new Date(entry.cor_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '',
+        tvoo: formatDecimalHoursToHHMM(timeValue),
+        tdia: formatDecimalHoursToHHMM(dayTimeValue),
+        tnoit: formatDecimalHoursToHHMM(nightHoursValue),
+        total: formatDecimalHoursToHHMM(totalTimeValue),
+        ifr: formatDecimalHoursToHHMM(ifrTimeValue),
+        pousos: entry.pousos?.toString() || '',
         abast: entry.fuel_added?.toString() || '',
-        fuel: '',
-        ctm: '',
-        pic: entry.pilot_in_command || '',
-        sic: entry.copilot || '',
-        diarias: '',
-        extras: entry.observations || '',
-        voo_para: '',
-        confere: !!entry.verified_at,
+        fuel: entry.fuel_liters?.toString() || '',
+        ctm: entry.celula?.toString() || '',
+        pic: entry.pic?.canac || '',
+        sic: entry.sic?.canac || '',
+        diarias: entry.daily_rate?.toString() || '',
+        extras: entry.extras || '',
+        voo_para: entry.client_id || '',
+        confere: entry.confirmed || false,
       } as LogbookEntry
     });
 
@@ -259,42 +263,39 @@ export default function DiarioBordoDetalhes() {
 
     const entry = entries[index];
 
-    const tvooDec = parseHHMMToDecimal(entry.tvoo)
-    const tnoitDec = parseHHMMToDecimal(entry.tnoit)
-    const tdiaDec = parseHHMMToDecimal(entry.tdia)
-    const totalDec = parseHHMMToDecimal(entry.total) || tvooDec
-    const ifrDec = parseHHMMToDecimal(entry.ifr)
+    const tvooDec = parseHHMMToDecimal(entry.tvoo);
+    const tnoitDec = parseHHMMToDecimal(entry.tnoit);
+    const tdiaDec = parseHHMMToDecimal(entry.tdia);
+    const totalDec = parseHHMMToDecimal(entry.total) || tvooDec;
+    const ifrDec = parseHHMMToDecimal(entry.ifr);
 
-    const flightHours = Math.floor(tvooDec)
-    const flightMinutes = Math.round((tvooDec - flightHours) * 60)
-    const nightHours = Math.floor(tnoitDec)
-    const nightMinutes = Math.round((tnoitDec - nightHours) * 60)
+    const picMember = crewMembers?.find(c => c.canac === entry.pic);
+    const sicMember = crewMembers?.find(c => c.canac === entry.sic);
 
     const entryData = {
       logbook_month_id: logbookMonth.id,
       aircraft_id: aircraftId,
       entry_date: entry.data,
-      departure_airport: entry.de,
-      arrival_airport: entry.para,
-      departure_time: entry.dep,
-      arrival_time: entry.pou,
-      flight_time_hours: flightHours,
-      flight_time_minutes: flightMinutes,
+      departure_aerodrome: entry.de,
+      arrival_aerodrome: entry.para,
+      ac_time: entry.ac ? new Date(`${entry.data}T${entry.ac}:00`).toISOString() : null,
+      dep_time: entry.dep ? new Date(`${entry.data}T${entry.dep}:00`).toISOString() : null,
+      pou_time: entry.pou ? new Date(`${entry.data}T${entry.pou}:00`).toISOString() : null,
+      cor_time: entry.cor ? new Date(`${entry.data}T${entry.cor}:00`).toISOString() : null,
+      time: tvooDec,
       day_time: tdiaDec,
       night_hours: tnoitDec,
-      night_time_hours: nightHours,
-      night_time_minutes: nightMinutes,
       total_time: totalDec,
-      ifr_count: ifrDec,
-      landings: parseInt(entry.pousos) || 0,
+      ifr_time: ifrDec,
+      pousos: parseInt(entry.pousos) || 0,
       fuel_added: parseFloat(entry.abast) || 0,
       fuel_liters: parseFloat(entry.fuel) || 0,
-      cell_after: parseFloat(entry.ctm) || 0,
-      pic_canac: entry.pic,
-      sic_canac: entry.sic,
+      celula: parseFloat(entry.ctm) || 0,
+      pic_canac: picMember?.id || null,
+      sic_canac: sicMember?.id || null,
       daily_rate: parseFloat(entry.diarias) || 0,
       extras: entry.extras,
-      flight_number: entry.voo_para,
+      client_id: entry.voo_para || null,
       confirmed: entry.confere,
     } as Record<string, any>;
 
@@ -375,8 +376,8 @@ export default function DiarioBordoDetalhes() {
       .from('logbook_months')
       .update({
         is_closed: true,
-        closed_by: (await supabase.auth.getUser()).data.user?.id,
-        closed_at: new Date().toISOString(),
+        confirmed_by: (await supabase.auth.getUser()).data.user?.id,
+        confirmed_at: new Date().toISOString(),
       })
       .eq('id', logbookMonth.id);
 
@@ -407,8 +408,8 @@ export default function DiarioBordoDetalhes() {
 
   const monthName = MONTHS[parseInt(selectedMonth) - 1];
   const isClosed = logbookMonth?.is_closed;
-  const cellStart = logbookMonth?.cell_hours_start || 0;
-  const cellEnd = logbookMonth?.cell_hours_end || 0;
+  const cellStart = logbookMonth?.celula_anterior || 0;
+  const cellEnd = logbookMonth?.celula_atual || 0;
   const cellPrev = Math.ceil(cellEnd / 10) * 10;
   const cellDisp = Math.max(0, Number((cellPrev - cellEnd).toFixed(2)));
 
@@ -416,25 +417,28 @@ export default function DiarioBordoDetalhes() {
 
   return (
     <Layout>
-      <div className="container mx-auto p-6 space-y-4">
-        <div className="flex items-center justify-between">
+      <div className="container mx-auto p-6 space-y-6">
+        <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/diario-bordo')}>
+            <Button variant="ghost" size="icon" onClick={() => navigate('/diario-bordo')} className="hover:bg-cyan-50">
               <ArrowLeft className="h-5 w-5" />
             </Button>
             {company?.logo_url && (
-              <img src={company.logo_url} alt={company.name || 'Logo'} className="h-8 w-auto" />
+              <img src={company.logo_url} alt={company.name || 'Logo'} className="h-10 w-auto" />
             )}
-            <h1 className="text-2xl font-bold">
-              DIÁRIO {monthName} {selectedYear} {aircraft?.registration}
-            </h1>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-800">
+                DIÁRIO {monthName} {selectedYear}
+              </h1>
+              <p className="text-lg text-cyan-600 font-semibold">{aircraft?.registration}</p>
+            </div>
             {isClosed && (
-              <span className="px-3 py-1 bg-red-500 text-white text-sm font-bold rounded">FECHADO</span>
+              <span className="px-4 py-1.5 bg-red-500 text-white text-sm font-bold rounded-full shadow-md">FECHADO</span>
             )}
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Select value={selectedMonth} onValueChange={setSelectedMonth} disabled={isClosed && !canEditClosed}>
-              <SelectTrigger className="w-32">
+              <SelectTrigger className="w-36 border-cyan-300 focus:ring-cyan-500">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -446,7 +450,7 @@ export default function DiarioBordoDetalhes() {
               </SelectContent>
             </Select>
             <Select value={selectedYear} onValueChange={setSelectedYear} disabled={isClosed && !canEditClosed}>
-              <SelectTrigger className="w-24">
+              <SelectTrigger className="w-28 border-cyan-300 focus:ring-cyan-500">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -458,338 +462,345 @@ export default function DiarioBordoDetalhes() {
               </SelectContent>
             </Select>
             {canAddOrEdit && (
-              <Button onClick={addNewRow}>
+              <Button onClick={addNewRow} className="bg-cyan-600 hover:bg-cyan-700 text-white shadow-md">
                 <Plus className="h-4 w-4 mr-2" />
                 Adicionar Trecho
               </Button>
             )}
             {!isClosed && canConfirm && entries.length > 0 && (
-              <Button onClick={closeMonth} variant="destructive">
+              <Button onClick={closeMonth} variant="destructive" className="shadow-md">
                 Fechar Diário
               </Button>
             )}
           </div>
         </div>
 
-        <Card className="p-6 bg-gradient-to-br from-blue-700 to-blue-900 border-0 rounded-md shadow-lg">
-          <div className="grid grid-cols-2 gap-6 text-sm text-white">
-            <div className="space-y-1">
-              <div className="font-bold">AERONAVE: <span className="font-normal">{aircraft?.registration}</span></div>
-              <div className="font-bold">MODELO: <span className="font-normal">{aircraft?.model}</span></div>
-              <div className="font-bold">CONS. MÉD: <span className="font-normal">{aircraft?.fuel_consumption} L/H</span></div>
+        <Card className="p-6 bg-gradient-to-br from-cyan-500 to-cyan-700 border-0 rounded-lg shadow-xl">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-white">
+            <div className="space-y-2">
+              <div className="text-lg font-bold border-b border-cyan-300 pb-2 mb-3">INFORMAÇÕES DA AERONAVE</div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="font-semibold">AERONAVE:</div>
+                <div className="font-bold text-lg">{aircraft?.registration}</div>
+                <div className="font-semibold">MODELO:</div>
+                <div>{aircraft?.model}</div>
+                <div className="font-semibold">CONS. MÉD:</div>
+                <div className="font-bold">{aircraft?.fuel_consumption} L/H</div>
+              </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <div className="text-green-300 font-bold mb-2">ANTER.:</div>
-                <div className="text-2xl font-bold">{cellStart.toFixed(1)} H</div>
-              </div>
-              <div className="space-y-1">
-                <div className="text-green-300 font-bold mb-2">ATUAL:</div>
-                <div className="text-2xl font-bold">{cellEnd.toFixed(1)} H</div>
-              </div>
-              <div className="space-y-1">
-                <div className="text-red-300 font-bold mb-2">PREV.:</div>
-                <div className="text-2xl font-bold text-red-300">{cellPrev.toFixed(1)} H</div>
-              </div>
-              <div className="space-y-1">
-                <div className="text-red-400 font-bold mb-2">DISP.:</div>
-                <div className="text-2xl font-bold text-red-400">{cellDisp.toFixed(1)} H</div>
+            <div>
+              <div className="text-lg font-bold border-b border-cyan-300 pb-2 mb-3">HORAS DE CÉLULA</div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-white/20 rounded-lg p-3 backdrop-blur-sm">
+                  <div className="text-cyan-100 font-semibold text-sm mb-1">ANTERIOR:</div>
+                  <div className="text-2xl font-bold">{cellStart.toFixed(1)} H</div>
+                </div>
+                <div className="bg-white/20 rounded-lg p-3 backdrop-blur-sm">
+                  <div className="text-cyan-100 font-semibold text-sm mb-1">ATUAL:</div>
+                  <div className="text-2xl font-bold">{cellEnd.toFixed(1)} H</div>
+                </div>
+                <div className="bg-orange-500/30 rounded-lg p-3 backdrop-blur-sm border border-orange-300">
+                  <div className="text-orange-100 font-semibold text-sm mb-1">PREV.:</div>
+                  <div className="text-2xl font-bold text-orange-100">{cellPrev.toFixed(1)} H</div>
+                </div>
+                <div className="bg-red-500/30 rounded-lg p-3 backdrop-blur-sm border border-red-300">
+                  <div className="text-red-100 font-semibold text-sm mb-1">DISP.:</div>
+                  <div className="text-2xl font-bold text-red-100">{cellDisp.toFixed(1)} H</div>
+                </div>
               </div>
             </div>
           </div>
         </Card>
 
-        <div className="overflow-auto max-h-[60vh]">
-          <table className="w-full border-collapse border border-gray-300 text-xs">
-            <thead>
-              <tr>
-                <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)] text-white">DATA</th>
-                <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)] text-white">DE</th>
-                <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)] text-white">PARA</th>
-                <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)] text-white">AC</th>
-                <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)] text-white">DEP</th>
-                <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)] text-white">POU</th>
-                <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)] text-white">COR</th>
-                <th colSpan={4} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)] text-white">TEMPO DE VOO</th>
-                <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)] text-white">IFR</th>
-                <th rowSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)] text-white">POUSOS</th>
-                <th colSpan={2} className="border border-gray-300 p-1 bg-[rgba(1,63,18,1)] text-white">COMBUSTÍVEL</th>
-                <th colSpan={2} className="border border-gray-300 p-1 bg-[rgba(2,54,34,1)] text-white">CANAC</th>
-                <th rowSpan={2} className="border border-gray-300 p-1 bg-gray-600 text-white">DIÁRIAS</th>
-                <th colSpan={3} className="border border-gray-300 p-1 bg-[rgba(2,54,34,1)] text-white">CANAC</th>
-              </tr>
-              <tr>
-                <th className="border border-gray-300 p-1 text-[10px] bg-[rgba(4,56,88,1)] text-white">T VOO</th>
-                <th className="border border-gray-300 p-1 text-[10px] bg-[rgba(4,56,88,1)] text-white">T DIA</th>
-                <th className="border border-gray-300 p-1 text-[10px] bg-[rgba(4,56,88,1)] text-white">T NOITE</th>
-                <th className="border border-gray-300 p-1 text-[10px] bg-[rgba(4,56,88,1)] text-white">TOTAL</th>
-                <th className="border border-gray-300 p-1 text-[10px] bg-[rgba(4,56,88,1)] text-white">ABAST</th>
-                <th className="border border-gray-300 p-1 text-[10px] bg-[rgba(4,56,88,1)] text-white">FUEL</th>
-                <th className="border border-gray-300 p-1 text-[10px] bg-[rgba(4,56,88,1)] text-white">CÉLULA</th>
-                <th className="border border-gray-300 p-1 text-[10px] bg-[rgba(4,56,88,1)] text-white">PIC</th>
-                <th className="border border-gray-300 p-1 text-[10px] bg-[rgba(4,56,88,1)] text-white">SIC</th>
-                <th className="border border-gray-300 p-1 text-[10px] bg-[rgba(4,56,88,1)] text-white">DIARIAS</th>
-              </tr>
-            </thead>
-            <tbody>
-              {entries.map((entry, index) => (
-                <tr key={entry.id || index} className={newRowIndex === index ? "bg-blue-50" : ""}>
-                  <td className="border border-gray-300 p-1">
-                    <Input
-                      type="date"
-                      value={entry.data}
-                      onChange={(e) => updateEntry(index, 'data', e.target.value)}
-                      disabled={!canAddOrEdit}
-                      className="h-7 text-xs"
-                    />
-                  </td>
-                  <td className="border border-gray-300 p-1">
-                    <Input
-                      value={entry.de}
-                      onChange={(e) => updateEntry(index, 'de', e.target.value)}
-                      disabled={!canAddOrEdit}
-                      className="h-7 text-xs w-16"
-                    />
-                  </td>
-                  <td className="border border-gray-300 p-1">
-                    <Input
-                      value={entry.para}
-                      onChange={(e) => updateEntry(index, 'para', e.target.value)}
-                      disabled={!canAddOrEdit}
-                      className="h-7 text-xs w-16"
-                    />
-                  </td>
-                  <td className="border border-gray-300 p-1">
-                    <Input
-                      type="text"
-                      inputMode="numeric"
-                      placeholder="00:00"
-                      pattern="^\d{1,2}:\d{2}$"
-                      value={entry.ac}
-                      onChange={(e) => updateEntry(index, 'ac', e.target.value)}
-                      disabled={!canAddOrEdit}
-                      className="h-7 text-xs w-16"
-                    />
-                  </td>
-                  <td className="border border-gray-300 p-1">
-                    <Input
-                      type="time"
-                      value={entry.dep}
-                      onChange={(e) => updateEntry(index, 'dep', e.target.value)}
-                      disabled={!canAddOrEdit}
-                      className="h-7 text-xs w-20"
-                    />
-                  </td>
-                  <td className="border border-gray-300 p-1">
-                    <Input
-                      type="time"
-                      value={entry.pou}
-                      onChange={(e) => updateEntry(index, 'pou', e.target.value)}
-                      disabled={!canAddOrEdit}
-                      className="h-7 text-xs w-20"
-                    />
-                  </td>
-                  <td className="border border-gray-300 p-1">
-                    <Input
-                      type="text"
-                      inputMode="numeric"
-                      placeholder="00:00"
-                      pattern="^\d{1,2}:\d{2}$"
-                      value={entry.cor}
-                      onChange={(e) => updateEntry(index, 'cor', e.target.value)}
-                      disabled={!canAddOrEdit}
-                      className="h-7 text-xs w-16"
-                    />
-                  </td>
-                  <td className="border border-gray-300 p-1">
-                    <Input
-                      type="text"
-                      inputMode="numeric"
-                      placeholder="01:30"
-                      pattern="^\d{1,2}:\d{2}$"
-                      value={entry.tvoo}
-                      onChange={(e) => updateEntry(index, 'tvoo', e.target.value)}
-                      disabled={!canAddOrEdit}
-                      className="h-7 text-xs w-16"
-                    />
-                  </td>
-                  <td className="border border-gray-300 p-1">
-                    <Input
-                      type="text"
-                      inputMode="numeric"
-                      placeholder="01:30"
-                      pattern="^\d{1,2}:\d{2}$"
-                      value={entry.tdia}
-                      onChange={(e) => updateEntry(index, 'tdia', e.target.value)}
-                      disabled={!canAddOrEdit}
-                      className="h-7 text-xs w-16"
-                    />
-                  </td>
-                  <td className="border border-gray-300 p-1">
-                    <Input
-                      type="text"
-                      inputMode="numeric"
-                      placeholder="01:30"
-                      pattern="^\d{1,2}:\d{2}$"
-                      value={entry.tnoit}
-                      onChange={(e) => updateEntry(index, 'tnoit', e.target.value)}
-                      disabled={!canAddOrEdit}
-                      className="h-7 text-xs w-16"
-                    />
-                  </td>
-                  <td className="border border-gray-300 p-1">
-                    <Input
-                      type="text"
-                      inputMode="numeric"
-                      placeholder="01:30"
-                      pattern="^\d{1,2}:\d{2}$"
-                      value={entry.total}
-                      onChange={(e) => updateEntry(index, 'total', e.target.value)}
-                      disabled={!canAddOrEdit}
-                      className="h-7 text-xs w-16"
-                    />
-                  </td>
-                  <td className="border border-gray-300 p-1">
-                    <Input
-                      type="text"
-                      inputMode="numeric"
-                      placeholder="00:00"
-                      pattern="^\d{1,2}:\d{2}$"
-                      value={entry.ifr}
-                      onChange={(e) => updateEntry(index, 'ifr', e.target.value)}
-                      disabled={!canAddOrEdit}
-                      className="h-7 text-xs w-16"
-                    />
-                  </td>
-                  <td className="border border-gray-300 p-1">
-                    <Input
-                      type="number"
-                      value={entry.pousos}
-                      onChange={(e) => updateEntry(index, 'pousos', e.target.value)}
-                      disabled={!canAddOrEdit}
-                      className="h-7 text-xs w-12"
-                    />
-                  </td>
-                  <td className="border border-gray-300 p-1">
-                    <Input
-                      type="number"
-                      step="0.1"
-                      value={entry.abast}
-                      onChange={(e) => updateEntry(index, 'abast', e.target.value)}
-                      disabled={!canAddOrEdit}
-                      className="h-7 text-xs w-16"
-                    />
-                  </td>
-                  <td className="border border-gray-300 p-1">
-                    <Input
-                      type="number"
-                      step="0.1"
-                      value={entry.fuel}
-                      onChange={(e) => updateEntry(index, 'fuel', e.target.value)}
-                      disabled={!canAddOrEdit}
-                      className="h-7 text-xs w-16"
-                    />
-                  </td>
-                  <td className="border border-gray-300 p-1">
-                    <Input
-                      type="number"
-                      step="0.1"
-                      value={entry.ctm}
-                      onChange={(e) => updateEntry(index, 'ctm', e.target.value)}
-                      disabled={!canAddOrEdit}
-                      className="h-7 text-xs w-16"
-                    />
-                  </td>
-                  <td className="border border-gray-300 p-1">
-                    <Input
-                      value={entry.pic}
-                      onChange={(e) => updateEntry(index, 'pic', e.target.value)}
-                      disabled={!canAddOrEdit}
-                      list="crew-canac-list"
-                      placeholder="CANAC"
-                      className="h-7 text-xs w-20"
-                    />
-                  </td>
-                  <td className="border border-gray-300 p-1">
-                    <Input
-                      value={entry.sic}
-                      onChange={(e) => updateEntry(index, 'sic', e.target.value)}
-                      disabled={!canAddOrEdit}
-                      list="crew-canac-list"
-                      placeholder="CANAC"
-                      className="h-7 text-xs w-20"
-                    />
-                  </td>
-                  <td className="border border-gray-300 p-1 text-center">
-                    <input
-                      type="checkbox"
-                      checked={Number(entry.diarias) === 1}
-                      onChange={(e) => updateEntry(index, 'diarias', e.target.checked ? '1' : '0')}
-                      disabled={!canAddOrEdit}
-                      className="h-4 w-4"
-                      aria-label="Diária PIC"
-                      title="Marque para contabilizar 1 diária para o PIC"
-                    />
-                  </td>
-                  <td className="border border-gray-300 p-1">
-                    <Input
-                      value={entry.extras}
-                      onChange={(e) => updateEntry(index, 'extras', e.target.value)}
-                      disabled={!canAddOrEdit}
-                      className="h-7 text-xs w-20"
-                    />
-                  </td>
-                  <td className="border border-gray-300 p-1">
-                    <Select
-                      value={entry.voo_para || undefined}
-                      onValueChange={(val) => updateEntry(index, 'voo_para', val === '__none__' ? '' : val)}
-                      disabled={!canAddOrEdit}
-                    >
-                      <SelectTrigger className="h-7 text-xs w-full">
-                        <SelectValue placeholder="-" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-popover text-popover-foreground">
-                        <SelectItem value="__none__">Sem cliente</SelectItem>
-                        {clients?.map((client) => (
-                          <SelectItem key={client.id} value={client.id}>
-                            {client.company_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </td>
-                  <td className="border border-gray-300 p-1 text-center">
-                    {newRowIndex === index ? (
-                      <Button
-                        size="sm"
-                        onClick={() => saveEntry(index)}
-                        className="h-7 px-2"
-                      >
-                        Salvar
-                      </Button>
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant={entry.confere ? "default" : "outline"}
-                        onClick={() => toggleConfirm(index)}
-                        disabled={!canConfirm || (isClosed && !canEditClosed)}
-                        className="h-7 w-7 p-0"
-                      >
-                        {entry.confere && <Check className="h-4 w-4" />}
-                      </Button>
-                    )}
-                  </td>
+        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+          <div className="overflow-auto max-h-[60vh]">
+            <table className="w-full border-collapse text-xs">
+              <thead className="sticky top-0 z-10">
+                <tr>
+                  <th rowSpan={2} className="border border-gray-300 p-2 bg-[rgb(0,206,209)] text-white font-bold">DATA</th>
+                  <th rowSpan={2} className="border border-gray-300 p-2 bg-[rgb(0,206,209)] text-white font-bold">DE</th>
+                  <th rowSpan={2} className="border border-gray-300 p-2 bg-[rgb(0,206,209)] text-white font-bold">PARA</th>
+                  <th rowSpan={2} className="border border-gray-300 p-2 bg-[rgb(0,206,209)] text-white font-bold">AC</th>
+                  <th rowSpan={2} className="border border-gray-300 p-2 bg-[rgb(0,206,209)] text-white font-bold">DEP</th>
+                  <th rowSpan={2} className="border border-gray-300 p-2 bg-[rgb(0,206,209)] text-white font-bold">POU</th>
+                  <th rowSpan={2} className="border border-gray-300 p-2 bg-[rgb(0,206,209)] text-white font-bold">COR</th>
+                  <th colSpan={4} className="border border-gray-300 p-2 bg-[rgb(0,206,209)] text-white font-bold">TEMPO DE VOO</th>
+                  <th rowSpan={2} className="border border-gray-300 p-2 bg-[rgb(0,206,209)] text-white font-bold">IFR</th>
+                  <th rowSpan={2} className="border border-gray-300 p-2 bg-[rgb(0,206,209)] text-white font-bold">POUSOS</th>
+                  <th colSpan={2} className="border border-gray-300 p-2 bg-[rgb(0,206,209)] text-white font-bold">COMBUSTÍVEL</th>
+                  <th rowSpan={2} className="border border-gray-300 p-2 bg-[rgb(0,206,209)] text-white font-bold">CÉLULA</th>
+                  <th colSpan={2} className="border border-gray-300 p-2 bg-cyan-700 text-white font-bold">TRIPULAÇÃO</th>
+                  <th rowSpan={2} className="border border-gray-300 p-2 bg-gray-600 text-white font-bold">DIÁRIAS</th>
+                  <th rowSpan={2} className="border border-gray-300 p-2 bg-cyan-700 text-white font-bold">EXTRAS</th>
+                  <th rowSpan={2} className="border border-gray-300 p-2 bg-cyan-700 text-white font-bold">VOO PARA</th>
+                  <th rowSpan={2} className="border border-gray-300 p-2 bg-cyan-800 text-white font-bold">✓</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-          <datalist id="crew-canac-list">
-            {crewMembers?.map(crew => (
-              <option key={crew.canac} value={crew.canac}>{crew.full_name} - {crew.canac}</option>
-            ))}
-          </datalist>
+                <tr>
+                  <th className="border border-gray-300 p-1.5 text-[10px] bg-cyan-600 text-white font-semibold">T VOO</th>
+                  <th className="border border-gray-300 p-1.5 text-[10px] bg-cyan-600 text-white font-semibold">T DIA</th>
+                  <th className="border border-gray-300 p-1.5 text-[10px] bg-cyan-600 text-white font-semibold">T NOITE</th>
+                  <th className="border border-gray-300 p-1.5 text-[10px] bg-cyan-600 text-white font-semibold">TOTAL</th>
+                  <th className="border border-gray-300 p-1.5 text-[10px] bg-cyan-600 text-white font-semibold">ABAST</th>
+                  <th className="border border-gray-300 p-1.5 text-[10px] bg-cyan-600 text-white font-semibold">FUEL</th>
+                  <th className="border border-gray-300 p-1.5 text-[10px] bg-cyan-600 text-white font-semibold">PIC</th>
+                  <th className="border border-gray-300 p-1.5 text-[10px] bg-cyan-600 text-white font-semibold">SIC</th>
+                </tr>
+              </thead>
+              <tbody>
+                {entries.map((entry, index) => (
+                  <tr key={entry.id || index} className={`${newRowIndex === index ? "bg-cyan-50" : index % 2 === 0 ? "bg-gray-50" : "bg-white"} hover:bg-cyan-50 transition-colors`}>
+                    <td className="border border-gray-300 p-1">
+                      <Input
+                        type="date"
+                        value={entry.data}
+                        onChange={(e) => updateEntry(index, 'data', e.target.value)}
+                        disabled={!canAddOrEdit}
+                        className="h-7 text-xs w-28 border-cyan-200 focus:border-cyan-500"
+                      />
+                    </td>
+                    <td className="border border-gray-300 p-1">
+                      <Input
+                        value={entry.de}
+                        onChange={(e) => updateEntry(index, 'de', e.target.value)}
+                        disabled={!canAddOrEdit}
+                        className="h-7 text-xs w-16 border-cyan-200 focus:border-cyan-500"
+                      />
+                    </td>
+                    <td className="border border-gray-300 p-1">
+                      <Input
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="01:30"
+                        pattern="^\d{1,2}:\d{2}$"
+                        value={entry.tdia}
+                        onChange={(e) => updateEntry(index, 'tdia', e.target.value)}
+                        disabled={!canAddOrEdit}
+                        className="h-7 text-xs w-16 border-cyan-200 focus:border-cyan-500"
+                      />
+                    </td>
+                    <td className="border border-gray-300 p-1">
+                      <Input
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="01:30"
+                        pattern="^\d{1,2}:\d{2}$"
+                        value={entry.tnoit}
+                        onChange={(e) => updateEntry(index, 'tnoit', e.target.value)}
+                        disabled={!canAddOrEdit}
+                        className="h-7 text-xs w-16 border-cyan-200 focus:border-cyan-500"
+                      />
+                    </td>
+                    <td className="border border-gray-300 p-1">
+                      <Input
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="01:30"
+                        pattern="^\d{1,2}:\d{2}$"
+                        value={entry.total}
+                        onChange={(e) => updateEntry(index, 'total', e.target.value)}
+                        disabled={!canAddOrEdit}
+                        className="h-7 text-xs w-16 border-cyan-200 focus:border-cyan-500"
+                      />
+                    </td>
+                    <td className="border border-gray-300 p-1">
+                      <Input
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="00:00"
+                        pattern="^\d{1,2}:\d{2}$"
+                        value={entry.ifr}
+                        onChange={(e) => updateEntry(index, 'ifr', e.target.value)}
+                        disabled={!canAddOrEdit}
+                        className="h-7 text-xs w-16 border-cyan-200 focus:border-cyan-500"
+                      />
+                    </td>
+                    <td className="border border-gray-300 p-1">
+                      <Input
+                        type="number"
+                        value={entry.pousos}
+                        onChange={(e) => updateEntry(index, 'pousos', e.target.value)}
+                        disabled={!canAddOrEdit}
+                        className="h-7 text-xs w-12 border-cyan-200 focus:border-cyan-500"
+                      />
+                    </td>
+                    <td className="border border-gray-300 p-1">
+                      <Input
+                        type="number"
+                        step="0.1"
+                        value={entry.abast}
+                        onChange={(e) => updateEntry(index, 'abast', e.target.value)}
+                        disabled={!canAddOrEdit}
+                        className="h-7 text-xs w-16 border-cyan-200 focus:border-cyan-500"
+                      />
+                    </td>
+                    <td className="border border-gray-300 p-1">
+                      <Input
+                        type="number"
+                        step="0.1"
+                        value={entry.fuel}
+                        onChange={(e) => updateEntry(index, 'fuel', e.target.value)}
+                        disabled={!canAddOrEdit}
+                        className="h-7 text-xs w-16 border-cyan-200 focus:border-cyan-500"
+                      />
+                    </td>
+                    <td className="border border-gray-300 p-1">
+                      <Input
+                        type="number"
+                        step="0.1"
+                        value={entry.ctm}
+                        onChange={(e) => updateEntry(index, 'ctm', e.target.value)}
+                        disabled={!canAddOrEdit}
+                        className="h-7 text-xs w-16 border-cyan-200 focus:border-cyan-500"
+                      />
+                    </td>
+                    <td className="border border-gray-300 p-1">
+                      <Input
+                        value={entry.pic}
+                        onChange={(e) => updateEntry(index, 'pic', e.target.value)}
+                        disabled={!canAddOrEdit}
+                        list="crew-canac-list"
+                        placeholder="CANAC"
+                        className="h-7 text-xs w-20 border-cyan-200 focus:border-cyan-500"
+                      />
+                    </td>
+                    <td className="border border-gray-300 p-1">
+                      <Input
+                        value={entry.sic}
+                        onChange={(e) => updateEntry(index, 'sic', e.target.value)}
+                        disabled={!canAddOrEdit}
+                        list="crew-canac-list"
+                        placeholder="CANAC"
+                        className="h-7 text-xs w-20 border-cyan-200 focus:border-cyan-500"
+                      />
+                    </td>
+                    <td className="border border-gray-300 p-1 text-center">
+                      <input
+                        type="checkbox"
+                        checked={Number(entry.diarias) === 1}
+                        onChange={(e) => updateEntry(index, 'diarias', e.target.checked ? '1' : '0')}
+                        disabled={!canAddOrEdit}
+                        className="h-4 w-4 accent-cyan-600"
+                        aria-label="Diária PIC"
+                        title="Marque para contabilizar 1 diária para o PIC"
+                      />
+                    </td>
+                    <td className="border border-gray-300 p-1">
+                      <Input
+                        value={entry.extras}
+                        onChange={(e) => updateEntry(index, 'extras', e.target.value)}
+                        disabled={!canAddOrEdit}
+                        className="h-7 text-xs w-20 border-cyan-200 focus:border-cyan-500"
+                      />
+                    </td>
+                    <td className="border border-gray-300 p-1">
+                      <Select
+                        value={entry.voo_para || undefined}
+                        onValueChange={(val) => updateEntry(index, 'voo_para', val === '__none__' ? '' : val)}
+                        disabled={!canAddOrEdit}
+                      >
+                        <SelectTrigger className="h-7 text-xs w-full border-cyan-200 focus:ring-cyan-500">
+                          <SelectValue placeholder="-" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-popover text-popover-foreground">
+                          <SelectItem value="__none__">Sem cliente</SelectItem>
+                          {clients?.map((client) => (
+                            <SelectItem key={client.id} value={client.id}>
+                              {client.company_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </td>
+                    <td className="border border-gray-300 p-1 text-center">
+                      {newRowIndex === index ? (
+                        <Button
+                          size="sm"
+                          onClick={() => saveEntry(index)}
+                          className="h-7 px-3 bg-cyan-600 hover:bg-cyan-700"
+                        >
+                          Salvar
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant={entry.confere ? "default" : "outline"}
+                          onClick={() => toggleConfirm(index)}
+                          disabled={!canConfirm || (isClosed && !canEditClosed)}
+                          className={`h-7 w-7 p-0 ${entry.confere ? 'bg-cyan-600 hover:bg-cyan-700' : 'border-cyan-300 hover:bg-cyan-50'}`}
+                        >
+                          {entry.confere && <Check className="h-4 w-4" />}
+                        </Button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
+
+        <datalist id="crew-canac-list">
+          {crewMembers?.map(crew => (
+            <option key={crew.canac} value={crew.canac}>{crew.full_name} - {crew.canac}</option>
+          ))}
+        </datalist>
       </div>
     </Layout>
   );
-}
+} border - cyan - 500"
+  />
+                    </td >
+                    <td className="border border-gray-300 p-1">
+                      <Input
+                        value={entry.para}
+                        onChange={(e) => updateEntry(index, 'para', e.target.value)}
+                        disabled={!canAddOrEdit}
+                        className="h-7 text-xs w-16 border-cyan-200 focus:border-cyan-500"
+                      />
+                    </td>
+                    <td className="border border-gray-300 p-1">
+                      <Input
+                        type="time"
+                        value={entry.ac}
+                        onChange={(e) => updateEntry(index, 'ac', e.target.value)}
+                        disabled={!canAddOrEdit}
+                        className="h-7 text-xs w-20 border-cyan-200 focus:border-cyan-500"
+                      />
+                    </td>
+                    <td className="border border-gray-300 p-1">
+                      <Input
+                        type="time"
+                        value={entry.dep}
+                        onChange={(e) => updateEntry(index, 'dep', e.target.value)}
+                        disabled={!canAddOrEdit}
+                        className="h-7 text-xs w-20 border-cyan-200 focus:border-cyan-500"
+                      />
+                    </td>
+                    <td className="border border-gray-300 p-1">
+                      <Input
+                        type="time"
+                        value={entry.pou}
+                        onChange={(e) => updateEntry(index, 'pou', e.target.value)}
+                        disabled={!canAddOrEdit}
+                        className="h-7 text-xs w-20 border-cyan-200 focus:border-cyan-500"
+                      />
+                    </td>
+                    <td className="border border-gray-300 p-1">
+                      <Input
+                        type="time"
+                        value={entry.cor}
+                        onChange={(e) => updateEntry(index, 'cor', e.target.value)}
+                        disabled={!canAddOrEdit}
+                        className="h-7 text-xs w-20 border-cyan-200 focus:border-cyan-500"
+                      />
+                    </td>
+                    <td className="border border-gray-300 p-1">
+                      <Input
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="01:30"
+                        pattern="^\d{1,2}:\d{2}$"
+                        value={entry.tvoo}
+                        onChange={(e) => updateEntry(index, 'tvoo', e.target.value)}
+                        disabled={!canAddOrEdit}
+                        className="h-7 text-xs w-16 border-cyan-200 focus:
