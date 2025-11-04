@@ -138,7 +138,8 @@ export default function PortalCliente() {
 
       setClients(mapped);
     } catch (error) {
-      console.error('Error loading clients:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('Error loading clients:', errorMessage, error);
       toast.error('Erro ao carregar clientes');
     } finally {
       setLoading(false);
