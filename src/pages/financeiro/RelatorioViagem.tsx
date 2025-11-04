@@ -324,44 +324,25 @@ const TravelReports = () => {
     return `REL${String(maxNumber + 1).padStart(3, '0')}/${yy}`;
   };
 
-  // Buscar próximo número no banco/histórico e garantir unicidade por cliente e ano
+  // Usar a função RPC generate_travel_report_number do banco
   const allocateReportNumber = async (cliente: string) => {
-    const yy = String(new Date().getFullYear()).slice(-2);
     try {
-      try {
-        const rpcRes: any = await (supabase as any).rpc('generate_report_number', { p_cliente: cliente, p_year: yy });
-        if (!rpcRes?.error && rpcRes?.data) return rpcRes.data as string;
-      } catch {}
-      let max = 0;
-      try {
-        const { data: rows } = await (supabase as any)
-          .from('travel_reports')
-          .select('report_number, client_name')
-          .eq('client_name', cliente);
-        (rows || []).forEach((r:any)=>{
-          const raw = String(r?.report_number || '');
-          const yearSuffix = (raw.match(/\/(\d{2})\b/) || [null, null])[1];
-          if (yearSuffix && yearSuffix !== yy) return;
-          const m = raw.match(/REL\s*(\d+)/i);
-          if (m) max = Math.max(max, parseInt(m[1]));
-        });
-      } catch {}
-      try {
-        const { data: hist } = await (supabase as any)
-          .from('travel_report_history')
-          .select('numero_relatorio, cliente')
-          .eq('cliente', cliente);
-        (hist || []).forEach((h:any)=>{
-          const raw = String(h?.numero_relatorio || '');
-          const yearSuffix = (raw.match(/\/(\d{2})\b/) || [null, null])[1];
-          if (yearSuffix && yearSuffix !== yy) return;
-          const m = raw.match(/REL\s*(\d+)/i);
-          if (m) max = Math.max(max, parseInt(m[1]));
-        });
-      } catch {}
-      const next = `REL${String(max + 1).padStart(3, '0')}/${yy}`;
-      return next;
-    } catch {
+      const { data, error } = await (supabase as any).rpc('generate_travel_report_number', {
+        p_client_name: cliente
+      });
+
+      if (error) {
+        console.error('Erro ao gerar número via RPC:', error);
+        return generateReportNumberLocal(cliente);
+      }
+
+      if (data) {
+        return data as string;
+      }
+
+      return generateReportNumberLocal(cliente);
+    } catch (e) {
+      console.error('Erro ao chamar RPC generate_travel_report_number:', e);
       return generateReportNumberLocal(cliente);
     }
   };
