@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DollarSign, Building, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Layout } from "@/components/layout/Layout";
 
 export default function CompanySettings() { // Renomeado para refletir o foco
   const [companyConfig, setCompanyConfig] = useState({
@@ -301,7 +302,7 @@ export default function CompanySettings() { // Renomeado para refletir o foco
                 </div>
               </div>
               <Button 
-                onClick={saveCompanySettings} 
+  ��             onClick={saveCompanySettings} 
                 className="w-full bg-primary hover:bg-primary/90"
                 disabled={uploadingLogo}
               >
