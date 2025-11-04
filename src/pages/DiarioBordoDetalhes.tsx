@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatDecimalHoursToHHMM, parseHHMMToDecimal, formatMinutesToHHMM } from "@/lib/utils";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const MONTHS = [
   "JANEIRO", "FEVEREIRO", "MARÇO", "ABRIL", "MAIO", "JUNHO",
@@ -57,6 +58,10 @@ export default function DiarioBordoDetalhes() {
   );
   const [entries, setEntries] = useState<LogbookEntry[]>([]);
   const [newRowIndex, setNewRowIndex] = useState<number | null>(null);
+  const [deSearchOpen, setDeSearchOpen] = useState<number | null>(null);
+  const [paraSearchOpen, setParaSearchOpen] = useState<number | null>(null);
+  const [deSearchValue, setDeSearchValue] = useState('');
+  const [paraSearchValue, setParaSearchValue] = useState('');
 
   const canEdit = roles.some(role =>
     role === "admin" || role === "piloto_chefe" || role === "gestor_master" || role === "operacoes" || role === "tripulante"
@@ -142,6 +147,18 @@ export default function DiarioBordoDetalhes() {
     },
   });
 
+  const { data: aerodromes } = useQuery({
+    queryKey: ['aerodromes'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('aerodromes')
+        .select('id, icao_code, name')
+        .order('icao_code', { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+  });
+
   useEffect(() => {
     setSearchParams({ month: selectedMonth, year: selectedYear });
   }, [selectedMonth, selectedYear, setSearchParams]);
@@ -184,10 +201,10 @@ export default function DiarioBordoDetalhes() {
         data: entry.entry_date,
         de: entry.departure_aerodrome || '',
         para: entry.arrival_aerodrome || '',
-        ac: entry.ac_time ? new Date(entry.ac_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '',
-        dep: entry.dep_time ? new Date(entry.dep_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '',
-        pou: entry.pou_time ? new Date(entry.pou_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '',
-        cor: entry.cor_time ? new Date(entry.cor_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '',
+        ac: entry.ac_time ? new Date(entry.ac_time).toISOString().substring(11, 16) : '',
+        dep: entry.dep_time ? new Date(entry.dep_time).toISOString().substring(11, 16) : '',
+        pou: entry.pou_time ? new Date(entry.pou_time).toISOString().substring(11, 16) : '',
+        cor: entry.cor_time ? new Date(entry.cor_time).toISOString().substring(11, 16) : '',
         tvoo: formatDecimalHoursToHHMM(timeValue),
         tdia: formatDecimalHoursToHHMM(dayTimeValue),
         tnoit: formatDecimalHoursToHHMM(nightHoursValue),
