@@ -89,6 +89,96 @@ export default function GestaoFuncionarios() {
     setIsEditing(false); // Sempre desativa a edição ao selecionar
   };
 
+  // Buscar usuários autenticados do Supabase (menos admin)
+  const fetchAuthenticatedUsers = async () => {
+    setLoadingAuthUsers(true);
+    try {
+      const { data: users, error } = await supabase.auth.admin.listUsers();
+
+      if (error) throw error;
+
+      // Filtrar usuários: remover admins e aqueles que já têm perfil de funcionário
+      const filteredUsers = users?.users?.filter((user: any) => {
+        const isAdmin = user.user_metadata?.roles?.includes('admin');
+        return !isAdmin;
+      }) || [];
+
+      setAuthenticatedUsers(filteredUsers);
+    } catch (error) {
+      console.error("Erro ao buscar usuários autenticados:", error);
+      toast({
+        title: "Erro ao buscar usuários",
+        description: "Não foi possível carregar a lista de usuários autenticados",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingAuthUsers(false);
+    }
+  };
+
+  // Criar funcionário a partir de usuário autenticado
+  const createEmployeeFromAuthUser = async (authUser: any, role: AppRole) => {
+    try {
+      // Buscar dados do perfil do usuário no Supabase se existir
+      const { data: existingProfile } = await supabase
+        .from("user_profiles")
+        .select("*")
+        .eq("id", authUser.id)
+        .single();
+
+      let userId = authUser.id;
+
+      if (!existingProfile) {
+        // Criar novo perfil se não existir
+        const { data: newProfile, error: profileError } = await supabase
+          .from("user_profiles")
+          .insert({
+            id: authUser.id,
+            email: authUser.email,
+            full_name: authUser.user_metadata?.full_name || authUser.email.split("@")[0],
+            display_name: authUser.user_metadata?.full_name || authUser.email.split("@")[0],
+            employment_status: "ativo",
+            is_authenticated_user: true,
+          })
+          .select()
+          .single();
+
+        if (profileError) throw profileError;
+        userId = newProfile.id;
+      }
+
+      // Verificar se já tem role
+      const { data: existingRoles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId);
+
+      if (!existingRoles || existingRoles.length === 0) {
+        const { error: roleError } = await supabase
+          .from("user_roles")
+          .insert({ user_id: userId, role });
+
+        if (roleError) throw roleError;
+      }
+
+      toast({
+        title: "Funcionário criado com sucesso!",
+        description: `Perfil criado para ${authUser.email}`,
+      });
+
+      setShowAuthUserSelection(false);
+      setSelectedAuthUser(null);
+      setAuthenticatedUsers([]);
+      queryClient.invalidateQueries({ queryKey: ["employees"] });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao criar funcionário",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   // Preencher o formulário de edição ao iniciar
   const startEditing = () => {
     if (selectedEmployee) {
