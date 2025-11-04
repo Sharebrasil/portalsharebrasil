@@ -822,6 +822,109 @@ export default function GestaoFuncionarios() {
     );
   };
 
+  // Componente para seleção de usuário autenticado
+  const AuthUserSelectionComponent = () => {
+    const [selectedRole, setSelectedRole] = useState<AppRole>("tripulante");
+
+    return (
+      <>
+        <CardHeader>
+          <CardTitle>Associar Usuário Autenticado</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Selecione um usuário autenticado para criar um perfil de funcionário
+            </p>
+
+            {loadingAuthUsers ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <Label>Usuários Disponíveis</Label>
+                  <ScrollArea className="h-[300px] border rounded-lg p-3">
+                    <div className="space-y-2">
+                      {authenticatedUsers.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-4">
+                          Nenhum usuário autenticado disponível
+                        </p>
+                      ) : (
+                        authenticatedUsers.map((user: any) => (
+                          <div
+                            key={user.id}
+                            className={`p-3 border rounded-lg cursor-pointer transition-smooth ${
+                              selectedAuthUser?.id === user.id
+                                ? "bg-primary/10 border-primary"
+                                : "hover:bg-accent border-border"
+                            }`}
+                            onClick={() => setSelectedAuthUser(user)}
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <p className="font-medium text-sm">{user.email}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {user.user_metadata?.full_name || "Sem nome"}
+                                </p>
+                              </div>
+                              <input
+                                type="radio"
+                                checked={selectedAuthUser?.id === user.id}
+                                onChange={() => setSelectedAuthUser(user)}
+                                className="mt-1"
+                              />
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </ScrollArea>
+                </div>
+
+                {selectedAuthUser && (
+                  <div className="space-y-2">
+                    <Label htmlFor="auth_role">Função *</Label>
+                    <Select value={selectedRole} onValueChange={(value) => setSelectedRole(value as AppRole)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {APP_ROLE_VALUES.filter((role) => ROLES_TO_DISPLAY.includes(role)).map((role) => (
+                          <SelectItem key={role} value={role}>
+                            {ROLE_LABELS[role]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                <div className="flex gap-2 pt-4">
+                  <Button
+                    onClick={() => {
+                      if (selectedAuthUser) {
+                        createEmployeeFromAuthUser(selectedAuthUser, selectedRole);
+                      }
+                    }}
+                    disabled={!selectedAuthUser}
+                  >
+                    <UserPlus className="mr-2 h-4 w-4" />
+                    Criar Funcionário
+                  </Button>
+                  <Button variant="outline" onClick={() => setShowAuthUserSelection(false)}>
+                    Cancelar
+                  </Button>
+                </div>
+              </>
+            )}
+          </div>
+        </CardContent>
+      </>
+    );
+  };
+
   return (
     <Layout>
       <div className="p-6 space-y-6">
