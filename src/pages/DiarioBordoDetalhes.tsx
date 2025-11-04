@@ -465,14 +465,81 @@ export default function DiarioBordoDetalhes() {
   if (!logbookMonth) {
     return (
       <Layout>
-        <div className="container mx-auto p-6">
+        <div className="container mx-auto p-6 space-y-6">
           <div className="flex items-center gap-4 mb-6">
             <Button variant="ghost" size="icon" onClick={() => navigate('/diario-bordo')}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <h1 className="text-2xl font-bold">Diário de Bordo não encontrado</h1>
+            <div>
+              <h1 className="text-2xl font-bold">Diário de Bordo não encontrado</h1>
+              <p className="text-muted-foreground mt-1">Selecione um mês/ano que tenha diário criado ou crie um novo</p>
+            </div>
           </div>
-          <p>Crie um diário de bordo para este ano e aeronave.</p>
+
+          <Card className="p-6">
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-lg font-semibold mb-4">Selecionar Mês e Ano</h2>
+                <div className="flex gap-4 mb-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="month-select">Mês</Label>
+                    <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                      <SelectTrigger className="w-48">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {MONTHS.map((month, idx) => (
+                          <SelectItem key={idx} value={String(idx + 1)}>
+                            {month}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="year-select">Ano</Label>
+                    <Select value={selectedYear} onValueChange={setSelectedYear}>
+                      <SelectTrigger className="w-48">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - 5 + i).map(year => (
+                          <SelectItem key={year} value={String(year)}>
+                            {year}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <Button onClick={() => refetchMonth()} className="bg-cyan-600 hover:bg-cyan-700">
+                  Buscar Diário
+                </Button>
+              </div>
+
+              <div className="border-t pt-6">
+                <h2 className="text-lg font-semibold mb-4">Criar Novo Diário</h2>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Se o diário para {MONTHS[parseInt(selectedMonth) - 1]}/{selectedYear} não existe, você pode criá-lo agora.
+                </p>
+                <Button
+                  onClick={() => setCreateLogbookOpen(true)}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  Criar Novo Diário de Bordo
+                </Button>
+              </div>
+            </div>
+          </Card>
+
+          <CreateLogbookDialog
+            open={createLogbookOpen}
+            onOpenChange={setCreateLogbookOpen}
+            aircraft={allAircraft || []}
+            initialAircraftId={aircraftId}
+            initialYear={parseInt(selectedYear)}
+            initialMonth={parseInt(selectedMonth)}
+          />
         </div>
       </Layout>
     );
