@@ -59,25 +59,6 @@ export default function MinhasTarefas() {
     setLoadingTasks(false);
   };
 
-  const fetchNotifications = async () => {
-    // Task notifications table doesn't exist yet - skip for now
-    setNotifications([]);
-  };
-
-  const markNotificationAsRead = async (id: string) => {
-    const { error } = await supabase
-      .from("task_notifications")
-      .update({ read: true })
-      .eq("id", id);
-
-    if (error) {
-      console.error("Erro ao marcar notificação como lida:", error);
-      toast.error("Não foi possível marcar a notificação");
-      return;
-    }
-
-    void fetchNotifications();
-  };
 
   const handleEdit = (task: Task) => {
     setEditingTask(task);
