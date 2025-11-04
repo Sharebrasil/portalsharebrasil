@@ -655,16 +655,28 @@ export default function Clientes() {
                 {viewingCliente.inscricao_estadual && (
                   <div><span className="text-muted-foreground">Inscrição Estadual:</span> {viewingCliente.inscricao_estadual}</div>
                 )}
-                {viewingCliente.aircraft && (
+                {viewingCliente.aircraft_ownerships && viewingCliente.aircraft_ownerships.length > 0 ? (
+                  <div>
+                    <span className="text-muted-foreground block mb-2">Aeronaves e Sociedade:</span>
+                    <div className="space-y-1">
+                      {viewingCliente.aircraft_ownerships.map((ownership, idx) => (
+                        <div key={idx} className="flex justify-between items-center p-2 bg-muted rounded">
+                          <span>{ownership.aircraft_registration} - {ownership.aircraft_model}</span>
+                          <Badge variant="secondary">{ownership.ownership_percentage}%</Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : viewingCliente.aircraft ? (
                   <div><span className="text-muted-foreground">Aeronave:</span> {viewingCliente.aircraft}</div>
-                )}
+                ) : null}
                 {viewingCliente.observations && (
                   <div>
                     <span className="text-muted-foreground">Observações:</span>
                     <p className="mt-1 whitespace-pre-wrap">{viewingCliente.observations}</p>
                   </div>
                 )}
-                {!viewingCliente.inscricao_estadual && !viewingCliente.aircraft && !viewingCliente.observations && (
+                {!viewingCliente.inscricao_estadual && !viewingCliente.aircraft_ownerships?.length && !viewingCliente.aircraft && !viewingCliente.observations && (
                   <p className="text-muted-foreground">Nenhuma informação adicional.</p>
                 )}
               </CardContent>
