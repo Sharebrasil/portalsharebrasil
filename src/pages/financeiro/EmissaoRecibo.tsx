@@ -372,41 +372,43 @@ export default function EmissaoRecibo() {
       font: bold
     });
 
-    // --- 2. BLOCO DE VALOR (CANTO SUPERIOR DIREITO) ---
-    const PAD_X = 6;
-    const PAD_Y = 4;
-    const valueStr = formatBRL(amountNum);
-    const valueW = bold.widthOfTextAtSize(valueStr, 10);
-    const labelStr = "Número do recibo:";
-    const labelW = font.widthOfTextAtSize(labelStr, 7);
-    const recW = font.widthOfTextAtSize(recNumber, 7);
-    const contentW = Math.max(valueW, labelW, recW);
-    const contentH = 10 /*value*/ + 2 + 7 /*label*/ + 2 + 7 /*rec*/;
-    const BOX_WIDTH = contentW + PAD_X * 2;
-    const BOX_HEIGHT = contentH + PAD_Y * 2;
-    const BOX_X = width - MARGIN_X - BOX_WIDTH; // Alinha à direita
-    const BOX_Y_BOTTOM = TOP_Y_START - BOX_HEIGHT; // Caixa rente ao conteúdo
+    // Value box on right
+    const valueBox = {
+      width: 110,
+      height: 50,
+      x: width - MARGIN - 110,
+      y: y - 50
+    };
 
-    // Caixa (Retângulo)
     page.drawRectangle({
-      x: BOX_X,
-      y: BOX_Y_BOTTOM,
-      width: BOX_WIDTH,
-      height: BOX_HEIGHT,
-      borderColor: rgb(0.7, 0.7, 0.7),
-      borderWidth: 1,
-      color: rgb(0.95, 0.95, 0.95)
+      x: valueBox.x,
+      y: valueBox.y,
+      width: valueBox.width,
+      height: valueBox.height,
+      borderColor: rgb(0.6, 0.6, 0.6),
+      borderWidth: 1
     });
 
-    // Valor
-    let ty = TOP_Y_START - PAD_Y - 10; // topo dentro da caixa
-    page.drawText(valueStr, { x: BOX_X + PAD_X, y: ty, size: 10, font: bold });
-    ty -= 12;
-    // Rótulo do recibo
-    page.drawText(labelStr, { x: BOX_X + PAD_X, y: ty, size: 7, font });
-    ty -= 9;
-    // Número do recibo
-    page.drawText(recNumber, { x: BOX_X + PAD_X, y: ty, size: 7, font });
+    page.drawText(formatBRL(amountNum), {
+      x: valueBox.x + 10,
+      y: valueBox.y + 30,
+      size: 12,
+      font: bold
+    });
+
+    page.drawText("Número do recibo:", {
+      x: valueBox.x + 10,
+      y: valueBox.y + 18,
+      size: 7,
+      font
+    });
+
+    page.drawText(recNumber, {
+      x: valueBox.x + 10,
+      y: valueBox.y + 8,
+      size: 8,
+      font
+    });
 
     // --- 3. BLOCO DE INFORMAÇÕES (EMISSOR E PAGADOR) ---
     // Começa abaixo dos elementos do topo (Ex: abaixo da caixa de valor, com um espaçamento)
