@@ -185,35 +185,38 @@ export default function AgendaPage() {
         const normalizedTerm = term?.trim();
         const likePattern = normalizedTerm ? `%${normalizedTerm}%` : undefined;
 
-        const contactsQuery = supabase
+        let contactsQuery = supabase
           .from("contacts")
-          .select("id,name,phone,email,company_name,position,notes,created_at,updated_at,category,address,city,type")
-          .order("name", { ascending: true });
+          .select("id,name,phone,email,company_name,position,notes,created_at,updated_at,category,address,city,type");
 
         if (likePattern) {
-          contactsQuery.or(
+          contactsQuery = contactsQuery.or(
             `name.ilike.${likePattern},company_name.ilike.${likePattern},phone.ilike.${likePattern},email.ilike.${likePattern},city.ilike.${likePattern}`
           );
         }
 
-        const hotelsQuery = supabase
+        contactsQuery = contactsQuery.order("name", { ascending: true });
+
+        let hotelsQuery = supabase
           .from("hoteis")
-          .select("*")
-          .order("nome", { ascending: true });
+          .select("*");
 
         if (likePattern) {
-          hotelsQuery.or(`nome.ilike.${likePattern},cidade.ilike.${likePattern},telefone.ilike.${likePattern}`);
+          hotelsQuery = hotelsQuery.or(`nome.ilike.${likePattern},cidade.ilike.${likePattern},telefone.ilike.${likePattern}`);
         }
 
-        const clientsQuery = supabase
+        hotelsQuery = hotelsQuery.order("nome", { ascending: true });
+
+        let clientsQuery = supabase
           .from("clients")
           .select("id,cnpj,observations,created_at,updated_at,company_name,address,phone,email,city,uf,status,aircraft_id")
-          .eq("status", "ativo")
-          .order("company_name", { ascending: true });
+          .eq("status", "ativo");
 
         if (likePattern) {
-          clientsQuery.or(`company_name.ilike.${likePattern},phone.ilike.${likePattern},email.ilike.${likePattern},city.ilike.${likePattern}`);
+          clientsQuery = clientsQuery.or(`company_name.ilike.${likePattern},phone.ilike.${likePattern},email.ilike.${likePattern},city.ilike.${likePattern}`);
         }
+
+        clientsQuery = clientsQuery.order("company_name", { ascending: true });
 
         const [contactsResult, hotelsResult, clientsResult] = await Promise.all([contactsQuery, hotelsQuery, clientsQuery]);
 
