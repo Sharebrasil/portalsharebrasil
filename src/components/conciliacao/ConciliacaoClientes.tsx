@@ -3,10 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CheckCircle, Clock, Send, Users, Trash2 } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { CheckCircle, Clock, Send, Users, Trash2, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { StatusUpdateDialog } from "./StatusUpdateDialog";
 import { useUserRole } from "@/hooks/useUserRole";
+import { toast } from "sonner";
 
 interface ClientReconciliation {
   id: string;
@@ -26,6 +28,7 @@ interface ClientReconciliation {
 export function ConciliacaoClientes() {
   const [reconciliations, setReconciliations] = useState<ClientReconciliation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState('');
@@ -39,6 +42,7 @@ export function ConciliacaoClientes() {
 
   const loadReconciliations = async () => {
     setLoading(true);
+    setError(null);
     const { data, error } = await supabase
       .from('client_reconciliations')
       .select(`
@@ -48,7 +52,12 @@ export function ConciliacaoClientes() {
       .order('created_at', { ascending: false });
 
     if (error) {
+      const errorMessage = error.message || 'Falha ao carregar conciliações. Tente novamente.';
       console.error('Erro ao carregar conciliações:', error);
+      setError(errorMessage);
+      toast.error('Erro', {
+        description: errorMessage
+      });
     } else {
       setReconciliations(data || []);
     }
@@ -108,9 +117,14 @@ export function ConciliacaoClientes() {
     if (!confirmed) return;
     const { error } = await supabase.from('client_reconciliations').delete().eq('id', id);
     if (error) {
+      const errorMessage = error.message || 'Falha ao excluir conciliação.';
       console.error('Erro ao excluir conciliação:', error);
+      toast.error('Erro', {
+        description: errorMessage
+      });
       return;
     }
+    toast.success('Conciliação excluída com sucesso');
     await loadReconciliations();
   };
 
@@ -122,6 +136,12 @@ export function ConciliacaoClientes() {
 
   return (
     <div className="space-y-6">
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardContent className="p-4">

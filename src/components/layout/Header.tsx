@@ -16,7 +16,7 @@ import { UserFormDialog, type UserFormSubmitValues } from "@/components/admin/Us
 import { WeatherDisplay } from "@/components/weather/WeatherDisplay";
 
 const NotificationBell = lazy(() =>
-  import("@/components/notifications/NotificationBell").then(m => ({ default: m.NotificationBell }))
+  import("@/components/notifications/NotificationBell")
 );
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";

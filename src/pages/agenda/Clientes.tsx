@@ -40,6 +40,13 @@ interface ClientDocument {
   uploaded_at: string;
 }
 
+interface AircraftOwnership {
+  aircraft_id: string;
+  aircraft_registration?: string;
+  aircraft_model?: string;
+  ownership_percentage: number;
+}
+
 interface Cliente {
   id: string;
   company_name: string;
@@ -55,6 +62,7 @@ interface Cliente {
   cnpj_card_url?: string;
   aircraft?: string;
   aircraft_id?: string | null;
+  aircraft_ownerships?: AircraftOwnership[];
   logo_url?: string;
   documents?: ClientDocument[];
   status?: string | null;
@@ -104,6 +112,7 @@ export default function Clientes() {
     aircraft_id: "",
     status: "ativo",
   });
+  const [aircraftOwnerships, setAircraftOwnerships] = useState<AircraftOwnership[]>([]);
   const [aircraftOptions, setAircraftOptions] = useState<AircraftOption[]>([]);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -128,6 +137,7 @@ export default function Clientes() {
       const mapped: Cliente[] = ((data as any[]) || []).map((row: any) => ({
         ...row,
         aircraft: row.aircraft ? `${row.aircraft.registration} - ${row.aircraft.model}` : undefined,
+        aircraft_ownerships: row.aircraft_ownerships || [],
       }));
       setClientes(mapped);
     } catch (error) {
@@ -176,6 +186,7 @@ export default function Clientes() {
         aircraft_id: cliente.aircraft_id || "",
         status: (cliente.status as string | null) ?? "ativo",
       });
+      setAircraftOwnerships(cliente.aircraft_ownerships || []);
       setLogoPreview(cliente.logo_url || null);
     } else {
       setEditingCliente(null);
@@ -193,6 +204,7 @@ export default function Clientes() {
         aircraft_id: "",
         status: "ativo",
       });
+      setAircraftOwnerships([]);
       setLogoPreview(null);
     }
     setLogoFile(null);
@@ -203,6 +215,30 @@ export default function Clientes() {
   const handleCloseDialog = () => {
     setIsDialogOpen(false);
     setEditingCliente(null);
+    setAircraftOwnerships([]);
+  };
+
+  const addAircraftOwnership = () => {
+    setAircraftOwnerships([...aircraftOwnerships, { aircraft_id: "", ownership_percentage: 0 }]);
+  };
+
+  const removeAircraftOwnership = (index: number) => {
+    setAircraftOwnerships(aircraftOwnerships.filter((_, i) => i !== index));
+  };
+
+  const updateAircraftOwnership = (index: number, field: string, value: any) => {
+    const updated = [...aircraftOwnerships];
+    updated[index] = { ...updated[index], [field]: value };
+
+    if (field === 'aircraft_id') {
+      const aircraft = aircraftOptions.find(a => a.id === value);
+      if (aircraft) {
+        updated[index].aircraft_registration = aircraft.registration;
+        updated[index].aircraft_model = aircraft.model;
+      }
+    }
+
+    setAircraftOwnerships(updated);
   };
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -287,6 +323,7 @@ export default function Clientes() {
         financial_contact: formData.financial_contact,
         observations: formData.observations,
         aircraft_id: formData.aircraft_id || null,
+        aircraft_ownerships: aircraftOwnerships,
         status: (formData as any).status ?? "ativo",
         logo_url: logoUrl,
         documents: [...existingDocs, ...newDocs],
@@ -618,16 +655,28 @@ export default function Clientes() {
                 {viewingCliente.inscricao_estadual && (
                   <div><span className="text-muted-foreground">Inscrição Estadual:</span> {viewingCliente.inscricao_estadual}</div>
                 )}
-                {viewingCliente.aircraft && (
+                {viewingCliente.aircraft_ownerships && viewingCliente.aircraft_ownerships.length > 0 ? (
+                  <div>
+                    <span className="text-muted-foreground block mb-2">Aeronaves e Sociedade:</span>
+                    <div className="space-y-1">
+                      {viewingCliente.aircraft_ownerships.map((ownership, idx) => (
+                        <div key={idx} className="flex justify-between items-center p-2 bg-muted rounded">
+                          <span>{ownership.aircraft_registration} - {ownership.aircraft_model}</span>
+                          <Badge variant="secondary">{ownership.ownership_percentage}%</Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : viewingCliente.aircraft ? (
                   <div><span className="text-muted-foreground">Aeronave:</span> {viewingCliente.aircraft}</div>
-                )}
+                ) : null}
                 {viewingCliente.observations && (
                   <div>
                     <span className="text-muted-foreground">Observações:</span>
                     <p className="mt-1 whitespace-pre-wrap">{viewingCliente.observations}</p>
                   </div>
                 )}
-                {!viewingCliente.inscricao_estadual && !viewingCliente.aircraft && !viewingCliente.observations && (
+                {!viewingCliente.inscricao_estadual && !viewingCliente.aircraft_ownerships?.length && !viewingCliente.aircraft && !viewingCliente.observations && (
                   <p className="text-muted-foreground">Nenhuma informação adicional.</p>
                 )}
               </CardContent>
@@ -804,20 +853,77 @@ export default function Clientes() {
                 />
               </div>
 
-              <div>
-                <Label htmlFor="aircraft_id">Aeronave</Label>
-                <Select value={formData.aircraft_id} onValueChange={(v) => setFormData({ ...formData, aircraft_id: v })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione a aeronave" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {aircraftOptions.map((a) => (
-                      <SelectItem key={a.id} value={a.id}>
-                        {a.registration} - {a.model}
-                      </SelectItem>
+              <div className="col-span-2">
+                <div className="flex items-center justify-between mb-3">
+                  <Label>Aeronaves e Percentual de Sociedade</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={addAircraftOwnership}
+                    className="flex items-center gap-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Adicionar Aeronave
+                  </Button>
+                </div>
+
+                {aircraftOwnerships.length === 0 ? (
+                  <div className="p-4 border border-dashed rounded-lg text-center text-muted-foreground">
+                    Nenhuma aeronave adicionada. Clique em "Adicionar Aeronave" para começar.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {aircraftOwnerships.map((ownership, index) => (
+                      <div key={index} className="flex items-end gap-3 p-3 border rounded-lg bg-muted/50">
+                        <div className="flex-1">
+                          <Label className="text-xs text-muted-foreground mb-1 block">Aeronave</Label>
+                          <Select
+                            value={ownership.aircraft_id}
+                            onValueChange={(v) => updateAircraftOwnership(index, 'aircraft_id', v)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione a aeronave" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {aircraftOptions.map((a) => (
+                                <SelectItem key={a.id} value={a.id}>
+                                  {a.registration} - {a.model}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="w-32">
+                          <Label className="text-xs text-muted-foreground mb-1 block">Percentual (%)</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={ownership.ownership_percentage}
+                            onChange={(e) => updateAircraftOwnership(index, 'ownership_percentage', parseFloat(e.target.value) || 0)}
+                            placeholder="0"
+                            className="text-center"
+                          />
+                        </div>
+
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => removeAircraftOwnership(index)}
+                          className="h-9 w-9 p-0"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
                     ))}
-                  </SelectContent>
-                </Select>
+                    <div className="text-xs text-muted-foreground mt-2 p-2 bg-blue-50 rounded border border-blue-200">
+                      Total: {aircraftOwnerships.reduce((sum, a) => sum + (a.ownership_percentage || 0), 0).toFixed(1)}%
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div>
