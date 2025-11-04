@@ -62,7 +62,6 @@ const menuGroups = [
         isExpandable: true,
         subItems: [
           { title: "Conciliação Bancária", href: "/financeiro/conciliacao" },
-          { title: "Config. Empresa", href: "/financeiro/config" },
           { title: "Emissão de Recibo", href: "/financeiro/recibo" },
           { title: "Relatório de Viagem", href: "/financeiro/viagem" },
           { title: "Solicitação de Compras/Serviço", href: "/financeiro/compras" },
@@ -86,6 +85,16 @@ const menuGroups = [
         title: "Recados",
         icon: MessageSquare,
         href: "/recados",
+      },
+    ],
+  },
+  {
+    title: "Configurações",
+    items: [
+      {
+        title: "Empresa",
+        icon: Building,
+        href: "/configuracoes/empresa",
       },
     ],
   },
