@@ -84,27 +84,36 @@ export default function Agendamentos() {
   const [selectedAircraft, setSelectedAircraft] = useState("all");
   const [statusTab, setStatusTab] = useState<"pendentes" | "todos">("todos");
 
-  const { data: schedules, isLoading, refetch } = useQuery({
+  const { data: schedules, isLoading, refetch, error: queryError } = useQuery({
     queryKey: ["flight-schedules", selectedAircraft],
     queryFn: async () => {
-      let query = supabase
-        .from("flight_schedules")
-        .select(`
-          *,
-          aircraft:aircraft_id(registration, model),
-          client:client_id(company_name),
-          crew:crew_member_id(full_name)
-        `)
-        .order("flight_date", { ascending: false })
-        .order("flight_time", { ascending: false });
+      try {
+        let query = supabase
+          .from("flight_schedules")
+          .select(`
+            *,
+            aircraft:aircraft_id(registration, model),
+            client:client_id(company_name),
+            crew:crew_member_id(full_name)
+          `)
+          .order("flight_date", { ascending: false })
+          .order("flight_time", { ascending: false });
 
-      if (selectedAircraft !== "all") {
-        query = query.eq("aircraft_id", selectedAircraft);
+        if (selectedAircraft !== "all") {
+          query = query.eq("aircraft_id", selectedAircraft);
+        }
+
+        const { data, error } = await query;
+        if (error) {
+          console.error("Query error details:", error);
+          throw error;
+        }
+        console.log("Schedules loaded:", data);
+        return data;
+      } catch (error) {
+        console.error("Error fetching schedules:", error);
+        throw error;
       }
-      
-      const { data, error } = await query;
-      if (error) throw error;
-      return data;
     },
   });
 
