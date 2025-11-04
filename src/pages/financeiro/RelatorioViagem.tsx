@@ -1440,13 +1440,13 @@ const TravelReports = () => {
             </div>
           </div>
 
-          <h2 className="text-lg font-semibold border-b pb-2 pt-4 flex items-center"><DollarSign size={18} className="mr-2 text-green-600" /> Despesas ({currentReport.despesas.length})</h2>
+          <h2 className="text-lg font-semibold border-b pb-2 pt-4 flex items-center text-gray-100 border-gray-700"><DollarSign size={18} className="mr-2 text-green-500" /> Despesas ({currentReport.despesas.length})</h2>
           
           <div className="space-y-4">
             {currentReport.despesas.map((despesa, index) => (
               <div key={index} className="border p-4 rounded-lg bg-gray-900 relative">
                 <div className="absolute top-2 right-2 flex space-x-2">
-                  <button onClick={() => removeDespesa(index)} className="p-1 rounded-full text-red-500 hover:bg-red-100">
+                  <button onClick={() => removeDespesa(index)} className="p-1 rounded-full text-red-500 hover:bg-red-900">
                     <Trash2 size={18} />
                   </button>
                 </div>
@@ -1544,7 +1544,7 @@ const TravelReports = () => {
             <span>Finalizar</span>
           </button>
 
-          <h2 className="text-lg font-semibold border-b pb-2 pt-4 flex items-center"><Clock size={18} className="mr-2 text-red-600" /> Resumo e Totais</h2>
+          <h2 className="text-lg font-semibold border-b pb-2 pt-4 flex items-center text-gray-100 border-gray-700"><Clock size={18} className="mr-2 text-red-500" /> Resumo e Totais</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="border p-4 rounded-lg bg-gray-900 shadow-sm border-gray-700">
               <h3 className="text-md font-bold mb-2 text-blue-300">Totais por Categoria</h3>
@@ -1568,7 +1568,7 @@ const TravelReports = () => {
             </div>
           </div>
 
-          <div className="flex justify-end space-x-4 border-t pt-4">
+          <div className="flex justify-end space-x-4 border-t border-gray-700 pt-4">
             <button onClick={() => saveReport('draft')} disabled={isGeneratingPdf} className="flex items-center space-x-1 p-2 bg-yellow-400 text-white rounded-md hover:bg-yellow-500 disabled:opacity-50">
               <Save size={20} />
               <span>Salvar Rascunho</span>
