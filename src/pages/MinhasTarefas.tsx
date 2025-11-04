@@ -32,10 +32,8 @@ interface TaskNotification {
 
 export default function MinhasTarefas() {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [notifications, setNotifications] = useState<TaskNotification[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [showNotifications, setShowNotifications] = useState(false);
   const [loadingTasks, setLoadingTasks] = useState(false);
 
   useEffect(() => {
