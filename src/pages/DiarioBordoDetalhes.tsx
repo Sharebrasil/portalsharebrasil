@@ -410,6 +410,33 @@ export default function DiarioBordoDetalhes() {
     toast.success(newConfirmStatus ? "Entrada confirmada" : "Confirmação removida");
   };
 
+  const openNextMonth = async () => {
+    const nextMonth = parseInt(selectedMonth) + 1;
+    if (nextMonth > 12) {
+      toast.error("Não há próximo mês disponível");
+      return;
+    }
+
+    // Verificar se já existe diário para o próximo mês
+    const { data: existingNextMonth } = await supabase
+      .from('logbook_months')
+      .select('id')
+      .eq('aircraft_id', aircraftId)
+      .eq('year', parseInt(selectedYear))
+      .eq('month', nextMonth)
+      .maybeSingle();
+
+    if (existingNextMonth) {
+      // Se já existe, apenas navegar para ele
+      setSelectedMonth(nextMonth.toString());
+      setShowNextMonthDialog(false);
+    } else {
+      // Se não existe, mostrar diálogo para criar com dados do mês anterior
+      setCreateLogbookOpen(true);
+      setShowNextMonthDialog(false);
+    }
+  };
+
   const closeMonth = async () => {
     if (!logbookMonth) return;
     if (!canConfirm) {
