@@ -40,6 +40,13 @@ interface ClientDocument {
   uploaded_at: string;
 }
 
+interface AircraftOwnership {
+  aircraft_id: string;
+  aircraft_registration?: string;
+  aircraft_model?: string;
+  ownership_percentage: number;
+}
+
 interface Cliente {
   id: string;
   company_name: string;
@@ -55,6 +62,7 @@ interface Cliente {
   cnpj_card_url?: string;
   aircraft?: string;
   aircraft_id?: string | null;
+  aircraft_ownerships?: AircraftOwnership[];
   logo_url?: string;
   documents?: ClientDocument[];
   status?: string | null;
@@ -104,6 +112,7 @@ export default function Clientes() {
     aircraft_id: "",
     status: "ativo",
   });
+  const [aircraftOwnerships, setAircraftOwnerships] = useState<AircraftOwnership[]>([]);
   const [aircraftOptions, setAircraftOptions] = useState<AircraftOption[]>([]);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -176,6 +185,7 @@ export default function Clientes() {
         aircraft_id: cliente.aircraft_id || "",
         status: (cliente.status as string | null) ?? "ativo",
       });
+      setAircraftOwnerships(cliente.aircraft_ownerships || []);
       setLogoPreview(cliente.logo_url || null);
     } else {
       setEditingCliente(null);
@@ -193,6 +203,7 @@ export default function Clientes() {
         aircraft_id: "",
         status: "ativo",
       });
+      setAircraftOwnerships([]);
       setLogoPreview(null);
     }
     setLogoFile(null);
@@ -203,6 +214,30 @@ export default function Clientes() {
   const handleCloseDialog = () => {
     setIsDialogOpen(false);
     setEditingCliente(null);
+    setAircraftOwnerships([]);
+  };
+
+  const addAircraftOwnership = () => {
+    setAircraftOwnerships([...aircraftOwnerships, { aircraft_id: "", ownership_percentage: 0 }]);
+  };
+
+  const removeAircraftOwnership = (index: number) => {
+    setAircraftOwnerships(aircraftOwnerships.filter((_, i) => i !== index));
+  };
+
+  const updateAircraftOwnership = (index: number, field: string, value: any) => {
+    const updated = [...aircraftOwnerships];
+    updated[index] = { ...updated[index], [field]: value };
+
+    if (field === 'aircraft_id') {
+      const aircraft = aircraftOptions.find(a => a.id === value);
+      if (aircraft) {
+        updated[index].aircraft_registration = aircraft.registration;
+        updated[index].aircraft_model = aircraft.model;
+      }
+    }
+
+    setAircraftOwnerships(updated);
   };
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
