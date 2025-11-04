@@ -73,6 +73,7 @@ export default function GestaoDeTripulacao() {
   const [isLicenseDialogOpen, setIsLicenseDialogOpen] = useState(false);
   const [editingLicense, setEditingLicense] = useState<CrewLicense | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [showInactive, setShowInactive] = useState(false);
   useEffect(() => {
     loadCrewMembers();
   }, []);
@@ -207,7 +208,18 @@ export default function GestaoDeTripulacao() {
     });
     if (selectedCrew) loadCrewDetails(selectedCrew.id);
   };
-  const filteredCrewMembers = crewMembers.filter(crew => crew.full_name.toLowerCase().includes(searchTerm.toLowerCase()) || crew.canac.toLowerCase().includes(searchTerm.toLowerCase()));
+  const isActive = (status?: string) => {
+    const s = String(status ?? '').toLowerCase();
+    return s === 'active' || s === 'ativo' || s === '';
+  };
+
+  const filteredCrewMembers = crewMembers.filter(crew =>
+    crew.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    crew.canac.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const activeCrewMembers = filteredCrewMembers.filter(crew => isActive(crew.status));
+  const inactiveCrewMembers = filteredCrewMembers.filter(crew => !isActive(crew.status));
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return 'N/A';
     return new Date(dateStr).toLocaleDateString('pt-BR');
