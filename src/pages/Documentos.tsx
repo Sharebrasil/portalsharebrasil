@@ -70,16 +70,21 @@ export default function Documentos() {
       query = query.eq("parent_folder_id", currentFolder);
     }
 
-    const { data, error } = await query
-      .order("type", { ascending: false })
-      .order("name", { ascending: true });
+    const { data, error } = await query.order("name", { ascending: true });
 
     if (error) {
       toast.error("Erro ao carregar documentos");
       return;
     }
 
-    setDocuments((data || []) as FlightDocument[]);
+    const sortedDocuments = ((data || []) as FlightDocument[]).sort((a, b) => {
+      if (a.type !== b.type) {
+        return (b.type || '').localeCompare(a.type || '');
+      }
+      return (a.name || '').localeCompare(b.name || '');
+    });
+
+    setDocuments(sortedDocuments);
   }, [currentFolder]);
 
   useEffect(() => {
