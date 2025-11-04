@@ -280,11 +280,11 @@ export default function DiarioBordoDetalhes() {
 
     const entry = entries[index];
 
-    const tvooDec = parseHHMMToDecimal(entry.tvoo);
-    const tnoitDec = parseHHMMToDecimal(entry.tnoit);
-    const tdiaDec = parseHHMMToDecimal(entry.tdia);
-    const totalDec = parseHHMMToDecimal(entry.total) || tvooDec;
-    const ifrDec = parseHHMMToDecimal(entry.ifr);
+    const tvooDec = parseFloat(entry.tvoo) || 0;
+    const tnoitDec = parseFloat(entry.tnoit) || 0;
+    const tdiaDec = parseFloat(entry.tdia) || 0;
+    const totalDec = parseFloat(entry.total) || tvooDec;
+    const ifrDec = parseFloat(entry.ifr) || 0;
 
     const picMember = crewMembers?.find(c => c.canac === entry.pic);
     const sicMember = crewMembers?.find(c => c.canac === entry.sic);
