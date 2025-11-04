@@ -292,50 +292,77 @@ const GestaoSalarios = () => {
           <TabsContent value="salaries" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Salários Vigentes (Funcionários Ativos)</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex justify-end mb-4">
-                  <Button variant="default">
-                    <Save className="h-4 w-4 mr-2" />
-                    Salvar Alterações
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Salários Vigentes</CardTitle>
+                    <p className="text-sm text-muted-foreground mt-1">Gerencie salários, benefícios e informações de funcionários</p>
+                  </div>
+                  <Button onClick={() => handleOpenSalaryDialog()} className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    Adicionar Salário
                   </Button>
                 </div>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Funcionário</TableHead>
-                      <TableHead>Salário Bruto (R$)</TableHead>
-                      <TableHead>Salário Líquido (R$)</TableHead>
-                      <TableHead>Benefícios</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {(salaries as any[]).map((salary) => {
-                      const crewMember = (crewMembers as any[]).find((c) => c.user_id === salary.user_id);
-                      return (
-                        <TableRow key={salary.id}>
-                          <TableCell>
-                            <div>
+              </CardHeader>
+              <CardContent>
+                {(salaries as any[]).length === 0 ? (
+                  <div className="text-center py-12">
+                    <DollarSign className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">Nenhum salário cadastrado</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Funcionário</TableHead>
+                        <TableHead>Cargo</TableHead>
+                        <TableHead>Salário Bruto</TableHead>
+                        <TableHead>Salário Líquido</TableHead>
+                        <TableHead>Benefícios</TableHead>
+                        <TableHead className="w-24">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {(salaries as any[]).map((salary) => {
+                        const crewMember = (crewMembers as any[]).find((c) => c.user_id === salary.user_id);
+                        return (
+                          <TableRow key={salary.id}>
+                            <TableCell>
                               <div className="font-semibold">{crewMember?.full_name || "N/A"}</div>
-                              <div className="text-sm text-muted-foreground">{salary.position || "N/A"}</div>
-                              <div className="text-xs text-muted-foreground">{salary.department || "N/A"}</div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Input type="number" defaultValue={salary.gross_salary} className="w-32" />
-                          </TableCell>
-                          <TableCell>
-                            <Input type="number" defaultValue={salary.net_salary} className="w-32" />
-                          </TableCell>
-                          <TableCell>
-                            <Textarea defaultValue={salary.benefits || ""} className="min-h-[60px]" />
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
+                            </TableCell>
+                            <TableCell>{salary.position || "-"}</TableCell>
+                            <TableCell>
+                              <span className="font-semibold">R$ {parseFloat(salary.gross_salary || 0).toFixed(2)}</span>
+                            </TableCell>
+                            <TableCell>
+                              <span className="text-primary font-semibold">R$ {parseFloat(salary.net_salary || 0).toFixed(2)}</span>
+                            </TableCell>
+                            <TableCell>
+                              <span className="text-sm">{salary.benefits ? `✓ Sim` : "Não"}</span>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleOpenSalaryDialog(salary)}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => setDeleteId(salary.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
