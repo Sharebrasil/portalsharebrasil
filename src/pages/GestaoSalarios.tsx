@@ -141,7 +141,7 @@ const GestaoSalarios = () => {
       setDeleteId(null);
     },
     onError: (error) => {
-      console.error("Erro ao deletar salário:", error);
+      console.error("Erro ao deletar sal��rio:", error);
       toast.error("Erro ao deletar salário");
     },
   });
@@ -325,7 +325,7 @@ const GestaoSalarios = () => {
                         <TableHead>Funcionário</TableHead>
                         <TableHead>Cargo</TableHead>
                         <TableHead>Salário Bruto</TableHead>
-                        <TableHead>Sal��rio Líquido</TableHead>
+                        <TableHead>Salário Líquido</TableHead>
                         <TableHead>Benefícios</TableHead>
                         <TableHead className="w-24">Ações</TableHead>
                       </TableRow>
@@ -627,6 +627,16 @@ const GestaoSalarios = () => {
                   value={salaryForm.benefits}
                   onChange={(e) => setSalaryForm({ ...salaryForm, benefits: e.target.value })}
                   rows={3}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="effective_date">Data de Vigência</Label>
+                <Input
+                  id="effective_date"
+                  type="date"
+                  value={salaryForm.effective_date}
+                  onChange={(e) => setSalaryForm({ ...salaryForm, effective_date: e.target.value })}
                 />
               </div>
             </div>
