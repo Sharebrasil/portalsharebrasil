@@ -410,97 +410,83 @@ export default function EmissaoRecibo() {
       font
     });
 
-    // --- 3. BLOCO DE INFORMAÇÕES (EMISSOR E PAGADOR) ---
-    // Começa abaixo dos elementos do topo (Ex: abaixo da caixa de valor, com um espaçamento)
-    let y = BOX_Y_BOTTOM - 20;
-    const X_EMISSOR = MARGIN_X;
-    const X_PAGADOR = 220; // Ponto central da página para a 2ª coluna
+    y -= 80;
 
-    // Funç��o auxiliar para quebrar texto (mantida do seu código)
-    const wrapText = (text: string, maxWidth: number, fontRef: any, size: number): string[] => {
-      const words = text.split(/\s+/);
-      const lines: string[] = [];
-      let line = "";
-      for (const w of words) {
-        const test = line ? `${line} ${w}` : w;
-        const wpx = fontRef.widthOfTextAtSize(test, size);
-        if (wpx > maxWidth && line) {
-          lines.push(line);
-          line = w;
-        } else {
-          line = test;
-        }
-      }
-      if (line) lines.push(line);
-      return lines;
-    };
+    // Emitter section (left column)
+    page.drawText("Emissor", { x: MARGIN, y, size: 8, font: bold });
+    y -= 12;
 
-    // --- COLUNA DO EMISSOR (ESQUERDA) ---
-    let yEmissor = y;
-    page.drawText("Emissor", { x: X_EMISSOR, y: yEmissor, size: 9, font: bold });
-    yEmissor -= LINE_HEIGHT_SM;
+    const emitterLines = [
+      company?.name || "",
+      company?.cnpj ? `CNPJ: ${company.cnpj}` : "",
+      company?.address || "",
+      company?.city && company?.state ? `${company.city} - ${company.state}` : ""
+    ].filter(Boolean);
 
-    page.drawText(company?.name || "", { x: X_EMISSOR, y: yEmissor, size: 9, font: bold });
-    yEmissor -= LINE_HEIGHT_XS;
-
-    page.drawText(`CNPJ: ${company?.cnpj || ""}`, { x: X_EMISSOR, y: yEmissor, size: 8, font });
-
-    if (company?.phone) {
-      yEmissor -= LINE_HEIGHT_XS;
-      // Adaptação para o formato (xx) xxxxx-xxxx com base no seu código
-      page.drawText(`/ (${company.phone.substring(0, 2)}) ${company.phone.substring(2)}`, { x: X_EMISSOR, y: yEmissor, size: 8, font });
-    }
-    if (emitterAddress) {
-      yEmissor -= LINE_HEIGHT_XS;
-      page.drawText(emitterAddress, { x: X_EMISSOR, y: yEmissor, size: 8, font });
-    }
-    if (emitterCityState) {
-      yEmissor -= LINE_HEIGHT_XS;
-      page.drawText(emitterCityState, { x: X_EMISSOR, y: yEmissor, size: 8, font });
-    }
-
-    // --- COLUNA DO PAGADOR (DIREITA) ---
-    let yPagador = y;
-    page.drawText("Pagador", { x: X_PAGADOR, y: yPagador, size: 9, font: bold });
-    yPagador -= LINE_HEIGHT_SM;
-
-    const payerNameLines = wrapText(pagadorNome.toUpperCase(), 170, bold, 9);
-    payerNameLines.forEach((line, idx) => {
-      page.drawText(line, { x: X_PAGADOR, y: yPagador - (idx * LINE_HEIGHT_SM), size: 9, font: bold });
+    emitterLines.forEach(line => {
+      page.drawText(line, { x: MARGIN, y, size: 7, font });
+      y -= 10;
     });
-    yPagador -= (payerNameLines.length * LINE_HEIGHT_SM);
 
-    yPagador -= 1;
-    page.drawText(`CNPJ: ${pagadorDocumento}`, { x: X_PAGADOR, y: yPagador, size: 8, font });
+    // Payer section (right column)
+    let yPayer = height - 160;
+    const xPayer = width / 2 + 20;
 
-    // Define o ponto de início para o corpo do recibo (tabela) como o mais baixo entre Emissor e Pagador
-    let tableY = Math.min(yEmissor, yPagador) - 20;
+    page.drawText("Pagador", { x: xPayer, y: yPayer, size: 8, font: bold });
+    yPayer -= 12;
 
-    // --- CORPO DO RECIBO (TABELA E TOTAL) ---
+    page.drawText(pagadorNome.toUpperCase(), { x: xPayer, y: yPayer, size: 8, font: bold });
+    yPayer -= 10;
 
-    page.drawLine({ start: { x: MARGIN_X, y: tableY }, end: { x: width - MARGIN_X, y: tableY }, thickness: 1 });
-    tableY -= 14;
-    page.drawText("DESCRIÇÃO", { x: MARGIN_X + 5, y: tableY, size: 9, font: bold });
-    page.drawText("TOTAL", { x: width - MARGIN_X - 40, y: tableY, size: 9, font: bold });
-    tableY -= 2;
-    page.drawLine({ start: { x: MARGIN_X, y: tableY }, end: { x: width - MARGIN_X, y: tableY }, thickness: 0.5 });
-    tableY -= 14;
+    page.drawText(`CNPJ: ${pagadorDocumento}`, { x: xPayer, y: yPayer, size: 7, font });
+    yPayer -= 10;
 
-    const descMaxWidth = 300;
-    const descLines = wrapText(servico, descMaxWidth, font, 9);
-    descLines.forEach((ln, idx) => {
-      const yLine = tableY - (idx * LINE_HEIGHT_SM);
-      page.drawText(ln, { x: MARGIN_X + 5, y: yLine, size: 9, font });
+    // Table
+    y = Math.min(y, yPayer) - 30;
+    let tableY = y;
+
+    // Header line
+    page.drawLine({
+      start: { x: MARGIN, y: tableY },
+      end: { x: width - MARGIN, y: tableY },
+      thickness: 1,
+      color: rgb(0, 0, 0)
+    });
+
+    tableY -= 15;
+    page.drawText("DESCRIÇÃO", { x: MARGIN + 5, y: tableY, size: 8, font: bold });
+    page.drawText("TOTAL", { x: width - MARGIN - 60, y: tableY, size: 8, font: bold });
+
+    tableY -= 3;
+    page.drawLine({
+      start: { x: MARGIN, y: tableY },
+      end: { x: width - MARGIN, y: tableY },
+      thickness: 0.5
+    });
+
+    // Description
+    tableY -= 15;
+    const descLines = wrapText(servico, width - MARGIN * 2 - 100, font, 8);
+    descLines.forEach((line, idx) => {
+      page.drawText(line, { x: MARGIN + 5, y: tableY - (idx * 12), size: 8, font });
       if (idx === 0) {
-        page.drawText(formatBRL(amountNum), { x: width - MARGIN_X - 45, y: yLine, size: 9, font });
+        page.drawText(formatBRL(amountNum), {
+          x: width - MARGIN - 60,
+          y: tableY - (idx * 12),
+          size: 8,
+          font
+        });
       }
     });
-    tableY -= (descLines.length * LINE_HEIGHT_SM) + 10;
 
-    page.drawLine({ start: { x: MARGIN_X, y: tableY }, end: { x: width - MARGIN_X, y: tableY }, thickness: 0.5 });
-    tableY -= 14;
-    page.drawText("Total:", { x: width - MARGIN_X - 100, y: tableY, size: 9, font: bold });
-    page.drawText(formatBRL(amountNum), { x: width - MARGIN_X - 45, y: tableY, size: 9, font: bold });
+    tableY -= (descLines.length * 12) + 15;
+
+    // Total line
+    page.drawLine({
+      start: { x: MARGIN, y: tableY },
+      end: { x: width - MARGIN, y: tableY },
+      thickness: 0.5
+    });
 
     // --- OUTROS DETALHES (OBSERVAÇÕES, DECLARAÇÃO E DATA) ---
     tableY -= 25;
