@@ -616,42 +616,94 @@ export default function DiarioBordoDetalhes() {
         </div>
 
         <Card className="p-6 bg-gradient-to-br from-cyan-500 to-cyan-700 border-0 rounded-lg shadow-xl">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-white">
-            <div className="space-y-3">
-              <div className="text-lg font-bold border-b border-cyan-300 pb-2">INFORMAÇÕES DA AERONAVE</div>
-              <div className="space-y-1">
-                <div className="flex items-baseline gap-2">
-                  <span className="font-semibold">AERONAVE:</span>
-                  <span className="font-bold text-lg">{aircraft?.registration}</span>
-                </div>
-                <div className="flex items-baseline gap-2">
-                  <span className="font-semibold">MODELO:</span>
-                  <span>{aircraft?.model}</span>
-                </div>
-                <div className="flex items-baseline gap-2">
-                  <span className="font-semibold">CONS. MÉD:</span>
-                  <span className="font-bold">{aircraft?.fuel_consumption} L/H</span>
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-white">
+              <div className="space-y-3">
+                <div className="text-lg font-bold border-b border-cyan-300 pb-2">INFORMAÇÕES DA AERONAVE</div>
+                <div className="space-y-1">
+                  <div className="flex items-baseline gap-2">
+                    <span className="font-semibold">AERONAVE:</span>
+                    <span className="font-bold text-lg">{aircraft?.registration}</span>
+                  </div>
+                  <div className="flex items-baseline gap-2">
+                    <span className="font-semibold">MODELO:</span>
+                    <span>{aircraft?.model}</span>
+                  </div>
+                  <div className="flex items-baseline gap-2">
+                    <span className="font-semibold">CONS. MÉD:</span>
+                    <span className="font-bold">{aircraft?.fuel_consumption} L/H</span>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div>
-              <div className="text-lg font-bold border-b border-cyan-300 pb-2 mb-3">HORAS DE CÉLULA</div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-white/20 rounded-lg p-3 backdrop-blur-sm">
-                  <div className="text-cyan-100 font-semibold text-sm mb-1">ANTERIOR:</div>
-                  <div className="text-2xl font-bold">{cellStart.toFixed(1)} H</div>
+
+              <div className="space-y-3">
+                <div className="text-lg font-bold border-b border-cyan-300 pb-2">HORIMETRO</div>
+                <div className="space-y-2">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold">INÍCIO:</label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      value={logbookMonth?.horimetro_inicio || 0}
+                      onChange={(e) => {
+                        const newValue = parseFloat(e.target.value) || 0;
+                        // Update the local state if needed for display
+                      }}
+                      disabled={!canAddOrEdit}
+                      className="h-8 text-sm bg-white/20 border-white/50 text-white placeholder:text-white/50"
+                      placeholder="0.0"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold">FINAL:</label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      value={logbookMonth?.horimetro_final || 0}
+                      onChange={(e) => {
+                        const newValue = parseFloat(e.target.value) || 0;
+                      }}
+                      disabled={!canAddOrEdit}
+                      className="h-8 text-sm bg-white/20 border-white/50 text-white placeholder:text-white/50"
+                      placeholder="0.0"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold">ATIVO:</label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      value={logbookMonth?.horimetro_ativo || 0}
+                      onChange={(e) => {
+                        const newValue = parseFloat(e.target.value) || 0;
+                      }}
+                      disabled={!canAddOrEdit}
+                      className="h-8 text-sm bg-white/20 border-white/50 text-white placeholder:text-white/50"
+                      placeholder="0.0"
+                    />
+                  </div>
                 </div>
-                <div className="bg-white/20 rounded-lg p-3 backdrop-blur-sm">
-                  <div className="text-cyan-100 font-semibold text-sm mb-1">ATUAL:</div>
-                  <div className="text-2xl font-bold">{cellEnd.toFixed(1)} H</div>
-                </div>
-                <div className="bg-orange-500/30 rounded-lg p-3 backdrop-blur-sm border border-orange-300">
-                  <div className="text-orange-100 font-semibold text-sm mb-1">PREV.:</div>
-                  <div className="text-2xl font-bold text-orange-100">{cellPrev.toFixed(1)} H</div>
-                </div>
-                <div className="bg-red-500/30 rounded-lg p-3 backdrop-blur-sm border border-red-300">
-                  <div className="text-red-100 font-semibold text-sm mb-1">DISP.:</div>
-                  <div className="text-2xl font-bold text-red-100">{cellDisp.toFixed(1)} H</div>
+              </div>
+
+              <div>
+                <div className="text-lg font-bold border-b border-cyan-300 pb-2 mb-3">HORAS DE CÉLULA</div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-white/20 rounded-lg p-3 backdrop-blur-sm">
+                    <div className="text-cyan-100 font-semibold text-sm mb-1">ANTERIOR:</div>
+                    <div className="text-2xl font-bold">{cellStart.toFixed(1)} H</div>
+                  </div>
+                  <div className="bg-white/20 rounded-lg p-3 backdrop-blur-sm">
+                    <div className="text-cyan-100 font-semibold text-sm mb-1">ATUAL:</div>
+                    <div className="text-2xl font-bold">{cellEnd.toFixed(1)} H</div>
+                  </div>
+                  <div className="bg-orange-500/30 rounded-lg p-3 backdrop-blur-sm border border-orange-300">
+                    <div className="text-orange-100 font-semibold text-sm mb-1">PREV.:</div>
+                    <div className="text-2xl font-bold text-orange-100">{cellPrev.toFixed(1)} H</div>
+                  </div>
+                  <div className="bg-red-500/30 rounded-lg p-3 backdrop-blur-sm border border-red-300">
+                    <div className="text-red-100 font-semibold text-sm mb-1">DISP.:</div>
+                    <div className="text-2xl font-bold text-red-100">{cellDisp.toFixed(1)} H</div>
+                  </div>
                 </div>
               </div>
             </div>
