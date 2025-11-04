@@ -159,4 +159,33 @@
   .animate-plane-pulse {
     animation: plane-pulse 7s ease-in-out infinite;
   }
+
+  /* Glass and liquid UI utilities */
+  .glass {
+    background-color: rgb(255 255 255 / 6%);
+    backdrop-filter: blur(8px) saturate(120%);
+    -webkit-backdrop-filter: blur(8px) saturate(120%);
+    border: 1px solid rgb(255 255 255 / 6%);
+    box-shadow: var(--shadow-card);
+  }
+
+  .glass-strong {
+    background-color: rgb(255 255 255 / 10%);
+    backdrop-filter: blur(10px) saturate(130%);
+    -webkit-backdrop-filter: blur(10px) saturate(130%);
+    border: 1px solid rgb(255 255 255 / 10%);
+    box-shadow: var(--shadow-elevated);
+  }
+
+  .liquid-accent {
+    background: linear-gradient(90deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+    background-size: 200% 100%;
+    animation: liquid-flow 8s linear infinite;
+  }
+
+  @keyframes liquid-flow {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
 }

@@ -101,7 +101,7 @@ const menuGroups = [
   },
 ];
 
-export function Sidebar() {
+export function Sidebar({ open, onClose }: { open?: boolean; onClose?: () => void }) {
   const [expandedItems, setExpandedItems] = useState<string[]>(["Agenda", "Portal Financeiro", "Saldo Cartão"]);
 
   const toggleExpanded = (title: string) => {
@@ -113,7 +113,21 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="w-64 bg-background border-r border-border shadow-card">
+    <>
+      {/* Overlay for mobile when sidebar is open */}
+      <div
+        className={cn(
+          "fixed inset-0 bg-black/40 z-40 transition-opacity sm:hidden",
+          open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        )}
+        onClick={() => onClose && onClose()}
+      />
+
+      <aside className={cn(
+        "w-64 bg-background border-r border-border shadow-card z-50 transform transition-transform",
+        // On small screens, hide off-canvas when closed
+        open ? "translate-x-0" : "-translate-x-full sm:translate-x-0"
+      )}>
       <div className="p-4 border-b border-border bg-gradient-card">
         <h2 className="text-foreground font-semibold bg-gradient-primary bg-clip-text text-transparent">
           Menu Principal
@@ -199,5 +213,6 @@ export function Sidebar() {
         ))}
       </nav>
     </aside>
+    </>
   );
 }

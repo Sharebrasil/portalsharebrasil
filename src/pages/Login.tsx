@@ -128,8 +128,8 @@ const Login = () => {
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-2">
-            <Label htmlFor="email" className="text-sm font-medium text-white/70">
-              Email
+            <Label htmlFor="login" className="text-sm font-medium text-white/70">
+              Login
             </Label>
             <div className="relative">
               <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" />
@@ -138,7 +138,7 @@ const Login = () => {
                 type="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                placeholder="seu@email.com"
+                placeholder="seu@share"
                 autoComplete="email"
                 disabled={isSubmitting}
                 className="h-12 rounded-2xl border-transparent bg-white/5 pl-10 text-base text-white placeholder:text-white/40 focus-visible:bg-white/10 focus-visible:ring-2 focus-visible:ring-[#38d7ff] focus-visible:ring-offset-0"

@@ -1,4 +1,4 @@
-import { LogOut, User, UserPlus, Users, Briefcase } from "lucide-react"; // Importamos Users e Briefcase
+import { LogOut, User, UserPlus, Users, Briefcase, Menu } from "lucide-react"; // Importamos Users, Briefcase e Menu
 import { useCallback, useMemo, useState, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -48,7 +48,7 @@ const getInitials = (input: string | null | undefined) => {
   return `${parts[0][0] ?? ""}${parts[parts.length - 1][0] ?? ""}`.toUpperCase();
 };
 
-export function Header() {
+export function Header({ onToggleSidebar }: { onToggleSidebar?: () => void }) {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, roles, signOut } = useAuth();
@@ -105,6 +105,12 @@ export function Header() {
     <header className="h-16 bg-gradient-card border-b border-border px-4 lg:px-6 flex items-center justify-between shadow-card">
       {/* ... (Logo, GlobalSearch e NotificationBell permanecem os mesmos) ... */}
       <div className="flex items-center space-x-2 lg:space-x-4">
+        {/* Menu toggle for small screens */}
+        <div className="sm:hidden mr-2">
+          <Button variant="ghost" onClick={() => onToggleSidebar && onToggleSidebar()} aria-label="Abrir menu">
+            <Menu className="h-5 w-5" />
+          </Button>
+        </div>
         <img
           src="https://cdn.builder.io/api/v1/image/assets%2Fc800a4ee1bbb404a92b07d7f3888df82%2Fbfc4d2f155334c849630cbcdfa5ac038?format=webp&width=800"
           alt="Gestão Share Brasil"
@@ -167,7 +173,7 @@ export function Header() {
                 }}
               >
                 <Users className="mr-2 h-4 w-4" />
-                Gestão de Usuário
+                
               </DropdownMenuItem>
             )}
 
