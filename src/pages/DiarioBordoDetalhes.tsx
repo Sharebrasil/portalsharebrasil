@@ -153,14 +153,17 @@ export default function DiarioBordoDetalhes() {
   }, [logbookMonth]);
 
   const loadEntries = async () => {
-    if (!logbookMonth) return;
+    if (!logbookMonth || !aircraftId) return;
+
+    const startDate = new Date(logbookMonth.year, logbookMonth.month - 1, 1).toISOString().split('T')[0];
+    const endDate = new Date(logbookMonth.year, logbookMonth.month, 0).toISOString().split('T')[0];
 
     const { data, error } = await supabase
       .from('logbook_entries')
       .select('*')
-      .eq('aircraft_id', logbookMonth.aircraft_id)
-      .gte('flight_date', logbookMonth.start_date)
-      .lte('flight_date', logbookMonth.end_date)
+      .eq('aircraft_id', aircraftId)
+      .gte('flight_date', startDate)
+      .lte('flight_date', endDate)
       .order('flight_date', { ascending: true });
 
     if (error) {
